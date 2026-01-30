@@ -4,18 +4,25 @@ import { useState, useEffect } from 'react';
 
 interface ThinkingIndicatorProps {
   className?: string;
+  /** Custom message to display instead of rotating phrases */
+  message?: string;
 }
 
-export function ThinkingIndicator({ className = '' }: ThinkingIndicatorProps) {
+export function ThinkingIndicator({ className = '', message }: ThinkingIndicatorProps) {
   const phrases = ['Analyseren', 'Nadenken', 'Schrijven'];
   const [phraseIndex, setPhraseIndex] = useState(0);
 
   useEffect(() => {
+    // Only rotate if no custom message
+    if (message) return;
+    
     const interval = setInterval(() => {
       setPhraseIndex((prev) => (prev + 1) % phrases.length);
     }, 2000);
     return () => clearInterval(interval);
-  }, []);
+  }, [message]);
+
+  const displayText = message || `${phrases[phraseIndex]}...`;
 
   return (
     <div className={`flex items-center gap-2 text-gray-500 ${className}`}>
@@ -34,9 +41,9 @@ export function ThinkingIndicator({ className = '' }: ThinkingIndicatorProps) {
           style={{ animationDelay: '400ms', animationDuration: '600ms' }} 
         />
       </div>
-      {/* Rotating text */}
+      {/* Text */}
       <span className="text-sm text-gray-500 transition-opacity duration-300">
-        {phrases[phraseIndex]}...
+        {displayText}
       </span>
     </div>
   );

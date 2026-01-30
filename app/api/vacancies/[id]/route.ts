@@ -1,70 +1,107 @@
 import { NextResponse } from 'next/server';
-import { dummyVacancies } from '@/lib/dummy-data';
 
-// Simulate network delay
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8080';
 
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  await delay(300);
-  
-  const { id } = await params;
-  const vacancy = dummyVacancies.find(v => v.id === id);
-  
-  if (!vacancy) {
+  try {
+    const { id } = await params;
+    const response = await fetch(`${BACKEND_URL}/vacancies/${id}`);
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        return NextResponse.json(
+          { error: 'Vacancy not found' },
+          { status: 404 }
+        );
+      }
+      return NextResponse.json(
+        { error: 'Failed to fetch vacancy' },
+        { status: response.status }
+      );
+    }
+
+    const data = await response.json();
+    return NextResponse.json(data);
+  } catch (error) {
+    console.error('Error proxying to backend:', error);
     return NextResponse.json(
-      { error: 'Vacancy not found' },
-      { status: 404 }
+      { error: 'Backend unavailable' },
+      { status: 503 }
     );
   }
-  
-  return NextResponse.json(vacancy);
 }
 
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  await delay(300);
-  
-  const { id } = await params;
-  const body = await request.json();
-  const vacancyIndex = dummyVacancies.findIndex(v => v.id === id);
-  
-  if (vacancyIndex === -1) {
+  try {
+    const { id } = await params;
+    const body = await request.json();
+
+    const response = await fetch(`${BACKEND_URL}/vacancies/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        return NextResponse.json(
+          { error: 'Vacancy not found' },
+          { status: 404 }
+        );
+      }
+      return NextResponse.json(
+        { error: 'Failed to update vacancy' },
+        { status: response.status }
+      );
+    }
+
+    const data = await response.json();
+    return NextResponse.json(data);
+  } catch (error) {
+    console.error('Error proxying to backend:', error);
     return NextResponse.json(
-      { error: 'Vacancy not found' },
-      { status: 404 }
+      { error: 'Backend unavailable' },
+      { status: 503 }
     );
   }
-  
-  // In a real app, this would update the vacancy in the database
-  const updatedVacancy = {
-    ...dummyVacancies[vacancyIndex],
-    ...body,
-  };
-  
-  return NextResponse.json(updatedVacancy);
 }
 
 export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  await delay(300);
-  
-  const { id } = await params;
-  const vacancyIndex = dummyVacancies.findIndex(v => v.id === id);
-  
-  if (vacancyIndex === -1) {
+  try {
+    const { id } = await params;
+
+    const response = await fetch(`${BACKEND_URL}/vacancies/${id}`, {
+      method: 'DELETE',
+    });
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        return NextResponse.json(
+          { error: 'Vacancy not found' },
+          { status: 404 }
+        );
+      }
+      return NextResponse.json(
+        { error: 'Failed to delete vacancy' },
+        { status: response.status }
+      );
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Error proxying to backend:', error);
     return NextResponse.json(
-      { error: 'Vacancy not found' },
-      { status: 404 }
+      { error: 'Backend unavailable' },
+      { status: 503 }
     );
   }
-  
-  // In a real app, this would delete the vacancy from the database
-  return NextResponse.json({ success: true });
 }

@@ -12,7 +12,7 @@ import {
 } from '@/components/interview';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
-import { Pencil } from 'lucide-react';
+import { Pencil, Loader2 } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,152 +23,41 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { generateInterview, reorderQuestions, SSEEvent, Interview } from '@/lib/interview-api';
+import { 
+  generateInterview, 
+  reorderQuestions, 
+  SSEEvent, 
+  Interview,
+  PreScreening,
+  getVacancy,
+  getPreScreening,
+  savePreScreening 
+} from '@/lib/interview-api';
+import { Vacancy } from '@/lib/types';
+import Link from 'next/link';
 
 interface PageProps {
   params: Promise<{ id: string }>;
 }
 
-// Mock vacancy data - in real app this would come from API/database
-const mockVacancy = {
-  id: 'operator-diest',
-  title: 'Operator (2-ploegen)',
-  company: 'Klant regio Diest',
-  location: 'Diest, België',
-  description: `### Over deze job
-Samen met onze klant, gelegen regio Diest, zijn we op zoek naar een operator die graag in 2 ploegen wilt werken.
-
-### Jouw verantwoordelijkheden
-- Instellen van machines
-- De bevoorrading van de werkplaatsen of productielijnen met materiaal opvolgen en controleren
-- Productielijn opvolgen en controleren
-- Storingen oplossen
-- Kwaliteitscontroles
-- Het opvolgen van de hygiënevoorschriften
-- Collega's aansturen waar nodig
-
-### Kwalificaties
-- Je bezit een technische achtergrond
-- Zin voor initiatief: uit eigen beweging gepaste acties ondernemen
-- Je kan goed communiceren en kan jouw kennis en vaardigheden op een duidelijke manier overbrengen
-- Mensgericht zijn om goed met mensen te kunnen omgaan
-
-### Ontwikkeling en groei
-- Snelle opstart is mogelijk
-- Aantrekkelijk salaris van €17,59/uur, maaltijdcheques + ploegenpremie
-- Fulltime betrekking
-- Optie tot een vast contract
-- Je zal werken in een twee ploegensysteem
-- Variatie in je takenpakket
-- Opleiding op de werkvloer
-- Mogelijkheid om door te groeien tot lijnverantwoordelijke
-
-Diversiteit en inclusie zijn belangrijk voor ons. Onze vacatures staan dan ook open voor iedereen, ongeacht leeftijd, gender of afkomst. Samen gaan we op zoek naar de ideale jobmatch.`,
-};
-
-// Mock application data for the approved state
-const mockApplications: Application[] = [
-  {
-    id: 'app-1',
-    candidateName: 'Jan Peeters',
-    interactionTime: '3m 45s',
-    interactionSeconds: 225,
-    completed: true,
-    qualified: true,
-    timestamp: '2026-01-29T09:15:00Z',
-    synced: true,
-    channel: 'voice',
-    answers: [
-      { questionId: 'k1', questionText: 'Heb je een technische achtergrond of ervaring met machines?', answer: 'Ja, ik heb 5 jaar ervaring als machineoperator bij een voedselverwerkingsbedrijf.', passed: true },
-      { questionId: 'k2', questionText: 'Kan je werken in een 2-ploegensysteem?', answer: 'Ja, dat is geen probleem. Ik heb al eerder in ploegen gewerkt.', passed: true },
-      { questionId: 'k3', questionText: 'Woon je in de regio Diest of kan je er vlot geraken?', answer: 'Ik woon in Scherpenheuvel, dat is 10 minuten rijden.', passed: true },
-      { questionId: 'k4', questionText: 'Ben je beschikbaar voor een voltijdse betrekking?', answer: 'Ja, ik zoek specifiek een voltijdse job.', passed: true },
-      { questionId: 'q1', questionText: 'Welke ervaring heb je met het instellen of bedienen van machines?', answer: 'Bij mijn vorige werkgever was ik verantwoordelijk voor het instellen en bedienen van verpakkingsmachines. Ik deed ook kleine onderhoudstaken.' },
-      { questionId: 'q2', questionText: 'Heb je ervaring met het oplossen van storingen?', answer: 'Ja, ik heb basistraining gehad in troubleshooting en kan de meeste voorkomende storingen zelf oplossen.' },
-      { questionId: 'q3', questionText: 'Hoe comfortabel ben je met het aansturen van collega\'s?', answer: 'Ik heb ervaring als teamleider tijdens weekendshifts. Ik vind het leuk om collega\'s te helpen.' },
-      { questionId: 'q4', questionText: 'Wat trekt je aan in deze functie?', answer: 'De variatie in het werk en de mogelijkheid om door te groeien naar lijnverantwoordelijke.' },
-    ],
-  },
-  {
-    id: 'app-2',
-    candidateName: 'Marie Janssens',
-    interactionTime: '2m 12s',
-    interactionSeconds: 132,
-    completed: true,
-    qualified: false,
-    timestamp: '2026-01-29T10:30:00Z',
-    synced: true,
-    channel: 'whatsapp',
-    answers: [
-      { questionId: 'k1', questionText: 'Heb je een technische achtergrond of ervaring met machines?', answer: 'Nee, ik heb geen technische achtergrond maar ik leer snel.', passed: false },
-      { questionId: 'k2', questionText: 'Kan je werken in een 2-ploegensysteem?', answer: 'Ja, dat kan.', passed: true },
-      { questionId: 'k3', questionText: 'Woon je in de regio Diest of kan je er vlot geraken?', answer: 'Ja, ik woon in Diest zelf.', passed: true },
-      { questionId: 'k4', questionText: 'Ben je beschikbaar voor een voltijdse betrekking?', answer: 'Ja.', passed: true },
-    ],
-  },
-  {
-    id: 'app-3',
-    candidateName: 'Tom Vermeersch',
-    interactionTime: '4m 02s',
-    interactionSeconds: 242,
-    completed: true,
-    qualified: true,
-    timestamp: '2026-01-28T14:45:00Z',
-    synced: true,
-    channel: 'voice',
-    answers: [
-      { questionId: 'k1', questionText: 'Heb je een technische achtergrond of ervaring met machines?', answer: 'Ja, ik heb een diploma industriële wetenschappen en 3 jaar ervaring.', passed: true },
-      { questionId: 'k2', questionText: 'Kan je werken in een 2-ploegensysteem?', answer: 'Absoluut, ik geef de voorkeur aan vroege shiften maar kan beide.', passed: true },
-      { questionId: 'k3', questionText: 'Woon je in de regio Diest of kan je er vlot geraken?', answer: 'Ik woon in Aarschot, 20 minuten met de auto.', passed: true },
-      { questionId: 'k4', questionText: 'Ben je beschikbaar voor een voltijdse betrekking?', answer: 'Ja, ik kan direct starten.', passed: true },
-      { questionId: 'q1', questionText: 'Welke ervaring heb je met het instellen of bedienen van machines?', answer: 'Ik heb gewerkt met CNC-machines en automatische assemblagelijnen. Instellen en programmeren is mijn specialiteit.' },
-      { questionId: 'q2', questionText: 'Heb je ervaring met het oplossen van storingen?', answer: 'Ja, ik heb een opleiding gevolgd in preventief onderhoud en storinganalyse.' },
-      { questionId: 'q3', questionText: 'Hoe comfortabel ben je met het aansturen van collega\'s?', answer: 'Ik heb geen leidinggevende ervaring maar ik sta open om dit te leren.' },
-      { questionId: 'q4', questionText: 'Wat trekt je aan in deze functie?', answer: 'Het aantrekkelijke salaris en de mogelijkheid tot een vast contract na de proefperiode.' },
-    ],
-  },
-  {
-    id: 'app-4',
-    candidateName: 'Sarah De Wit',
-    interactionTime: '1m 30s',
-    interactionSeconds: 90,
-    completed: false,
-    qualified: false,
-    timestamp: '2026-01-28T16:20:00Z',
-    synced: false,
-    channel: 'whatsapp',
-    answers: [
-      { questionId: 'k1', questionText: 'Heb je een technische achtergrond of ervaring met machines?', answer: 'Ja, ik heb een elektromechanica opleiding.', passed: true },
-      { questionId: 'k2', questionText: 'Kan je werken in een 2-ploegensysteem?', answer: 'Nee, ik kan alleen dagshiften werken wegens kinderopvang.', passed: false },
-    ],
-  },
-  {
-    id: 'app-5',
-    candidateName: 'Pieter Claes',
-    interactionTime: '3m 58s',
-    interactionSeconds: 238,
-    completed: true,
-    qualified: true,
-    timestamp: '2026-01-27T11:00:00Z',
-    synced: true,
-    channel: 'voice',
-    answers: [
-      { questionId: 'k1', questionText: 'Heb je een technische achtergrond of ervaring met machines?', answer: 'Ja, 8 jaar als productieoperator in de automobielindustrie.', passed: true },
-      { questionId: 'k2', questionText: 'Kan je werken in een 2-ploegensysteem?', answer: 'Ja, ik heb altijd in ploegen gewerkt.', passed: true },
-      { questionId: 'k3', questionText: 'Woon je in de regio Diest of kan je er vlot geraken?', answer: 'Ik woon in Beringen, 25 minuten rijden.', passed: true },
-      { questionId: 'k4', questionText: 'Ben je beschikbaar voor een voltijdse betrekking?', answer: 'Ja, voltijds.', passed: true },
-      { questionId: 'q1', questionText: 'Welke ervaring heb je met het instellen of bedienen van machines?', answer: 'Ik heb gewerkt met robotarmen, lasmachines en transportbanden. Instellen en finetunen is mijn dagelijkse werk.' },
-      { questionId: 'q2', questionText: 'Heb je ervaring met het oplossen van storingen?', answer: 'Ja, ik ben TPMO-gecertificeerd en los dagelijks storingen op.' },
-      { questionId: 'q3', questionText: 'Hoe comfortabel ben je met het aansturen van collega\'s?', answer: 'Zeer comfortabel. Ik ben momenteel ploegbaas van een team van 6 personen.' },
-      { questionId: 'q4', questionText: 'Wat trekt je aan in deze functie?', answer: 'De opleiding op de werkvloer en de mogelijkheid om door te groeien. Mijn huidige werkgever heeft geen doorgroeimogelijkheden meer.' },
-    ],
-  },
-];
+// Mock application data for the approved state (will be replaced with real API later)
+const mockApplications: Application[] = [];
 
 export default function GenerateInterviewPage({ params }: PageProps) {
   const { id } = use(params);
+  
+  // Vacancy state
+  const [vacancy, setVacancy] = useState<Vacancy | null>(null);
+  const [isLoadingVacancy, setIsLoadingVacancy] = useState(true);
+  const [vacancyError, setVacancyError] = useState<string | null>(null);
+  
+  // Pre-screening state
+  const [existingPreScreening, setExistingPreScreening] = useState<PreScreening | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  
+  // Question generation state
   const [questions, setQuestions] = useState<GeneratedQuestion[]>([]);
-  const [isGenerating, setIsGenerating] = useState(true);
+  const [isGenerating, setIsGenerating] = useState(false);
   const [isGenerated, setIsGenerated] = useState(false);
   const [isApproved, setIsApproved] = useState(false);
   const [selectedApplicationId, setSelectedApplicationId] = useState<string | null>(null);
@@ -181,14 +70,65 @@ export default function GenerateInterviewPage({ params }: PageProps) {
   const [pendingPrompt, setPendingPrompt] = useState<string>('');
   const prevQuestionsRef = useRef<GeneratedQuestion[]>([]);
   const highlightTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  
-  // In real app, fetch vacancy by id
-  const vacancy = mockVacancy;
 
-  // Set document title
+  // Fetch vacancy and check for existing pre-screening on mount
   useEffect(() => {
-    document.title = `${vacancy.title} - Taloo`;
-  }, [vacancy.title]);
+    async function fetchVacancyAndPreScreening() {
+      try {
+        setIsLoadingVacancy(true);
+        setVacancyError(null);
+        
+        // Fetch vacancy and pre-screening in parallel
+        const [vacancyData, preScreeningData] = await Promise.all([
+          getVacancy(id),
+          getPreScreening(id),
+        ]);
+        
+        setVacancy(vacancyData);
+        
+        // If we have an existing pre-screening, load the questions from it
+        if (preScreeningData) {
+          setExistingPreScreening(preScreeningData);
+          
+          // Convert pre-screening questions to frontend format
+          const loadedQuestions: GeneratedQuestion[] = [
+            ...preScreeningData.knockout_questions.map(q => ({
+              id: q.id,
+              text: q.question_text,
+              type: 'knockout' as const,
+            })),
+            ...preScreeningData.qualification_questions.map(q => ({
+              id: q.id,
+              text: q.question_text,
+              type: 'qualifying' as const,
+            })),
+          ];
+          
+          setQuestions(loadedQuestions);
+          prevQuestionsRef.current = loadedQuestions;
+          setIsGenerated(true);
+          setInitialMessage('Je hebt al een pre-screening configuratie opgeslagen. Je kunt de vragen hieronder bekijken en bewerken.');
+          // If vacancy has pre-screening, it means it was approved before
+          setIsApproved(true);
+          setIsAgentOnline(vacancyData.status === 'agent_created');
+        }
+      } catch (err) {
+        console.error('Failed to fetch vacancy:', err);
+        setVacancyError('Vacancy not found');
+      } finally {
+        setIsLoadingVacancy(false);
+      }
+    }
+
+    fetchVacancyAndPreScreening();
+  }, [id]);
+
+  // Set document title when vacancy loads
+  useEffect(() => {
+    if (vacancy) {
+      document.title = `${vacancy.title} - Taloo`;
+    }
+  }, [vacancy?.title]);
   
   // Get selected application for detail pane
   const selectedApplication = mockApplications.find(a => a.id === selectedApplicationId) || null;
@@ -218,6 +158,8 @@ export default function GenerateInterviewPage({ params }: PageProps) {
 
   // Generate interview questions via backend API with retry logic
   const doGenerateInterview = useCallback(async (existingSessionId?: string) => {
+    if (!vacancy) return;
+    
     setIsGenerating(true);
     setCurrentStatus('Vacature analyseren...');
 
@@ -262,12 +204,14 @@ export default function GenerateInterviewPage({ params }: PageProps) {
     setIsGenerated(true);
     setIsGenerating(false);
     setCurrentStatus('');
-  }, [vacancy.description, handleSSEEvent, convertToFrontendQuestions]);
+  }, [vacancy, handleSSEEvent, convertToFrontendQuestions]);
 
-  // Auto-generate questions on page load
+  // Auto-generate questions when vacancy loads (only if no existing pre-screening)
   useEffect(() => {
-    doGenerateInterview();
-  }, [doGenerateInterview]);
+    if (vacancy && !isGenerated && !isGenerating && !existingPreScreening) {
+      doGenerateInterview();
+    }
+  }, [vacancy, isGenerated, isGenerating, existingPreScreening, doGenerateInterview]);
 
   // Detect which questions changed and highlight them
   const updateQuestionsWithHighlight = useCallback((newQuestions: GeneratedQuestion[]) => {
@@ -328,9 +272,47 @@ export default function GenerateInterviewPage({ params }: PageProps) {
     await doGenerateInterview();
   };
 
-  const handleApprove = () => {
-    setIsApproved(true);
-    setIsAgentOnline(true);
+  const handleApprove = async () => {
+    if (!vacancy) return;
+    
+    setIsSaving(true);
+    
+    try {
+      // Build the pre-screening config from current questions
+      const knockoutQuestions = questions
+        .filter(q => q.type === 'knockout')
+        .map(q => ({ id: q.id, question: q.text }));
+      
+      const qualificationQuestions = questions
+        .filter(q => q.type === 'qualifying')
+        .map(q => ({ id: q.id, question: q.text }));
+      
+      // Get intro and actions from existing config or use defaults
+      const intro = existingPreScreening?.intro || 
+        "Hallo! Leuk dat je solliciteert. Ben je klaar voor een paar korte vragen?";
+      const knockoutFailedAction = existingPreScreening?.knockout_failed_action || 
+        "Helaas voldoe je niet aan de basisvereisten. Interesse in andere matches?";
+      const finalAction = existingPreScreening?.final_action || 
+        "Perfect! We plannen een gesprek met de recruiter.";
+      
+      await savePreScreening(vacancy.id, {
+        intro,
+        knockout_questions: knockoutQuestions,
+        knockout_failed_action: knockoutFailedAction,
+        qualification_questions: qualificationQuestions,
+        final_action: finalAction,
+        approved_ids: questions.map(q => q.id), // All current questions are approved
+      });
+      
+      setIsApproved(true);
+      setIsAgentOnline(true);
+    } catch (error) {
+      console.error('Failed to save pre-screening:', error);
+      // Show error in UI - the component will stay in edit mode
+      alert(error instanceof Error ? error.message : 'Opslaan mislukt. Probeer het opnieuw.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleSelectApplication = (applicationId: string) => {
@@ -392,6 +374,28 @@ export default function GenerateInterviewPage({ params }: PageProps) {
     setQuestions(previousQuestions);
     prevQuestionsRef.current = previousRef;
   };
+
+  // Loading state
+  if (isLoadingVacancy) {
+    return (
+      <div className="flex items-center justify-center h-[calc(100vh-40px)]">
+        <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+        <span className="ml-2 text-gray-500">Vacature laden...</span>
+      </div>
+    );
+  }
+
+  // Error/not found state
+  if (vacancyError || !vacancy) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[calc(100vh-40px)]">
+        <p className="text-gray-500 mb-4">Vacature niet gevonden</p>
+        <Link href="/interviews" className="text-blue-500 hover:underline">
+          Terug naar vacatures
+        </Link>
+      </div>
+    );
+  }
 
   // Approved state - Dashboard view
   if (isApproved) {
@@ -550,6 +554,7 @@ export default function GenerateInterviewPage({ params }: PageProps) {
             vacancyText={vacancy.description}
             isGenerated={isGenerated}
             isGenerating={isGenerating}
+            isSaving={isSaving}
             sessionId={sessionId}
             currentStatus={currentStatus}
             initialMessage={initialMessage}

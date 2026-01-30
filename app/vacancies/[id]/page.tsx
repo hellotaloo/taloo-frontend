@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, use } from 'react';
+import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   Heading, 
@@ -21,15 +21,17 @@ import {
   MessageSquare,
   ListChecks,
   GitBranch,
-  Phone
+  Phone,
+  Loader2
 } from 'lucide-react';
 import Link from 'next/link';
 import { KnockoutQuestions } from '@/components/questions/KnockoutQuestions';
 import { QualifyingQuestions } from '@/components/questions/QualifyingQuestions';
 import { ChatInterface } from '@/components/chat/ChatInterface';
 import { InterviewFlow } from '@/components/flow/InterviewFlow';
-import { dummyVacancies, dummyQuestions, initialChatMessages } from '@/lib/dummy-data';
-import { Question, ChatMessage } from '@/lib/types';
+import { dummyQuestions, initialChatMessages } from '@/lib/dummy-data';
+import { Question, ChatMessage, Vacancy } from '@/lib/types';
+import { getVacancy } from '@/lib/interview-api';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -38,8 +40,13 @@ interface PageProps {
 export default function VacancyDetailPage({ params }: PageProps) {
   const { id } = use(params);
   const router = useRouter();
-  const vacancy = dummyVacancies.find(v => v.id === id);
   
+  // Vacancy state
+  const [vacancy, setVacancy] = useState<Vacancy | null>(null);
+  const [isLoadingVacancy, setIsLoadingVacancy] = useState(true);
+  const [vacancyError, setVacancyError] = useState<string | null>(null);
+  
+  // Other state
   const [questions, setQuestions] = useState<Question[]>(dummyQuestions);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>(initialChatMessages);
   const [isLoading, setIsLoading] = useState(false);
@@ -47,7 +54,37 @@ export default function VacancyDetailPage({ params }: PageProps) {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [agentCreated, setAgentCreated] = useState(false);
 
-  if (!vacancy) {
+  // Fetch vacancy on mount
+  useEffect(() => {
+    async function fetchVacancy() {
+      try {
+        setIsLoadingVacancy(true);
+        setVacancyError(null);
+        const data = await getVacancy(id);
+        setVacancy(data);
+      } catch (err) {
+        console.error('Failed to fetch vacancy:', err);
+        setVacancyError('Vacancy not found');
+      } finally {
+        setIsLoadingVacancy(false);
+      }
+    }
+
+    fetchVacancy();
+  }, [id]);
+
+  // Loading state
+  if (isLoadingVacancy) {
+    return (
+      <div className="flex items-center justify-center py-24">
+        <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+        <span className="ml-2 text-gray-500">Loading vacancy...</span>
+      </div>
+    );
+  }
+
+  // Error/not found state
+  if (vacancyError || !vacancy) {
     return (
       <div className="text-center py-12">
         <Text className="text-[var(--text-secondary)]">Vacancy not found</Text>
@@ -124,12 +161,13 @@ export default function VacancyDetailPage({ params }: PageProps) {
     setIsLoading(false);
   };
 
-  const statusConfig = {
-    new: { label: 'New', color: 'blue' as const },
-    in_progress: { label: 'In Progress', color: 'orange' as const },
-    agent_created: { label: 'Agent Created', color: 'green' as const },
+  const statusConfig: Record<string, { label: string; color: 'blue' | 'orange' | 'green' | 'gray' }> = {
+    new: { label: 'New', color: 'blue' },
+    in_progress: { label: 'In Progress', color: 'orange' },
+    agent_created: { label: 'Agent Created', color: 'green' },
+    archived: { label: 'Archived', color: 'gray' },
   };
-  const status = statusConfig[vacancy.status];
+  const status = statusConfig[vacancy.status] || { label: vacancy.status, color: 'gray' };
 
   return (
     <div className="space-y-6">

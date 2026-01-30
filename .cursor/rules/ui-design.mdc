@@ -1,0 +1,101 @@
+---
+description: UI design guidelines for creating on-brand interfaces in Taloo
+globs: ["**/*.tsx", "**/*.css"]
+alwaysApply: false
+---
+
+# Taloo UI Design Guidelines
+
+## Design Philosophy
+- **Minimal**: No heavy borders or shadows. Use subtle backgrounds instead.
+- **Clean**: Generous whitespace, clear hierarchy.
+- **Color accents**: Use brand colors sparingly for emphasis.
+
+## Brand Color Palette (Tailwind utilities)
+```
+bg-brand-blue       (#015AD9) - Primary actions, selected states
+bg-brand-light-blue (#7BC9EE) - Subtle highlights, labels on dark
+bg-brand-dark-blue  (#022641) - Dark backgrounds, cards
+bg-brand-lime-green (#CDFE00) - Accent buttons, highlights on dark
+bg-brand-pink       (#E51399) - Secondary accent, delete hover states
+```
+
+### Color Usage
+- **Primary buttons**: `bg-brand-blue text-white` or `bg-brand-lime-green text-brand-dark-blue`
+- **Dark sections**: `bg-brand-dark-blue` with `text-white` and `text-brand-light-blue` for labels
+- **Switches/toggles**: Use `green-600` (not lime-green) for active states - it's more readable
+- **Count badges**: `bg-green-100 text-green-600` for active counts
+- **Icon backgrounds**: Use solid brand colors (`bg-brand-blue`, `bg-brand-pink`, `bg-gray-900`)
+
+## Spacing
+- Use `space-y-6` or `space-y-10` for section spacing
+- Use `pb-3` or `mb-3` for label-to-content spacing
+- Use `gap-2` or `gap-3` for button groups
+- Use `p-6` for card padding
+- Center content with `max-w-3xl mx-auto`
+
+## Borders & Shadows
+- **Avoid**: Heavy borders, box shadows
+- **Use**: `border border-gray-100` for subtle card definition
+- **Use**: `rounded-xl` or `rounded-2xl` for cards
+- **Use**: `rounded-lg` for buttons and smaller elements
+
+## Component Patterns
+
+### Cards/Sections
+```tsx
+<div className="rounded-xl bg-gray-50/50 border border-gray-100">
+```
+
+### Dark Input Sections
+```tsx
+<div className="bg-brand-dark-blue rounded-2xl p-6 space-y-6">
+  <Text className="text-white">Title</Text>
+  <Text size="1" className="text-brand-light-blue uppercase tracking-wide">Label</Text>
+  <Input className="bg-white/10 border-0 text-white placeholder:text-white/40" />
+  <Button className="bg-brand-lime-green text-brand-dark-blue">Action</Button>
+</div>
+```
+
+### Toggle Buttons (Agent/Category selectors)
+```tsx
+// Selected state
+className="bg-white text-brand-dark-blue"
+// Unselected state (on dark)
+className="bg-white/10 text-white/80 hover:bg-white/20"
+// Unselected state (on light)
+className="bg-gray-50 text-gray-600 hover:bg-gray-100"
+```
+
+### Icon Badges
+```tsx
+<div className="w-8 h-8 rounded-lg bg-brand-blue flex items-center justify-center">
+  <Icon className="w-4 h-4 text-white" />
+</div>
+```
+
+### List Items with Hover
+```tsx
+<div className="py-3 px-3 rounded-lg transition-colors group hover:bg-white">
+  {/* Delete button only shows on hover */}
+  <Button className="opacity-0 group-hover:opacity-100 transition-opacity">
+</div>
+```
+
+## Typography
+- Use Radix UI `<Text>` and `<Heading>` components
+- Labels: `size="1"` with `text-gray-400 uppercase tracking-wide`
+- Body: `size="2"` with `text-foreground` or `text-gray-500`
+- Secondary text: `text-gray-400`
+
+## Icons
+- Use `lucide-react` icons
+- Avoid: Stars, brains, sparkles (too flashy)
+- Prefer: Simple, functional icons (Layers, Phone, MessageSquare, Settings, etc.)
+
+## What NOT to Do
+- Don't use heavy shadows (`shadow-md`, `shadow-lg`)
+- Don't use thick borders (`border-2`)
+- Don't use lime-green for text or UI elements that need readability
+- Don't add emojis unless explicitly requested
+- Don't use gradient backgrounds (except subtle ones like `bg-gray-50/50`)

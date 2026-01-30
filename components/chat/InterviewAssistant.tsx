@@ -66,6 +66,7 @@ interface InterviewAssistantProps {
   vacancyText: string;
   isGenerated: boolean;
   isGenerating: boolean;
+  isSaving?: boolean;
   sessionId: string | null;
   currentStatus: string;
   initialMessage: string;
@@ -81,6 +82,7 @@ export function InterviewAssistant({
   vacancyText,
   isGenerated, 
   isGenerating,
+  isSaving = false,
   sessionId,
   currentStatus,
   initialMessage,
@@ -309,17 +311,28 @@ export function InterviewAssistant({
           <div className="flex gap-2">
             <button
               onClick={onRegenerate}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              disabled={isSaving}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <RefreshCw className="w-3 h-3" />
               Regenereer
             </button>
             <button
               onClick={handleApprove}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-green-500 rounded-lg hover:bg-green-600 transition-colors"
+              disabled={isSaving}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-green-500 rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <Check className="w-3 h-3" />
-              Goedkeuren
+              {isSaving ? (
+                <>
+                  <RefreshCw className="w-3 h-3 animate-spin" />
+                  Opslaan...
+                </>
+              ) : (
+                <>
+                  <Check className="w-3 h-3" />
+                  Goedkeuren
+                </>
+              )}
             </button>
           </div>
         </div>

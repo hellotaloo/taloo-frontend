@@ -1,12 +1,12 @@
 'use client';
 
-import { Phone, CheckCircle2, Users, MapPin, Building2, ArrowRight, Archive, List, Loader, Info, ExternalLink, Calendar } from 'lucide-react';
+import { Phone, CheckCircle2, Users, MapPin, Building2, ArrowRight, Archive, List, Loader, Loader2, Info, ExternalLink, Calendar } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { dummyVacancies, dummyInterviews } from '@/lib/dummy-data';
 import { Vacancy } from '@/lib/types';
+import { getVacancies } from '@/lib/interview-api';
 import { MetricCard, ChannelCard } from '@/components/metrics';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
@@ -27,70 +27,20 @@ import {
   SheetDescription,
 } from '@/components/ui/sheet';
 
-// Filter vacancies by status
-const pendingVacancies = dummyVacancies.filter(v => v.status === 'new');
-const runningVacancies = dummyVacancies.filter(v => v.status === 'in_progress' || v.status === 'agent_created');
-const archivedVacancies = dummyVacancies.filter(v => v.status === 'archived');
-
-// Calculate pre-screening stats per vacancy
-function getVacancyStats(vacancyId: string) {
-  const prescreenings = dummyInterviews.filter(i => i.vacancyId === vacancyId);
-  const total = prescreenings.length;
-  const completed = prescreenings.filter(i => i.status === 'completed').length;
-  const qualified = prescreenings.filter(i => i.qualified).length;
-  const lastPrescreening = prescreenings.length > 0 ? prescreenings[0].startedAt : null;
-  
-  return {
-    total,
-    completed,
-    completionRate: total > 0 ? Math.round((completed / total) * 100) : 0,
-    qualified,
-    lastPrescreening,
-  };
-}
-
-// Calculate weekly metrics
-function getWeeklyMetrics() {
-  const weekAgo = new Date();
-  weekAgo.setDate(weekAgo.getDate() - 7);
-  
-  const weeklyPrescreenings = dummyInterviews.filter(i => new Date(i.startedAt) > weekAgo);
-  const totalWeekly = weeklyPrescreenings.length;
-  const completedWeekly = weeklyPrescreenings.filter(i => i.status === 'completed').length;
-  const qualifiedWeekly = weeklyPrescreenings.filter(i => i.qualified).length;
-  const voiceWeekly = weeklyPrescreenings.filter(i => i.channel === 'voice').length;
-  const whatsappWeekly = weeklyPrescreenings.filter(i => i.channel === 'whatsapp').length;
-  
-  // Get daily data for sparkline (last 7 days)
-  const dailyData: { value: number }[] = [];
-  for (let i = 6; i >= 0; i--) {
-    const date = new Date();
-    date.setDate(date.getDate() - i);
-    const dateStr = date.toISOString().split('T')[0];
-    const count = dummyInterviews.filter(item => item.startedAt.split('T')[0] === dateStr).length;
-    dailyData.push({ value: count });
-  }
-  
-  return {
-    total: totalWeekly,
-    completed: completedWeekly,
-    completionRate: totalWeekly > 0 ? Math.round((completedWeekly / totalWeekly) * 100) : 0,
-    qualified: qualifiedWeekly,
-    qualificationRate: completedWeekly > 0 ? Math.round((qualifiedWeekly / completedWeekly) * 100) : 0,
-    voice: voiceWeekly,
-    whatsapp: whatsappWeekly,
-    dailyData,
-  };
-}
-
-function formatDate(dateString: string | null) {
+function formatDate(dateString: string | null | undefined) {
   if (!dateString) return '-';
   const date = new Date(dateString);
   return date.toLocaleDateString('nl-BE', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
-function PendingSetup({ onViewSource }: { onViewSource: (vacancy: Vacancy) => void }) {
-  if (pendingVacancies.length === 0) {
+function PendingSetup({ 
+  vacancies, 
+  onViewSource 
+}: { 
+  vacancies: Vacancy[];
+  onViewSource: (vacancy: Vacancy) => void;
+}) {
+  if (vacancies.length === 0) {
     return (
       <div className="text-center py-12">
         <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-3">
@@ -112,7 +62,7 @@ function PendingSetup({ onViewSource }: { onViewSource: (vacancy: Vacancy) => vo
         </TableRow>
       </TableHeader>
       <TableBody>
-        {pendingVacancies.map((vacancy) => (
+        {vacancies.map((vacancy) => (
           <TableRow key={vacancy.id}>
             <TableCell>
               <div className="min-w-0">
@@ -148,6 +98,22 @@ function PendingSetup({ onViewSource }: { onViewSource: (vacancy: Vacancy) => vo
                   <span className="text-xs font-medium">View</span>
                   <ExternalLink className="w-3 h-3" />
                 </button>
+              ) : vacancy.source === 'bullhorn' ? (
+                <button 
+                  onClick={() => onViewSource(vacancy)}
+                  className="inline-flex items-center gap-1.5 text-gray-500 hover:text-gray-700 transition-colors cursor-pointer"
+                  title="View source record"
+                >
+                  <Image 
+                    src="/bullhorn-icon-small.png" 
+                    alt="Bullhorn" 
+                    width={16} 
+                    height={16}
+                    className="opacity-70"
+                  />
+                  <span className="text-xs font-medium">View</span>
+                  <ExternalLink className="w-3 h-3" />
+                </button>
               ) : (
                 <span className="text-xs text-gray-500">Manual</span>
               )}
@@ -171,7 +137,7 @@ function PendingSetup({ onViewSource }: { onViewSource: (vacancy: Vacancy) => vo
   );
 }
 
-function VacanciesTable({ vacancies, showArchiveDate = false }: { vacancies: typeof dummyVacancies; showArchiveDate?: boolean }) {
+function VacanciesTable({ vacancies, showArchiveDate = false }: { vacancies: Vacancy[]; showArchiveDate?: boolean }) {
   if (vacancies.length === 0) {
     return (
       <div className="text-center py-12">
@@ -196,13 +162,12 @@ function VacanciesTable({ vacancies, showArchiveDate = false }: { vacancies: typ
       </TableHeader>
       <TableBody>
         {vacancies.map((vacancy) => {
-          const stats = getVacancyStats(vacancy.id);
           return (
             <TableRow key={vacancy.id}>
               <TableCell>
                 <div className="min-w-0">
                   <Link 
-                    href={`/vacancies/${vacancy.id}`}
+                    href={`/interviews/generate/${vacancy.id}`}
                     className="font-medium text-gray-900 hover:text-gray-700 truncate block"
                   >
                     {vacancy.title}
@@ -220,19 +185,18 @@ function VacanciesTable({ vacancies, showArchiveDate = false }: { vacancies: typ
                 </div>
               </TableCell>
               <TableCell className="text-center">
-                <span className="font-medium">{stats.total}</span>
+                <span className="font-medium text-gray-400">-</span>
               </TableCell>
               <TableCell className="text-center">
-                <span className="font-medium">{stats.completed}</span>
-                <span className="text-gray-400 text-xs ml-1">({stats.completionRate}%)</span>
+                <span className="font-medium text-gray-400">-</span>
               </TableCell>
               <TableCell className="text-center">
-                <span className="font-medium text-green-600">{stats.qualified}</span>
+                <span className="font-medium text-gray-400">-</span>
               </TableCell>
               <TableCell className="text-gray-500 text-sm">
                 {showArchiveDate 
-                  ? formatDate(vacancy.archivedAt || null)
-                  : formatDate(stats.lastPrescreening)
+                  ? formatDate(vacancy.archivedAt)
+                  : '-'
                 }
               </TableCell>
             </TableRow>
@@ -244,25 +208,92 @@ function VacanciesTable({ vacancies, showArchiveDate = false }: { vacancies: typ
 }
 
 export default function PreScreeningPage() {
-  const weeklyMetrics = getWeeklyMetrics();
+  const [vacancies, setVacancies] = useState<Vacancy[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [autoGenerate, setAutoGenerate] = useState(false);
   const [selectedVacancy, setSelectedVacancy] = useState<Vacancy | null>(null);
+
+  // Fetch vacancies on mount
+  useEffect(() => {
+    async function fetchVacancies() {
+      try {
+        setIsLoading(true);
+        setError(null);
+        const data = await getVacancies();
+        setVacancies(data.vacancies);
+      } catch (err) {
+        console.error('Failed to fetch vacancies:', err);
+        setError('Failed to load vacancies');
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchVacancies();
+  }, []);
+
+  // Filter vacancies by status
+  const pendingVacancies = useMemo(() => 
+    vacancies.filter(v => v.status === 'new'), [vacancies]);
+  const runningVacancies = useMemo(() => 
+    vacancies.filter(v => v.status === 'in_progress' || v.status === 'agent_created'), [vacancies]);
+  const archivedVacancies = useMemo(() => 
+    vacancies.filter(v => v.status === 'archived'), [vacancies]);
+
+  // Placeholder metrics
+  const weeklyMetrics = {
+    total: 0,
+    completionRate: 0,
+    qualified: 0,
+    qualificationRate: 0,
+    voice: 0,
+    whatsapp: 0,
+    dailyData: Array(7).fill({ value: 0 }),
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-24">
+        <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+        <span className="ml-2 text-gray-500">Loading vacancies...</span>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-red-500">{error}</p>
+        <button 
+          onClick={() => window.location.reload()}
+          className="mt-4 text-blue-500 hover:underline"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
   
   return (
-    <div className="space-y-12">
-        {/* Header */}
-        <div className="space-y-4">
-        <div>
-          <h1 className="text-2xl font-semibold text-gray-900">
-            Pre-screening
-          </h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Overview of your conversational pre-screening
-          </p>
-        </div>
+    <div className="flex flex-col h-[calc(100vh-40px)] -m-6">
+      {/* Header - Fixed */}
+      <div className="px-6 py-6">
+        <h1 className="text-lg font-semibold text-gray-900">
+          Pre-screening
+        </h1>
+        <p className="text-sm text-gray-500">
+          Overview of your conversational pre-screening
+        </p>
+      </div>
 
+      {/* Full-width divider line */}
+      <div className="border-t border-gray-200" />
+
+      {/* Scrollable content area */}
+      <div className="flex-1 overflow-y-auto p-6 min-h-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
         {/* Weekly Pre-screening Metrics - 4 cards in a row */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           <MetricCard
             title="Total Pre-screening"
             value={weeklyMetrics.total}
@@ -295,9 +326,9 @@ export default function PreScreeningPage() {
             whatsapp={weeklyMetrics.whatsapp}
           />
         </div>
-      </div>
-      {/* Tabs */}
-      <Tabs defaultValue="recent" className="space-y-2">
+
+        {/* Tabs */}
+        <Tabs defaultValue="recent" className="space-y-2">
         <div className="flex items-center justify-between">
           <TabsList variant="line">
             <TabsTrigger value="recent">
@@ -346,7 +377,10 @@ export default function PreScreeningPage() {
         </div>
         
         <TabsContent value="recent" className="">
-          <PendingSetup onViewSource={setSelectedVacancy} />
+          <PendingSetup 
+            vacancies={pendingVacancies} 
+            onViewSource={setSelectedVacancy} 
+          />
         </TabsContent>
         
         <TabsContent value="running" className="">
@@ -357,6 +391,7 @@ export default function PreScreeningPage() {
           <VacanciesTable vacancies={archivedVacancies} showArchiveDate />
         </TabsContent>
       </Tabs>
+      </div>
 
       {/* Source Record Sheet */}
       <Sheet open={!!selectedVacancy} onOpenChange={(open) => !open && setSelectedVacancy(null)}>
@@ -364,17 +399,27 @@ export default function PreScreeningPage() {
           {/* Fixed Header */}
           <SheetHeader className="shrink-0 border-b pb-4">
             <div className="flex items-center gap-2">
-              <Image 
-                src="/salesforc-logo-cloud.png" 
-                alt="Salesforce" 
-                width={20} 
-                height={14}
-                className="opacity-80"
-              />
+              {selectedVacancy?.source === 'salesforce' ? (
+                <Image 
+                  src="/salesforc-logo-cloud.png" 
+                  alt="Salesforce" 
+                  width={20} 
+                  height={14}
+                  className="opacity-80"
+                />
+              ) : selectedVacancy?.source === 'bullhorn' ? (
+                <Image 
+                  src="/bullhorn-icon-small.png" 
+                  alt="Bullhorn" 
+                  width={20} 
+                  height={20}
+                  className="opacity-80"
+                />
+              ) : null}
               <SheetTitle className="text-lg">Source Record</SheetTitle>
             </div>
             <SheetDescription>
-              Original vacancy data from Salesforce
+              Original vacancy data from {selectedVacancy?.source === 'salesforce' ? 'Salesforce' : selectedVacancy?.source === 'bullhorn' ? 'Bullhorn' : 'source'}
             </SheetDescription>
           </SheetHeader>
           
@@ -432,12 +477,17 @@ export default function PreScreeningPage() {
               {/* External Link */}
               <div className="pt-4 border-t">
                 <a
-                  href="https://salesforce.com/record/example"
+                  href={selectedVacancy.source === 'salesforce' 
+                    ? `https://salesforce.com/record/${selectedVacancy.sourceId || 'example'}`
+                    : selectedVacancy.source === 'bullhorn'
+                    ? `https://bullhorn.com/record/${selectedVacancy.sourceId || 'example'}`
+                    : '#'
+                  }
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 transition-colors"
                 >
-                  Open in Salesforce
+                  Open in {selectedVacancy.source === 'salesforce' ? 'Salesforce' : selectedVacancy.source === 'bullhorn' ? 'Bullhorn' : 'source'}
                   <ExternalLink className="w-4 h-4" />
                 </a>
               </div>

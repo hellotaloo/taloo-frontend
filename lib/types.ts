@@ -1,14 +1,19 @@
 // Vacancy types
+export type VacancyStatus = 'new' | 'in_progress' | 'agent_created' | 'archived';
+export type VacancySource = 'salesforce' | 'bullhorn' | 'manual';
+
 export interface Vacancy {
   id: string;
   title: string;
   company: string;
   location: string;
   description: string;
-  status: 'new' | 'in_progress' | 'agent_created' | 'archived';
+  status: VacancyStatus;
   createdAt: string;
-  archivedAt?: string;
-  source?: 'salesforce' | 'manual';
+  archivedAt?: string | null;
+  source?: VacancySource | null;
+  sourceId?: string | null;
+  hasPreScreening?: boolean; // True if pre-screening exists
 }
 
 // Question types
@@ -82,6 +87,29 @@ export interface Interview {
   totalQuestions: number;
   qualified: boolean;
   knockoutPassed: boolean;
+}
+
+// Application types (pre-screening results)
+export interface ApplicationAnswer {
+  questionId: string;
+  questionText: string;
+  answer: string;
+  passed: boolean | null;
+}
+
+export interface Application {
+  id: string;
+  vacancyId: string;
+  candidateName: string;
+  channel: 'voice' | 'whatsapp';
+  completed: boolean;
+  qualified: boolean;
+  startedAt: string;
+  completedAt?: string | null;
+  interactionSeconds: number;
+  answers: ApplicationAnswer[];
+  synced: boolean;
+  syncedAt?: string | null;
 }
 
 // Metrics types

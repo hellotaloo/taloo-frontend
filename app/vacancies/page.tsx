@@ -1,17 +1,41 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Heading, Text, Flex, TextField, Select, Button } from '@radix-ui/themes';
-import { Search, Plus, Filter } from 'lucide-react';
+import { Search, Plus, Loader2 } from 'lucide-react';
 import { VacancyList } from '@/components/vacancies/VacancyList';
-import { dummyVacancies } from '@/lib/dummy-data';
+import { getVacancies } from '@/lib/interview-api';
+import { Vacancy } from '@/lib/types';
 
 export default function VacanciesPage() {
+  const [vacancies, setVacancies] = useState<Vacancy[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
+  // Fetch vacancies on mount
+  useEffect(() => {
+    async function fetchVacancies() {
+      try {
+        setIsLoading(true);
+        setError(null);
+        const data = await getVacancies();
+        setVacancies(data.vacancies);
+      } catch (err) {
+        console.error('Failed to fetch vacancies:', err);
+        setError('Failed to load vacancies. Please try again.');
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchVacancies();
+  }, []);
+
+  // Client-side filtering for search and status
   const filteredVacancies = useMemo(() => {
-    return dummyVacancies.filter((vacancy) => {
+    return vacancies.filter((vacancy) => {
       const matchesSearch = 
         vacancy.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         vacancy.company.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -21,7 +45,7 @@ export default function VacanciesPage() {
       
       return matchesSearch && matchesStatus;
     });
-  }, [searchQuery, statusFilter]);
+  }, [vacancies, searchQuery, statusFilter]);
 
   return (
     <div className="space-y-6">
@@ -67,13 +91,41 @@ export default function VacanciesPage() {
         </Select.Root>
       </Flex>
 
-      {/* Results count */}
-      <Text size="2" className="text-[var(--text-secondary)]">
-        Showing {filteredVacancies.length} of {dummyVacancies.length} vacancies
-      </Text>
+      {/* Loading state */}
+      {isLoading && (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+          <span className="ml-2 text-gray-500">Loading vacancies...</span>
+        </div>
+      )}
 
-      {/* Vacancy Grid */}
-      <VacancyList vacancies={filteredVacancies} />
+      {/* Error state */}
+      {error && !isLoading && (
+        <div className="text-center py-12">
+          <p className="text-red-500">{error}</p>
+          <Button 
+            variant="soft" 
+            size="2" 
+            className="mt-4"
+            onClick={() => window.location.reload()}
+          >
+            Retry
+          </Button>
+        </div>
+      )}
+
+      {/* Results */}
+      {!isLoading && !error && (
+        <>
+          {/* Results count */}
+          <Text size="2" className="text-[var(--text-secondary)]">
+            Showing {filteredVacancies.length} of {vacancies.length} vacancies
+          </Text>
+
+          {/* Vacancy Grid */}
+          <VacancyList vacancies={filteredVacancies} />
+        </>
+      )}
     </div>
   );
 }

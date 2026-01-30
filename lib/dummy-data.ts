@@ -1,4 +1,4 @@
-import { Vacancy, Question, ChatMessage, Interview, InterviewMetrics } from './types';
+import { Vacancy, Question, ChatMessage, Interview, InterviewMetrics, FinetuneInstruction } from './types';
 
 export const dummyVacancies: Vacancy[] = [
   {
@@ -328,3 +328,138 @@ export function calculateInterviewMetrics(interviews: Interview[], vacancies: Va
 }
 
 export const dummyMetrics = calculateInterviewMetrics(dummyInterviews, dummyVacancies);
+
+// Fine-tune instructions
+export const dummyFinetuneInstructions: FinetuneInstruction[] = [
+  // Pre-screening agent instructions
+  {
+    id: 'ft-1',
+    agent: 'pre-screening',
+    category: 'checks',
+    instruction: 'Voor technische profielen: altijd certificaten vragen',
+    isActive: true,
+    createdAt: '2026-01-15T10:00:00Z',
+  },
+  {
+    id: 'ft-2',
+    agent: 'pre-screening',
+    category: 'checks',
+    instruction: 'Altijd loonverwachting aftoetsen vóór doorsturen',
+    isActive: true,
+    createdAt: '2026-01-14T09:00:00Z',
+  },
+  {
+    id: 'ft-3',
+    agent: 'pre-screening',
+    category: 'strictness',
+    instruction: 'Wees flexibel bij carrière-switchers',
+    isActive: true,
+    createdAt: '2026-01-13T14:30:00Z',
+  },
+  {
+    id: 'ft-4',
+    agent: 'pre-screening',
+    category: 'strictness',
+    instruction: 'Twijfel = doorvragen, niet afwijzen',
+    isActive: true,
+    createdAt: '2026-01-12T11:00:00Z',
+  },
+  {
+    id: 'ft-5',
+    agent: 'pre-screening',
+    category: 'red-flags',
+    instruction: 'Geen eigen vervoer is een dealbreaker voor buitendienst functies',
+    isActive: true,
+    createdAt: '2026-01-11T16:00:00Z',
+  },
+  {
+    id: 'ft-6',
+    agent: 'pre-screening',
+    category: 'depth',
+    instruction: 'Vraag altijd naar concrete voorbeelden',
+    isActive: true,
+    createdAt: '2026-01-10T10:30:00Z',
+  },
+  {
+    id: 'ft-7',
+    agent: 'pre-screening',
+    category: 'tone',
+    instruction: 'Gebruik altijd u-vorm',
+    isActive: true,
+    createdAt: '2026-01-09T09:15:00Z',
+  },
+  {
+    id: 'ft-8',
+    agent: 'pre-screening',
+    category: 'tone',
+    instruction: 'Wees warm maar professioneel',
+    isActive: true,
+    createdAt: '2026-01-08T13:45:00Z',
+  },
+  // Interview generator instructions
+  {
+    id: 'ft-9',
+    agent: 'interview-generator',
+    category: 'style',
+    instruction: 'Gesprek, geen kruisverhoor',
+    isActive: true,
+    createdAt: '2026-01-07T10:00:00Z',
+  },
+  {
+    id: 'ft-10',
+    agent: 'interview-generator',
+    category: 'focus',
+    instruction: 'Meer focus op cultuurfit dan op technische skills',
+    isActive: true,
+    createdAt: '2026-01-06T14:00:00Z',
+  },
+  {
+    id: 'ft-11',
+    agent: 'interview-generator',
+    category: 'difficulty',
+    instruction: 'Basisinterview voor juniors, uitdagend voor seniors',
+    isActive: true,
+    createdAt: '2026-01-05T11:30:00Z',
+  },
+  {
+    id: 'ft-12',
+    agent: 'interview-generator',
+    category: 'avoid',
+    instruction: 'Geen stressvragen of trick questions',
+    isActive: true,
+    createdAt: '2026-01-04T09:00:00Z',
+  },
+  {
+    id: 'ft-13',
+    agent: 'interview-generator',
+    category: 'output',
+    instruction: 'Samenvatting bovenaan, eindadvies in 1 zin',
+    isActive: true,
+    createdAt: '2026-01-03T15:00:00Z',
+  },
+  // General instructions
+  {
+    id: 'ft-14',
+    agent: 'general',
+    category: 'brand',
+    instruction: 'Spreek alsof je een collega bent, geen tool',
+    isActive: true,
+    createdAt: '2026-01-02T10:00:00Z',
+  },
+  {
+    id: 'ft-15',
+    agent: 'general',
+    category: 'brand',
+    instruction: 'Geen buzzwords',
+    isActive: true,
+    createdAt: '2026-01-01T09:00:00Z',
+  },
+  {
+    id: 'ft-16',
+    agent: 'general',
+    category: 'brand',
+    instruction: 'Maak het simpel, ook als het complex is',
+    isActive: true,
+    createdAt: '2025-12-31T14:00:00Z',
+  },
+];

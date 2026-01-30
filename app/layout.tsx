@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Hedvig_Letters_Serif } from "next/font/google";
 import { Theme } from "@radix-ui/themes";
 import "./globals.css";
 import { AppSidebar } from "@/components/layout/AppSidebar";
@@ -9,6 +9,12 @@ import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],
+});
+
+const hedvigLetters = Hedvig_Letters_Serif({
+  variable: "--font-hedvig",
+  subsets: ["latin"],
+  weight: "400",
 });
 
 export const metadata: Metadata = {
@@ -23,7 +29,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${inter.variable} antialiased`}>
+      <body className={`${inter.variable} ${hedvigLetters.variable} antialiased`}>
         <Theme accentColor="blue" grayColor="slate" radius="medium" scaling="100%">
           <SidebarProvider>
             <AppSidebar />

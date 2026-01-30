@@ -9,14 +9,15 @@ interface VacancyCardProps {
   vacancy: Vacancy;
 }
 
-const statusConfig = {
-  new: { label: 'New', color: 'blue' as const },
-  in_progress: { label: 'In Progress', color: 'orange' as const },
-  agent_created: { label: 'Agent Created', color: 'green' as const },
+const statusConfig: Record<string, { label: string; color: 'blue' | 'orange' | 'green' | 'gray' }> = {
+  new: { label: 'New', color: 'blue' },
+  in_progress: { label: 'In Progress', color: 'orange' },
+  agent_created: { label: 'Agent Created', color: 'green' },
+  archived: { label: 'Archived', color: 'gray' },
 };
 
 export function VacancyCard({ vacancy }: VacancyCardProps) {
-  const status = statusConfig[vacancy.status];
+  const status = statusConfig[vacancy.status] || { label: vacancy.status, color: 'gray' };
   
   return (
     <Link href={`/vacancies/${vacancy.id}`}>
