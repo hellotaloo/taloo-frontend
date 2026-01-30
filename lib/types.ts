@@ -126,3 +126,17 @@ export interface InterviewMetrics {
   weeklyTrend: { date: string; count: number }[];
   popularVacancies: { vacancyId: string; title: string; count: number }[];
 }
+
+// Finetune types
+export type FinetuneAgent = 'general' | 'pre-screening' | 'interview-generator';
+export type FinetuneCategory = 'checks' | 'strictness' | 'red-flags' | 'depth' | 'tone' | 'style' | 'focus' | 'difficulty' | 'avoid' | 'output' | 'brand';
+
+export interface FinetuneInstruction {
+  id: string;
+  agent: FinetuneAgent;
+  category: FinetuneCategory;
+  instruction: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt?: string;
+}

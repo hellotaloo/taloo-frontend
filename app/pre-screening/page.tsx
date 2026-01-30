@@ -2,7 +2,7 @@
 
 import { Phone, CheckCircle2, Users, MapPin, Building2, ArrowRight, Archive, List, Loader, Loader2, Info, ExternalLink, Calendar } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -228,7 +228,7 @@ function VacanciesTable({ vacancies, showArchiveDate = false }: { vacancies: Vac
   );
 }
 
-export default function PreScreeningPage() {
+function PreScreeningContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   
@@ -581,5 +581,13 @@ export default function PreScreeningPage() {
         </AlertDialogContent>
       </AlertDialog>
     </div>
+  );
+}
+
+export default function PreScreeningPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center h-64"><Loader2 className="w-6 h-6 animate-spin text-gray-400" /></div>}>
+      <PreScreeningContent />
+    </Suspense>
   );
 }
