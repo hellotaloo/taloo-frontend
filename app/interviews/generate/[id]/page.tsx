@@ -596,7 +596,6 @@ export default function GenerateInterviewPage({ params }: PageProps) {
             initialMessage={initialMessage}
             onRegenerate={handleRegenerate}
             onQuestionsUpdate={handleQuestionsUpdate}
-            onApprove={handleApprove}
             externalPrompt={pendingPrompt}
             onExternalPromptConsumed={() => setPendingPrompt('')}
           />
