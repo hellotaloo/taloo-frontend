@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   AlertDialog,
   AlertDialogContent,
@@ -52,6 +52,16 @@ export function TriggerInterviewDialog({
   const [phoneError, setPhoneError] = useState<string | null>(null);
   
   const hasPhoneOption = hasWhatsApp || hasVoice;
+
+  // Sync phoneContactMethod when available channels change
+  useEffect(() => {
+    // If current method is not available, switch to the available one
+    if (phoneContactMethod === 'phone' && !hasVoice && hasWhatsApp) {
+      setPhoneContactMethod('whatsapp');
+    } else if (phoneContactMethod === 'whatsapp' && !hasWhatsApp && hasVoice) {
+      setPhoneContactMethod('phone');
+    }
+  }, [hasWhatsApp, hasVoice, phoneContactMethod]);
   const hasBothPhoneOptions = hasWhatsApp && hasVoice;
 
   const handleSubmit = async (method: ApplicationMethod) => {
