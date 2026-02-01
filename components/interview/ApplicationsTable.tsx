@@ -172,21 +172,21 @@ export function ApplicationsTable({
 function StatusLabel({ status, qualified }: { status: 'active' | 'processing' | 'completed'; qualified: boolean }) {
   if (status === 'active') {
     return (
-      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-500">
-        Niet afgerond
+      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-100 text-blue-600">
+        Bezig
       </span>
     );
   }
   
   if (status === 'processing') {
     return (
-      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-100 text-blue-700">
-        Bezig met verwerken
+      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-100 text-amber-700">
+        Verwerken...
       </span>
     );
   }
   
-  // status === 'completed'
+  // status === 'completed' - only show qualification status when completed
   if (qualified) {
     return (
       <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-green-100 text-green-700">
