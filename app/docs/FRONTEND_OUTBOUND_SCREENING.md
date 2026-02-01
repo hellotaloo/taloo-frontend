@@ -22,7 +22,8 @@ interface OutboundScreeningRequest {
   vacancy_id: string;      // UUID of the vacancy
   channel: 'voice' | 'whatsapp';
   phone_number: string;    // E.164 format, e.g., "+31612345678"
-  candidate_name?: string; // Optional, used for personalization
+  first_name?: string;     // Optional, used for personalization
+  last_name?: string;      // Optional, used for personalization
 }
 ```
 
@@ -56,7 +57,8 @@ export interface OutboundScreeningRequest {
   vacancy_id: string;
   channel: ScreeningChannel;
   phone_number: string;
-  candidate_name?: string;
+  first_name?: string;
+  last_name?: string;
 }
 
 export interface OutboundScreeningResponse {
@@ -99,11 +101,12 @@ import { Phone, MessageCircle, Loader2 } from 'lucide-react';
 
 interface Props {
   vacancyId: string;
-  candidateName?: string;
+  firstName?: string;
+  lastName?: string;
   candidatePhone: string;
 }
 
-export function OutboundScreeningButton({ vacancyId, candidateName, candidatePhone }: Props) {
+export function OutboundScreeningButton({ vacancyId, firstName, lastName, candidatePhone }: Props) {
   const [loading, setLoading] = useState<ScreeningChannel | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -118,7 +121,8 @@ export function OutboundScreeningButton({ vacancyId, candidateName, candidatePho
         vacancy_id: vacancyId,
         channel,
         phone_number: candidatePhone,
-        candidate_name: candidateName,
+        first_name: firstName,
+        last_name: lastName,
       });
 
       if (result.success) {
@@ -199,7 +203,8 @@ interface Props {
 export function OutboundScreeningModal({ vacancyId, isOpen, onClose, onSuccess }: Props) {
   const [channel, setChannel] = useState<ScreeningChannel>('whatsapp');
   const [phoneNumber, setPhoneNumber] = useState('');
-  const [candidateName, setCandidateName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -219,7 +224,8 @@ export function OutboundScreeningModal({ vacancyId, isOpen, onClose, onSuccess }
         vacancy_id: vacancyId,
         channel,
         phone_number: phone,
-        candidate_name: candidateName || undefined,
+        first_name: firstName || undefined,
+        last_name: lastName || undefined,
       });
 
       if (result.success && result.conversation_id) {
@@ -289,17 +295,31 @@ export function OutboundScreeningModal({ vacancyId, isOpen, onClose, onSuccess }
           </div>
 
           {/* Candidate Name */}
-          <div>
-            <label className="block text-sm font-medium mb-1">
-              Naam kandidaat
-            </label>
-            <input
-              type="text"
-              value={candidateName}
-              onChange={(e) => setCandidateName(e.target.value)}
-              placeholder="Jan"
-              className="w-full px-3 py-2 border rounded-lg"
-            />
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                Voornaam
+              </label>
+              <input
+                type="text"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                placeholder="Jan"
+                className="w-full px-3 py-2 border rounded-lg"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                Achternaam
+              </label>
+              <input
+                type="text"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                placeholder="Janssen"
+                className="w-full px-3 py-2 border rounded-lg"
+              />
+            </div>
           </div>
 
           {error && (

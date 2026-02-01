@@ -1,6 +1,6 @@
 'use client';
 
-import { X, CheckCircle, XCircle, Clock, MessageSquare, Award, UserX, ExternalLink } from 'lucide-react';
+import { X, CheckCircle, XCircle, Clock, MessageSquare, Award, UserX, ExternalLink, TrendingUp, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Application } from './InterviewDashboard';
 
@@ -55,32 +55,54 @@ export function ApplicationDetailPane({ application, onClose }: ApplicationDetai
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto p-4 space-y-6">
+        {/* Executive Summary */}
+        {application.summary && (
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-3">
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <div className="w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
+                <FileText className="w-2.5 h-2.5 text-blue-600" />
+              </div>
+              <p className="text-[10px] font-semibold text-blue-600 uppercase tracking-wide">
+                Executive Summary
+              </p>
+            </div>
+            <p className="text-sm text-gray-700 leading-relaxed">
+              {application.summary}
+            </p>
+          </div>
+        )}
+
         {/* Status Summary */}
-        <div className="grid grid-cols-2 gap-3">
-          <StatusCard
-            label="Status"
-            value={application.completed ? 'Afgerond' : 'Niet afgerond'}
-            icon={application.completed ? CheckCircle : XCircle}
-            variant={application.completed ? 'success' : 'error'}
-          />
-          <StatusCard
-            label="Kwalificatie"
-            value={application.qualified ? 'Gekwalificeerd' : 'Niet gekwalificeerd'}
-            icon={application.qualified ? Award : UserX}
-            variant={application.qualified ? 'success' : 'error'}
-          />
-          <StatusCard
-            label="Interactietijd"
-            value={application.interactionTime}
-            icon={Clock}
-            variant="neutral"
-          />
-          <StatusCard
-            label="Antwoorden"
-            value={`${application.answers.length} vragen`}
-            icon={MessageSquare}
-            variant="neutral"
-          />
+        <div className="space-y-2">
+          {/* Primary stats row */}
+          <div className="grid grid-cols-3 gap-2">
+            <CompactStatusCard
+              label="Status"
+              value={application.completed ? 'Afgerond' : 'Niet afgerond'}
+              icon={application.completed ? CheckCircle : XCircle}
+              variant={application.completed ? 'success' : 'error'}
+            />
+            <CompactStatusCard
+              label="Kwalificatie"
+              value={application.qualified ? 'Gekwalificeerd' : 'Niet gekwalificeerd'}
+              icon={application.qualified ? Award : UserX}
+              variant={application.qualified ? 'success' : 'error'}
+            />
+            {application.overallScore !== undefined && (
+              <CompactScoreCard score={application.overallScore} />
+            )}
+          </div>
+          {/* Secondary stats row */}
+          <div className="flex items-center gap-4 px-1 text-xs text-gray-500">
+            <span className="flex items-center gap-1.5">
+              <Clock className="w-3.5 h-3.5" />
+              {application.interactionTime}
+            </span>
+            <span className="flex items-center gap-1.5">
+              <MessageSquare className="w-3.5 h-3.5" />
+              {application.answers.length} vragen
+            </span>
+          </div>
         </div>
 
         {/* Failed Knockout Reason */}
@@ -136,14 +158,14 @@ export function ApplicationDetailPane({ application, onClose }: ApplicationDetai
   );
 }
 
-interface StatusCardProps {
+interface CompactStatusCardProps {
   label: string;
   value: string;
   icon: React.ComponentType<{ className?: string }>;
   variant: 'success' | 'error' | 'neutral';
 }
 
-function StatusCard({ label, value, icon: Icon, variant }: StatusCardProps) {
+function CompactStatusCard({ label, value, icon: Icon, variant }: CompactStatusCardProps) {
   const variantStyles = {
     success: 'bg-green-50 border-green-200 text-green-700',
     error: 'bg-red-50 border-red-200 text-red-700',
@@ -157,23 +179,68 @@ function StatusCard({ label, value, icon: Icon, variant }: StatusCardProps) {
   };
 
   return (
-    <div className={`border rounded-lg p-3 ${variantStyles[variant]}`}>
-      <div className="flex items-center gap-2 mb-1">
-        <Icon className={`w-3.5 h-3.5 ${iconStyles[variant]}`} />
-        <span className="text-xs font-medium opacity-75">{label}</span>
+    <div className={`border rounded-lg px-2.5 py-2 ${variantStyles[variant]}`}>
+      <div className="flex items-center gap-1.5 mb-0.5">
+        <Icon className={`w-3 h-3 ${iconStyles[variant]}`} />
+        <span className="text-[10px] font-medium opacity-75">{label}</span>
       </div>
-      <p className="text-sm font-semibold">{value}</p>
+      <p className="text-xs font-semibold truncate">{value}</p>
     </div>
   );
 }
+
+function CompactScoreCard({ score }: { score: number }) {
+  let colorClasses: { bg: string; border: string; text: string; icon: string };
+  if (score >= 80) {
+    colorClasses = { bg: 'bg-green-50', border: 'border-green-200', text: 'text-green-700', icon: 'text-green-500' };
+  } else if (score >= 60) {
+    colorClasses = { bg: 'bg-lime-50', border: 'border-lime-200', text: 'text-lime-700', icon: 'text-lime-500' };
+  } else if (score >= 40) {
+    colorClasses = { bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-700', icon: 'text-amber-500' };
+  } else {
+    colorClasses = { bg: 'bg-red-50', border: 'border-red-200', text: 'text-red-700', icon: 'text-red-500' };
+  }
+
+  return (
+    <div className={`border rounded-lg px-2.5 py-2 ${colorClasses.bg} ${colorClasses.border} ${colorClasses.text}`}>
+      <div className="flex items-center gap-1.5 mb-0.5">
+        <TrendingUp className={`w-3 h-3 ${colorClasses.icon}`} />
+        <span className="text-[10px] font-medium opacity-75">Score</span>
+      </div>
+      <p className="text-xs font-semibold">{score}/100</p>
+    </div>
+  );
+}
+
+type AnswerRating = 'excellent' | 'good' | 'average' | 'poor';
 
 interface AnswerCardProps {
   answer: {
     questionText: string;
     answer: string;
     passed?: boolean;
+    score?: number;
+    rating?: AnswerRating;
   };
   showStatus?: boolean;
+}
+
+function getRatingLabel(rating: AnswerRating): string {
+  switch (rating) {
+    case 'excellent': return 'Uitstekend';
+    case 'good': return 'Goed';
+    case 'average': return 'Gemiddeld';
+    case 'poor': return 'Onvoldoende';
+  }
+}
+
+function getRatingColor(rating: AnswerRating): string {
+  switch (rating) {
+    case 'excellent': return 'bg-green-100 text-green-700';
+    case 'good': return 'bg-lime-100 text-lime-700';
+    case 'average': return 'bg-amber-100 text-amber-700';
+    case 'poor': return 'bg-red-100 text-red-700';
+  }
 }
 
 function AnswerCard({ answer, showStatus = false }: AnswerCardProps) {
@@ -192,6 +259,17 @@ function AnswerCard({ answer, showStatus = false }: AnswerCardProps) {
         )}
       </div>
       <p className="text-sm text-gray-600 mt-2 italic">"{answer.answer}"</p>
+      {/* Show score and rating for qualifying questions */}
+      {answer.score !== undefined && (
+        <div className="flex items-center gap-2 mt-2">
+          <span className="text-xs text-gray-500">Score: <span className="font-medium text-gray-700">{answer.score}</span></span>
+          {answer.rating && (
+            <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${getRatingColor(answer.rating)}`}>
+              {getRatingLabel(answer.rating)}
+            </span>
+          )}
+        </div>
+      )}
     </div>
   );
 }

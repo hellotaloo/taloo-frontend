@@ -3,6 +3,8 @@
 import { Users, CheckCircle, Award } from 'lucide-react';
 import { MetricCard } from '@/components/metrics/MetricCard';
 
+export type AnswerRating = 'excellent' | 'good' | 'average' | 'poor';
+
 export interface Application {
   id: string;
   candidateName: string;
@@ -10,6 +12,11 @@ export interface Application {
   interactionSeconds: number;
   completed: boolean;
   qualified: boolean;
+  overallScore?: number;
+  knockoutPassed?: number;
+  knockoutTotal?: number;
+  qualificationCount?: number;
+  summary?: string;
   timestamp: string;
   synced?: boolean;
   channel: 'voice' | 'whatsapp';
@@ -18,6 +25,8 @@ export interface Application {
     questionText: string;
     answer: string;
     passed?: boolean;
+    score?: number;
+    rating?: AnswerRating;
   }[];
 }
 

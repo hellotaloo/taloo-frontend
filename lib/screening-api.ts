@@ -17,7 +17,8 @@ export interface OutboundScreeningRequest {
   vacancy_id: string;
   channel: ScreeningChannel;
   phone_number: string;    // E.164 format, e.g., "+31612345678"
-  candidate_name?: string; // Optional, used for personalization
+  first_name?: string;     // Optional, used for personalization
+  last_name?: string;      // Optional, used for personalization
 }
 
 export interface OutboundScreeningResponse {

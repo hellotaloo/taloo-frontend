@@ -339,6 +339,8 @@ interface BackendQuestionAnswer {
   question_text: string;
   answer: string;
   passed: boolean | null;
+  score?: number;
+  rating?: 'excellent' | 'good' | 'average' | 'poor';
 }
 
 interface BackendApplication {
@@ -348,6 +350,11 @@ interface BackendApplication {
   channel: 'voice' | 'whatsapp';
   completed: boolean;
   qualified: boolean;
+  overall_score?: number;
+  knockout_passed?: number;
+  knockout_total?: number;
+  qualification_count?: number;
+  summary?: string;
   started_at: string;
   completed_at: string | null;
   interaction_seconds: number;
@@ -364,6 +371,11 @@ function convertApplication(a: BackendApplication): Application {
     channel: a.channel,
     completed: a.completed,
     qualified: a.qualified,
+    overallScore: a.overall_score,
+    knockoutPassed: a.knockout_passed,
+    knockoutTotal: a.knockout_total,
+    qualificationCount: a.qualification_count,
+    summary: a.summary,
     startedAt: a.started_at,
     completedAt: a.completed_at,
     interactionSeconds: a.interaction_seconds,
@@ -372,6 +384,8 @@ function convertApplication(a: BackendApplication): Application {
       questionText: ans.question_text,
       answer: ans.answer,
       passed: ans.passed,
+      score: ans.score,
+      rating: ans.rating,
     })),
     synced: a.synced,
     syncedAt: a.synced_at,

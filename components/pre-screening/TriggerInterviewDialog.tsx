@@ -99,7 +99,8 @@ export function TriggerInterviewDialog({
         vacancy_id: vacancyId,
         channel,
         phone_number: formattedPhone,
-        candidate_name: phoneFirstName || undefined,
+        first_name: phoneFirstName || undefined,
+        last_name: phoneLastName || undefined,
       });
       
       if (result.success) {

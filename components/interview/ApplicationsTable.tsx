@@ -66,6 +66,7 @@ export function ApplicationsTable({
       <TableHeader>
         <TableRow>
           <TableHead className="w-full">Kandidaat</TableHead>
+          <TableHead className="px-4 text-center">Score</TableHead>
           <TableHead className="px-4 text-center">Kanaal</TableHead>
           <TableHead className="px-4">Datum</TableHead>
           <TableHead className="px-4">Interactietijd</TableHead>
@@ -96,9 +97,9 @@ export function ApplicationsTable({
                 </span>
                 <div className="flex items-center gap-3 mt-0.5">
                   <ScoreDisplayInline 
-                    knockoutPassed={knockoutPassed}
-                    knockoutTotal={knockoutAnswers.length}
-                    qualifyingAnswered={qualifyingAnswers.length}
+                    knockoutPassed={application.knockoutPassed ?? knockoutPassed}
+                    knockoutTotal={application.knockoutTotal ?? knockoutAnswers.length}
+                    qualifyingAnswered={application.qualificationCount ?? qualifyingAnswers.length}
                     completed={application.completed}
                   />
                   <StatusLabel 
@@ -107,6 +108,9 @@ export function ApplicationsTable({
                   />
                 </div>
               </div>
+            </TableCell>
+            <TableCell className="px-4 text-center">
+              <OverallScoreBadge score={application.overallScore} completed={application.completed} />
             </TableCell>
             <TableCell className="px-4 text-center">
               <ChannelIcon channel={application.channel} />
@@ -231,6 +235,30 @@ function ChannelIcon({ channel }: { channel: 'voice' | 'whatsapp' }) {
   return (
     <span title="Telefoon" className="flex justify-center">
       <Phone className="w-4 h-4 text-blue-500" />
+    </span>
+  );
+}
+
+function OverallScoreBadge({ score, completed }: { score?: number; completed: boolean }) {
+  if (!completed || score === undefined) {
+    return <span className="text-gray-400">-</span>;
+  }
+  
+  // Determine color based on score thresholds
+  let colorClasses: string;
+  if (score >= 80) {
+    colorClasses = 'bg-green-100 text-green-700';
+  } else if (score >= 60) {
+    colorClasses = 'bg-lime-100 text-lime-700';
+  } else if (score >= 40) {
+    colorClasses = 'bg-amber-100 text-amber-700';
+  } else {
+    colorClasses = 'bg-red-100 text-red-700';
+  }
+  
+  return (
+    <span className={`inline-flex items-center justify-center px-2 py-0.5 rounded text-xs font-semibold ${colorClasses}`}>
+      {score}
     </span>
   );
 }

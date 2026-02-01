@@ -97,11 +97,15 @@ export interface Interview {
 }
 
 // Application types (pre-screening results)
+export type AnswerRating = 'excellent' | 'good' | 'average' | 'poor';
+
 export interface ApplicationAnswer {
   questionId: string;
   questionText: string;
   answer: string;
   passed: boolean | null;
+  score?: number;
+  rating?: AnswerRating;
 }
 
 export interface Application {
@@ -111,6 +115,11 @@ export interface Application {
   channel: 'voice' | 'whatsapp';
   completed: boolean;
   qualified: boolean;
+  overallScore?: number;
+  knockoutPassed?: number;
+  knockoutTotal?: number;
+  qualificationCount?: number;
+  summary?: string;
   startedAt: string;
   completedAt?: string | null;
   interactionSeconds: number;

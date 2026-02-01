@@ -65,6 +65,11 @@ function convertToComponentApplication(app: BackendApplication): Application {
     interactionSeconds: app.interactionSeconds,
     completed: app.completed,
     qualified: app.qualified,
+    overallScore: app.overallScore,
+    knockoutPassed: app.knockoutPassed,
+    knockoutTotal: app.knockoutTotal,
+    qualificationCount: app.qualificationCount,
+    summary: app.summary,
     timestamp: app.startedAt,
     synced: app.synced,
     channel: app.channel,
@@ -73,6 +78,8 @@ function convertToComponentApplication(app: BackendApplication): Application {
       questionText: a.questionText,
       answer: a.answer,
       passed: a.passed ?? undefined,
+      score: a.score,
+      rating: a.rating,
     })),
   };
 }
