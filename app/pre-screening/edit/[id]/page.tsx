@@ -285,24 +285,45 @@ export default function EditPreScreeningPage({ params }: PageProps) {
     }
   }, [searchParams, isGenerated, questions.length, existingPreScreening]);
 
-  // Fetch applications when entering dashboard mode
+  // Fetch applications when entering dashboard mode, with polling every 3 seconds
   useEffect(() => {
     if (viewMode !== 'dashboard' || !existingPreScreening || !vacancy) return;
     
-    async function fetchApplications() {
+    let isMounted = true;
+    
+    async function fetchApplications(isInitialLoad = false) {
       try {
-        setIsLoadingApplications(true);
+        if (isInitialLoad) {
+          setIsLoadingApplications(true);
+        }
         const data = await getApplications(id);
-        setApplications(data.applications.map(convertToComponentApplication));
+        if (isMounted) {
+          setApplications(data.applications.map(convertToComponentApplication));
+        }
       } catch (err) {
         console.error('Failed to fetch applications:', err);
-        setApplications([]);
+        if (isMounted && isInitialLoad) {
+          setApplications([]);
+        }
       } finally {
-        setIsLoadingApplications(false);
+        if (isMounted && isInitialLoad) {
+          setIsLoadingApplications(false);
+        }
       }
     }
 
-    fetchApplications();
+    // Initial fetch
+    fetchApplications(true);
+    
+    // Poll every 3 seconds
+    const pollInterval = setInterval(() => {
+      fetchApplications(false);
+    }, 3000);
+
+    return () => {
+      isMounted = false;
+      clearInterval(pollInterval);
+    };
   }, [viewMode, existingPreScreening, vacancy, id]);
 
   // Convert backend Interview to frontend GeneratedQuestion[]
