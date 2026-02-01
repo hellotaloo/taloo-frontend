@@ -47,6 +47,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { getVacancies } from '@/lib/interview-api';
 
 // Navigation data
 const mainNavItems = [
@@ -58,8 +59,8 @@ const primaryNavItems = [
 ];
 
 const overzichtenItems = [
-  { name: 'Pre-screening', href: '/pre-screening', icon: Phone },
-  { name: 'Insights', href: '/insights', icon: Target, badge: "+2" },
+  { name: 'Pre-screening', href: '/pre-screening', icon: Phone, badgeKey: 'newVacancies' as const },
+  { name: 'Insights', href: '/insights', icon: Target, badge: '+2' },
 ];
 
 const footerNavItems = [
@@ -71,9 +72,31 @@ const footerNavItems = [
 export function AppSidebar() {
   const pathname = usePathname();
   const [overzichtenOpen, setOverzichtenOpen] = React.useState(true);
+  const [newVacanciesCount, setNewVacanciesCount] = React.useState<number | null>(null);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    getVacancies()
+      .then(({ vacancies }) => {
+        if (cancelled) return;
+        const count = vacancies.filter((v) => v.status === 'new').length;
+        setNewVacanciesCount(count);
+      })
+      .catch(() => {
+        if (!cancelled) setNewVacanciesCount(null);
+      });
+    return () => { cancelled = true; };
+  }, []);
 
   const isActive = (href: string) => {
     return pathname === href || (href !== '/' && pathname.startsWith(href));
+  };
+
+  const getOverzichtBadge = (item: (typeof overzichtenItems)[number]) => {
+    if ('badgeKey' in item && item.badgeKey === 'newVacancies' && newVacanciesCount !== null) {
+      return newVacanciesCount;
+    }
+    return 'badge' in item ? item.badge : undefined;
   };
 
 
@@ -163,19 +186,22 @@ export function AppSidebar() {
             <CollapsibleContent>
               <SidebarGroupContent>
                 <SidebarMenu>
-                  {overzichtenItems.map((item) => (
-                    <SidebarMenuItem key={item.name}>
-                      <SidebarMenuButton asChild isActive={isActive(item.href)}>
-                        <Link href={item.href}>
-                          <item.icon className="h-4 w-4" />
-                          <span>{item.name}</span>
-                        </Link>
-                      </SidebarMenuButton>
-                      {item.badge && (
-                        <SidebarMenuBadge>{item.badge}</SidebarMenuBadge>
-                      )}
-                    </SidebarMenuItem>
-                  ))}
+                  {overzichtenItems.map((item) => {
+                    const badge = getOverzichtBadge(item);
+                    return (
+                      <SidebarMenuItem key={item.name}>
+                        <SidebarMenuButton asChild isActive={isActive(item.href)}>
+                          <Link href={item.href}>
+                            <item.icon className="h-4 w-4" />
+                            <span>{item.name}</span>
+                          </Link>
+                        </SidebarMenuButton>
+                        {badge !== undefined && (
+                          <SidebarMenuBadge>{badge}</SidebarMenuBadge>
+                        )}
+                      </SidebarMenuItem>
+                    );
+                  })}
                 </SidebarMenu>
               </SidebarGroupContent>
             </CollapsibleContent>

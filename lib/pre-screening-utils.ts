@@ -19,7 +19,7 @@ export function convertToComponentApplication(app: BackendApplication): Componen
   return {
     id: app.id,
     candidateName: app.candidateName,
-    interactionTime: formatInteractionTime(app.interactionSeconds),
+    interactionTime: app.channel === 'cv' ? '-' : formatInteractionTime(app.interactionSeconds),
     interactionSeconds: app.interactionSeconds,
     status: app.status,
     qualified: app.qualified,

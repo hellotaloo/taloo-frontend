@@ -58,16 +58,16 @@ export function ApplicationDetailPane({ application, onClose }: ApplicationDetai
       <div className="flex-1 overflow-y-auto p-4 space-y-6">
         {/* Executive Summary - only show when completed */}
         {application.summary && application.status === 'completed' && (
-          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-3">
+          <div className="bg-blue-600 rounded-lg p-3">
             <div className="flex items-center gap-1.5 mb-1.5">
-              <div className="w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
-                <FileText className="w-2.5 h-2.5 text-blue-600" />
+              <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center shrink-0">
+                <FileText className="w-2.5 h-2.5 text-white" />
               </div>
-              <p className="text-[10px] font-semibold text-blue-600 uppercase tracking-wide">
+              <p className="text-[10px] font-semibold text-white uppercase tracking-wide">
                 Executive Summary
               </p>
             </div>
-            <p className="text-sm text-gray-700 leading-relaxed">
+            <p className="text-sm text-white leading-relaxed">
               {application.summary}
             </p>
           </div>
@@ -297,8 +297,8 @@ function AnswerCard({ answer, showStatus = false }: AnswerCardProps) {
             <span className="text-xs text-gray-500">Score: <span className="font-medium text-gray-700">{answer.score}</span></span>
           )}
           
-          {/* Show rating badge for all questions that have it */}
-          {hasRating && (
+          {/* Show rating badge for qualification questions only (not for knockout) */}
+          {hasRating && !isKnockout && (
             <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${getRatingColor(answer.rating!)}`}>
               {getRatingLabel(answer.rating!)}
             </span>

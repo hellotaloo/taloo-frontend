@@ -8,7 +8,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import * as VisuallyHidden from '@radix-ui/react-visually-hidden';
-import { FileText, MessageCircle, Phone, X, Upload, Loader2, CheckCircle2, Calendar } from 'lucide-react';
+import { FileText, MessageCircle, Phone, X, Upload, Loader2, CheckCircle2, Calendar, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   initiateOutboundScreening,
@@ -36,6 +36,14 @@ type ApplicationMethod = 'email' | 'whatsapp' | 'phone';
 type PhoneContactMethod = 'whatsapp' | 'phone';
 type CvSubmissionStep = 'form' | 'processing' | 'confirmation';
 
+const CV_PROCESSING_STEPS = [
+  'CV inlezen',
+  'Ervaring en vaardigheden analyseren',
+  'Afstemmen op vacature-eisen',
+  'Antwoorden samenstellen',
+  'Bijna klaar…',
+] as const;
+
 export function TriggerInterviewDialog({
   open,
   onOpenChange,
@@ -51,6 +59,7 @@ export function TriggerInterviewDialog({
   const [emailValue, setEmailValue] = useState('');
   const [cvFile, setCvFile] = useState<File | null>(null);
   const [cvStep, setCvStep] = useState<CvSubmissionStep>('form');
+  const [processingStepIndex, setProcessingStepIndex] = useState(0);
   const [cvResult, setCvResult] = useState<CVAnalysisResult | null>(null);
   const [cvError, setCvError] = useState<string | null>(null);
   // Phone section fields
@@ -75,6 +84,17 @@ export function TriggerInterviewDialog({
     }
   }, [hasWhatsApp, hasVoice, phoneContactMethod]);
   const hasBothPhoneOptions = hasWhatsApp && hasVoice;
+
+  // Advance processing step every 2.5s while CV is processing (cap at last step)
+  useEffect(() => {
+    if (cvStep !== 'processing') return;
+    const interval = setInterval(() => {
+      setProcessingStepIndex((prev) =>
+        prev >= CV_PROCESSING_STEPS.length - 1 ? prev : prev + 1
+      );
+    }, 2500);
+    return () => clearInterval(interval);
+  }, [cvStep]);
 
   // Reset CV form state
   const resetCvForm = () => {
@@ -108,7 +128,8 @@ export function TriggerInterviewDialog({
         return;
       }
 
-      // Show processing screen
+      // Show processing screen and reset step index
+      setProcessingStepIndex(0);
       setCvStep('processing');
       setCvError(null);
       setIsSubmitting(null);
@@ -203,7 +224,34 @@ export function TriggerInterviewDialog({
             </VisuallyHidden.Root>
             <Loader2 className="w-12 h-12 text-[#CDFE00] animate-spin mb-6" />
             <h2 className="text-2xl font-semibold text-gray-900 mb-2">CV uploaden & verwerken</h2>
-            <p className="text-gray-500 text-center">Even geduld, we analyseren je CV...</p>
+            <p className="text-gray-500 text-center mb-6">Even geduld, we analyseren je CV...</p>
+            <div className="w-full max-w-sm border-l-2 border-gray-200 pl-4 space-y-2 text-left">
+              {CV_PROCESSING_STEPS.map((label, index) => {
+                const isDone = index < processingStepIndex;
+                const isCurrent = index === processingStepIndex;
+                return (
+                  <div
+                    key={index}
+                    className={`flex items-center gap-2 text-sm transition-colors ${
+                      isDone
+                        ? 'text-gray-400'
+                        : isCurrent
+                          ? 'text-gray-700 font-medium'
+                          : 'text-gray-400'
+                    }`}
+                  >
+                    {isDone ? (
+                      <Check className="w-4 h-4 shrink-0 text-gray-400" />
+                    ) : isCurrent ? (
+                      <span className="w-1 h-1 rounded-full bg-[#CDFE00] shrink-0 animate-pulse" />
+                    ) : (
+                      <span className="w-4 shrink-0" />
+                    )}
+                    <span>{label}</span>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
 
