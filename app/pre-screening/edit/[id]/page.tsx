@@ -819,6 +819,8 @@ export default function EditPreScreeningPage({ params }: PageProps) {
         setWhatsappEnabled(result.channels.whatsapp);
         setCvEnabled(result.channels.cv);
       }
+      // Update online status from response (enabling a channel may bring agent online)
+      setIsOnline(result.is_online);
       toast.success(enabled 
         ? 'Voice kanaal geactiveerd' 
         : 'Voice kanaal gedeactiveerd'
@@ -844,6 +846,8 @@ export default function EditPreScreeningPage({ params }: PageProps) {
         setWhatsappEnabled(result.channels.whatsapp);
         setCvEnabled(result.channels.cv);
       }
+      // Update online status from response (enabling a channel may bring agent online)
+      setIsOnline(result.is_online);
       toast.success(enabled 
         ? 'WhatsApp kanaal geactiveerd' 
         : 'WhatsApp kanaal gedeactiveerd'
@@ -869,6 +873,8 @@ export default function EditPreScreeningPage({ params }: PageProps) {
         setWhatsappEnabled(result.channels.whatsapp);
         setCvEnabled(result.channels.cv);
       }
+      // Update online status from response (enabling a channel may bring agent online)
+      setIsOnline(result.is_online);
       toast.success(enabled 
         ? 'Smart CV kanaal geactiveerd' 
         : 'Smart CV kanaal gedeactiveerd'

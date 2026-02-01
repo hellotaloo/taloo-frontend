@@ -110,7 +110,7 @@ export function ChannelStatusPopover({
             </div>
             <Switch
               checked={whatsappEnabled}
-              disabled={disabled || !isOnline}
+              disabled={disabled}
               onCheckedChange={onToggleWhatsapp}
               className="data-[state=checked]:bg-green-500"
             />
@@ -145,7 +145,7 @@ export function ChannelStatusPopover({
             </div>
             <Switch
               checked={voiceEnabled}
-              disabled={disabled || !isOnline}
+              disabled={disabled}
               onCheckedChange={onToggleVoice}
               className="data-[state=checked]:bg-green-500"
             />
@@ -180,7 +180,7 @@ export function ChannelStatusPopover({
             </div>
             <Switch
               checked={cvEnabled}
-              disabled={disabled || !isOnline}
+              disabled={disabled}
               onCheckedChange={onToggleCv}
               className="data-[state=checked]:bg-green-500"
             />
@@ -190,7 +190,7 @@ export function ChannelStatusPopover({
         {!isOnline && (
           <div className="px-3 pb-3">
             <p className="text-xs text-gray-400 text-center">
-              Zet de agent online om kanalen te beheren
+              Activeer een kanaal om de agent online te zetten
             </p>
           </div>
         )}

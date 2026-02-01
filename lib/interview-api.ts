@@ -302,6 +302,11 @@ interface BackendVacancy {
     whatsapp: boolean;
     cv: boolean;
   };
+  // Stats fields
+  candidates_count: number;
+  completed_count: number;
+  qualified_count: number;
+  last_activity_at: string | null;
 }
 
 // Conversion helper
@@ -320,6 +325,65 @@ function convertVacancy(v: BackendVacancy): Vacancy {
     hasScreening: v.has_screening ?? false,
     isOnline: v.is_online ?? null,
     channels: v.channels ?? { voice: false, whatsapp: false, cv: false },
+    candidatesCount: v.candidates_count ?? 0,
+    completedCount: v.completed_count ?? 0,
+    qualifiedCount: v.qualified_count ?? 0,
+    lastActivityAt: v.last_activity_at,
+  };
+}
+
+// =============================================================================
+// Dashboard Stats API
+// =============================================================================
+
+export interface DashboardStats {
+  totalPrescreenings: number;
+  totalPrescreeningsThisWeek: number;
+  completedCount: number;
+  completionRate: number;
+  qualifiedCount: number;
+  qualificationRate: number;
+  channelBreakdown: {
+    voice: number;
+    whatsapp: number;
+    cv: number;
+  };
+}
+
+interface BackendDashboardStats {
+  total_prescreenings: number;
+  total_prescreenings_this_week: number;
+  completed_count: number;
+  completion_rate: number;
+  qualified_count: number;
+  qualification_rate: number;
+  channel_breakdown: {
+    voice: number;
+    whatsapp: number;
+    cv: number;
+  };
+}
+
+/**
+ * Fetch dashboard-level aggregate statistics
+ */
+export async function getDashboardStats(): Promise<DashboardStats> {
+  const response = await fetch(`${BACKEND_URL}/stats`);
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch stats: ${response.status} ${response.statusText}`);
+  }
+
+  const data: BackendDashboardStats = await response.json();
+  
+  return {
+    totalPrescreenings: data.total_prescreenings,
+    totalPrescreeningsThisWeek: data.total_prescreenings_this_week,
+    completedCount: data.completed_count,
+    completionRate: data.completion_rate,
+    qualifiedCount: data.qualified_count,
+    qualificationRate: data.qualification_rate,
+    channelBreakdown: data.channel_breakdown,
   };
 }
 

@@ -22,6 +22,11 @@ export interface Vacancy {
   hasScreening: boolean;        // True if pre-screening exists
   isOnline: boolean | null;     // null=draft, true=online, false=offline
   channels: VacancyChannels;    // Active channels for this pre-screening
+  // Stats fields
+  candidatesCount: number;      // Total applications (excluding test conversations)
+  completedCount: number;       // Applications with status='completed'
+  qualifiedCount: number;       // Applications with qualified=true
+  lastActivityAt?: string | null; // Most recent application activity timestamp
 }
 
 // Question types

@@ -7,7 +7,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Vacancy } from '@/lib/types';
-import { getVacancies } from '@/lib/interview-api';
+import { getVacancies, getDashboardStats, DashboardStats } from '@/lib/interview-api';
 import { MetricCard, ChannelCard } from '@/components/metrics';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
@@ -223,6 +223,22 @@ function ChannelIcons({ channels }: { channels: { voice: boolean; whatsapp: bool
   );
 }
 
+function formatRelativeDate(dateString: string | null | undefined) {
+  if (!dateString) return '-';
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+  
+  if (diffMins < 1) return 'Just now';
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return date.toLocaleDateString('nl-BE', { day: 'numeric', month: 'short' });
+}
+
 function GeneratedTable({ vacancies }: { vacancies: Vacancy[] }) {
   const router = useRouter();
   
@@ -251,6 +267,7 @@ function GeneratedTable({ vacancies }: { vacancies: Vacancy[] }) {
       </TableHeader>
       <TableBody>
         {vacancies.map((vacancy) => {
+          const hasActivity = vacancy.candidatesCount > 0;
           return (
             <TableRow 
               key={vacancy.id}
@@ -281,16 +298,22 @@ function GeneratedTable({ vacancies }: { vacancies: Vacancy[] }) {
                 <ChannelIcons channels={vacancy.channels} />
               </TableCell>
               <TableCell className="text-center">
-                <span className="font-medium text-gray-400">-</span>
+                <span className={`font-medium ${hasActivity ? 'text-gray-900' : 'text-gray-400'}`}>
+                  {hasActivity ? vacancy.candidatesCount : '-'}
+                </span>
               </TableCell>
               <TableCell className="text-center">
-                <span className="font-medium text-gray-400">-</span>
+                <span className={`font-medium ${hasActivity ? 'text-gray-900' : 'text-gray-400'}`}>
+                  {hasActivity ? vacancy.completedCount : '-'}
+                </span>
               </TableCell>
               <TableCell className="text-center">
-                <span className="font-medium text-gray-400">-</span>
+                <span className={`font-medium ${hasActivity ? 'text-gray-900' : 'text-gray-400'}`}>
+                  {hasActivity ? vacancy.qualifiedCount : '-'}
+                </span>
               </TableCell>
               <TableCell className="text-gray-500 text-sm">
-                -
+                {formatRelativeDate(vacancy.lastActivityAt)}
               </TableCell>
             </TableRow>
           );
@@ -328,6 +351,7 @@ function ArchivedTable({ vacancies }: { vacancies: Vacancy[] }) {
       </TableHeader>
       <TableBody>
         {vacancies.map((vacancy) => {
+          const hasActivity = vacancy.candidatesCount > 0;
           return (
             <TableRow 
               key={vacancy.id}
@@ -355,13 +379,19 @@ function ArchivedTable({ vacancies }: { vacancies: Vacancy[] }) {
                 <ChannelIcons channels={vacancy.channels} />
               </TableCell>
               <TableCell className="text-center">
-                <span className="font-medium text-gray-400">-</span>
+                <span className={`font-medium ${hasActivity ? 'text-gray-900' : 'text-gray-400'}`}>
+                  {hasActivity ? vacancy.candidatesCount : '-'}
+                </span>
               </TableCell>
               <TableCell className="text-center">
-                <span className="font-medium text-gray-400">-</span>
+                <span className={`font-medium ${hasActivity ? 'text-gray-900' : 'text-gray-400'}`}>
+                  {hasActivity ? vacancy.completedCount : '-'}
+                </span>
               </TableCell>
               <TableCell className="text-center">
-                <span className="font-medium text-gray-400">-</span>
+                <span className={`font-medium ${hasActivity ? 'text-gray-900' : 'text-gray-400'}`}>
+                  {hasActivity ? vacancy.qualifiedCount : '-'}
+                </span>
               </TableCell>
               <TableCell className="text-gray-500 text-sm">
                 {formatDate(vacancy.archivedAt)}
@@ -379,6 +409,7 @@ function PreScreeningContent() {
   const searchParams = useSearchParams();
   
   const [vacancies, setVacancies] = useState<Vacancy[]>([]);
+  const [stats, setStats] = useState<DashboardStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [autoGenerate, setAutoGenerate] = useState(false);
@@ -410,23 +441,27 @@ function PreScreeningContent() {
     router.replace(`/pre-screening?${params.toString()}`, { scroll: false });
   };
 
-  // Fetch vacancies on mount
+  // Fetch vacancies and stats on mount
   useEffect(() => {
-    async function fetchVacancies() {
+    async function fetchData() {
       try {
         setIsLoading(true);
         setError(null);
-        const data = await getVacancies();
-        setVacancies(data.vacancies);
+        const [vacanciesData, statsData] = await Promise.all([
+          getVacancies(),
+          getDashboardStats(),
+        ]);
+        setVacancies(vacanciesData.vacancies);
+        setStats(statsData);
       } catch (err) {
-        console.error('Failed to fetch vacancies:', err);
-        setError('Failed to load vacancies');
+        console.error('Failed to fetch data:', err);
+        setError('Failed to load data');
       } finally {
         setIsLoading(false);
       }
     }
 
-    fetchVacancies();
+    fetchData();
   }, []);
 
   // Filter vacancies by status
@@ -440,15 +475,15 @@ function PreScreeningContent() {
   const archivedVacancies = useMemo(() => 
     vacancies.filter(v => v.status === 'archived'), [vacancies]);
 
-  // Placeholder metrics
+  // Use stats from API or fallback to zeros
   const weeklyMetrics = {
-    total: 0,
-    completionRate: 0,
-    qualified: 0,
-    qualificationRate: 0,
-    voice: 0,
-    whatsapp: 0,
-    dailyData: Array(7).fill({ value: 0 }),
+    total: stats?.totalPrescreeningsThisWeek ?? 0,
+    completionRate: stats?.completionRate ?? 0,
+    qualified: stats?.qualifiedCount ?? 0,
+    qualificationRate: stats?.qualificationRate ?? 0,
+    voice: stats?.channelBreakdown.voice ?? 0,
+    whatsapp: stats?.channelBreakdown.whatsapp ?? 0,
+    dailyData: Array(7).fill({ value: 0 }), // TODO: Add daily breakdown to stats endpoint if needed
   };
 
   if (isLoading) {
