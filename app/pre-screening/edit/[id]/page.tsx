@@ -837,6 +837,7 @@ export default function EditPreScreeningPage({ params }: PageProps) {
       type,
       idealAnswer: type === 'qualifying' ? idealAnswer : undefined,
       changeStatus: 'new',
+      _stableKey: tempId, // Used for React key to prevent remount on ID change
     };
 
     // Store previous state for rollback
@@ -856,12 +857,13 @@ export default function EditPreScreeningPage({ params }: PageProps) {
       const result = await addQuestion(sessionId, backendType, text, idealAnswer);
       
       // Replace temp ID with real ID from backend
+      // Keep _stableKey to prevent React remount, clear changeStatus since animation is already playing
       const updatedQuestions = newQuestions.map(q => 
         q.id === tempId 
           ? { 
               ...q, 
               id: result.question.id, 
-              changeStatus: result.question.change_status,
+              // Don't update changeStatus - animation already started with temp ID
             } 
           : q
       );

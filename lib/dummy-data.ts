@@ -371,22 +371,6 @@ export const dummyFinetuneInstructions: FinetuneInstruction[] = [
     createdAt: '2026-01-15T10:00:00Z',
   },
   {
-    id: 'ft-2',
-    agent: 'pre-screening',
-    category: 'checks',
-    instruction: 'Altijd loonverwachting aftoetsen vóór doorsturen',
-    isActive: true,
-    createdAt: '2026-01-14T09:00:00Z',
-  },
-  {
-    id: 'ft-3',
-    agent: 'pre-screening',
-    category: 'strictness',
-    instruction: 'Wees flexibel bij carrière-switchers',
-    isActive: true,
-    createdAt: '2026-01-13T14:30:00Z',
-  },
-  {
     id: 'ft-4',
     agent: 'pre-screening',
     category: 'strictness',
@@ -395,28 +379,12 @@ export const dummyFinetuneInstructions: FinetuneInstruction[] = [
     createdAt: '2026-01-12T11:00:00Z',
   },
   {
-    id: 'ft-5',
-    agent: 'pre-screening',
-    category: 'red-flags',
-    instruction: 'Geen eigen vervoer is een dealbreaker voor buitendienst functies',
-    isActive: true,
-    createdAt: '2026-01-11T16:00:00Z',
-  },
-  {
     id: 'ft-6',
     agent: 'pre-screening',
     category: 'depth',
     instruction: 'Vraag altijd naar concrete voorbeelden',
     isActive: true,
     createdAt: '2026-01-10T10:30:00Z',
-  },
-  {
-    id: 'ft-7',
-    agent: 'pre-screening',
-    category: 'tone',
-    instruction: 'Gebruik altijd u-vorm',
-    isActive: true,
-    createdAt: '2026-01-09T09:15:00Z',
   },
   {
     id: 'ft-8',
@@ -436,14 +404,6 @@ export const dummyFinetuneInstructions: FinetuneInstruction[] = [
     createdAt: '2026-01-07T10:00:00Z',
   },
   {
-    id: 'ft-10',
-    agent: 'interview-generator',
-    category: 'focus',
-    instruction: 'Meer focus op cultuurfit dan op technische skills',
-    isActive: true,
-    createdAt: '2026-01-06T14:00:00Z',
-  },
-  {
     id: 'ft-11',
     agent: 'interview-generator',
     category: 'difficulty',
@@ -458,14 +418,6 @@ export const dummyFinetuneInstructions: FinetuneInstruction[] = [
     instruction: 'Geen stressvragen of trick questions',
     isActive: true,
     createdAt: '2026-01-04T09:00:00Z',
-  },
-  {
-    id: 'ft-13',
-    agent: 'interview-generator',
-    category: 'output',
-    instruction: 'Samenvatting bovenaan, eindadvies in 1 zin',
-    isActive: true,
-    createdAt: '2026-01-03T15:00:00Z',
   },
   // General instructions
   {

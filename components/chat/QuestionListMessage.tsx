@@ -7,6 +7,8 @@ export interface GeneratedQuestion {
   idealAnswer?: string;
   isModified?: boolean;
   changeStatus?: 'new' | 'updated' | 'unchanged';
+  /** Stable key for React reconciliation - prevents remount when id changes from temp to real */
+  _stableKey?: string;
 }
 
 interface QuestionListMessageProps {

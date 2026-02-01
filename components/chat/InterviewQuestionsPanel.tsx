@@ -62,8 +62,8 @@ export function InterviewQuestionsPanel({ questions, isGenerating = false, highl
     const { active, over } = event;
     
     if (over && active.id !== over.id) {
-      const oldIndex = knockoutQuestions.findIndex(q => q.id === active.id);
-      const newIndex = knockoutQuestions.findIndex(q => q.id === over.id);
+      const oldIndex = knockoutQuestions.findIndex(q => (q._stableKey || q.id) === active.id);
+      const newIndex = knockoutQuestions.findIndex(q => (q._stableKey || q.id) === over.id);
       
       const reorderedKnockout = arrayMove(knockoutQuestions, oldIndex, newIndex);
       const newQuestions = [...reorderedKnockout, ...qualifyingQuestions];
@@ -77,8 +77,8 @@ export function InterviewQuestionsPanel({ questions, isGenerating = false, highl
     const { active, over } = event;
     
     if (over && active.id !== over.id) {
-      const oldIndex = qualifyingQuestions.findIndex(q => q.id === active.id);
-      const newIndex = qualifyingQuestions.findIndex(q => q.id === over.id);
+      const oldIndex = qualifyingQuestions.findIndex(q => (q._stableKey || q.id) === active.id);
+      const newIndex = qualifyingQuestions.findIndex(q => (q._stableKey || q.id) === over.id);
       
       const reorderedQualifying = arrayMove(qualifyingQuestions, oldIndex, newIndex);
       const newQuestions = [...knockoutQuestions, ...reorderedQualifying];
@@ -176,13 +176,13 @@ export function InterviewQuestionsPanel({ questions, isGenerating = false, highl
           onDragEnd={handleKnockoutDragEnd}
         >
           <SortableContext
-            items={knockoutQuestions.map(q => q.id)}
+            items={knockoutQuestions.map(q => q._stableKey || q.id)}
             strategy={verticalListSortingStrategy}
           >
             <div className="space-y-2">
               {knockoutQuestions.map((question, index) => (
                 <SortableQuestionItem 
-                  key={question.id} 
+                  key={question._stableKey || question.id} 
                   question={question} 
                   index={index + 1}
                   variant="knockout"
@@ -235,13 +235,13 @@ export function InterviewQuestionsPanel({ questions, isGenerating = false, highl
           onDragEnd={handleQualifyingDragEnd}
         >
           <SortableContext
-            items={qualifyingQuestions.map(q => q.id)}
+            items={qualifyingQuestions.map(q => q._stableKey || q.id)}
             strategy={verticalListSortingStrategy}
           >
             <div className="space-y-2">
               {qualifyingQuestions.map((question, index) => (
                 <SortableQuestionItem 
-                  key={question.id} 
+                  key={question._stableKey || question.id} 
                   question={question} 
                   index={index + 1}
                   variant="qualifying"
@@ -447,7 +447,7 @@ function SkeletonCard({ isAnimating = false }: { isAnimating?: boolean }) {
 }
 
 // New question highlight styles: slide-in + blue bg + soft pulse
-const NEW_QUESTION_HIGHLIGHT_CLASSES = 'bg-blue-100 animate-[slide-in-right_1.2s_cubic-bezier(0.16,1,0.3,1)_0s_backwards,soft-pulse_3s_ease-in-out_1.2s_infinite]';
+const NEW_QUESTION_HIGHLIGHT_CLASSES = 'bg-blue-100 animate-[slide-in-right_1.2s_cubic-bezier(0.16,1,0.3,1)_0s_backwards]';
 // Updated question highlight styles: amber bg + soft pulse only (no slide-in)
 const UPDATED_QUESTION_HIGHLIGHT_CLASSES = 'bg-amber-100 animate-[soft-pulse_3s_ease-in-out_infinite]';
 const NORMAL_QUESTION_CLASSES = 'bg-gray-100 transition-all duration-500';
@@ -620,6 +620,7 @@ function SortableQuestionItem({
 }) {
   const [hasAnimated, setHasAnimated] = useState(false);
   const [showChangeLabel, setShowChangeLabel] = useState(isHighlighted);
+  const [showHighlightBg, setShowHighlightBg] = useState(question.changeStatus === 'new' || question.changeStatus === 'updated');
   const [isIdealAnswerExpanded, setIsIdealAnswerExpanded] = useState(false);
   const {
     attributes,
@@ -628,7 +629,7 @@ function SortableQuestionItem({
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: question.id });
+  } = useSortable({ id: question._stableKey || question.id });
 
   // Mark animation as complete after it finishes
   useEffect(() => {
@@ -649,9 +650,19 @@ function SortableQuestionItem({
     }
   }, [isHighlighted]);
 
+  // Fade out highlight background after 5 seconds for new/updated questions
+  useEffect(() => {
+    if (question.changeStatus === 'new' || question.changeStatus === 'updated') {
+      setShowHighlightBg(true);
+      const timer = setTimeout(() => {
+        setShowHighlightBg(false);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [question.changeStatus]);
+
   // Determine highlight class based on changeStatus
   const isNew = question.changeStatus === 'new';
-  const isUpdated = question.changeStatus === 'updated';
   
   // Skip the initial fade-in-up animation only for 'new' questions
   // because the slide-in-right animation handles the entrance
@@ -661,10 +672,10 @@ function SortableQuestionItem({
     ...((hasAnimated || isNew) ? {} : { animation: `fade-in-up 0.6s ease-out ${animationDelay}ms backwards` }),
   };
 
-  // Use appropriate highlight styles based on changeStatus
+  // Use appropriate highlight styles based on changeStatus and showHighlightBg
   const baseClasses = isNew
-    ? NEW_QUESTION_HIGHLIGHT_CLASSES
-    : isUpdated
+    ? (showHighlightBg ? NEW_QUESTION_HIGHLIGHT_CLASSES : NORMAL_QUESTION_CLASSES)
+    : (question.changeStatus === 'updated' && showHighlightBg)
     ? UPDATED_QUESTION_HIGHLIGHT_CLASSES
     : NORMAL_QUESTION_CLASSES;
 
@@ -715,11 +726,6 @@ function SortableQuestionItem({
         )}
         <div className="flex-1 flex items-center gap-2 min-w-0">
           <p className="text-sm text-gray-700 flex-1">{question.text}</p>
-          {showChangeLabel && labelConfig && (
-            <span className={`shrink-0 text-[10px] font-medium px-1.5 py-0.5 rounded animate-[pulse-opacity_2s_ease-in-out_infinite] transition-opacity duration-300 ${labelConfig.className}`}>
-              {labelConfig.text}
-            </span>
-          )}
           {/* Action icons - visible on hover, hidden in readOnly mode */}
           {!readOnly && (
             <div className="shrink-0 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -765,6 +771,12 @@ function SortableQuestionItem({
             >
               <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isIdealAnswerExpanded ? 'rotate-180' : ''}`} />
             </button>
+          )}
+          {/* Change label (new/updated) - rightmost item */}
+          {showChangeLabel && labelConfig && (
+            <span className={`shrink-0 text-[10px] font-medium px-1.5 py-0.5 rounded animate-[pulse-opacity_2s_ease-in-out_infinite] transition-opacity duration-300 ${labelConfig.className}`}>
+              {labelConfig.text}
+            </span>
           )}
         </div>
       </div>
