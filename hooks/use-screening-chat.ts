@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef } from 'react';
+import { toast } from 'sonner';
 
 interface Message {
   id: string;
@@ -14,6 +15,7 @@ interface SSEEvent {
   status?: string;
   message?: string;
   session_id?: string;
+  is_complete?: boolean;
 }
 
 export function useScreeningChat(vacancyId: string) {
@@ -23,6 +25,7 @@ export function useScreeningChat(vacancyId: string) {
   const [error, setError] = useState<string | null>(null);
   const [isStarted, setIsStarted] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
+  const [isComplete, setIsComplete] = useState(false);
   const messageIdCounter = useRef(0);
   
   // Use refs for guards to avoid stale closure issues
@@ -75,9 +78,10 @@ export function useScreeningChat(vacancyId: string) {
     }
 
     try {
-      const body: Record<string, string> = {
+      const body: Record<string, string | boolean> = {
         vacancy_id: vacancyId,
         message: message,
+        is_test: true,
       };
       
       if (sessionId) body.session_id = sessionId;
@@ -136,6 +140,14 @@ export function useScreeningChat(vacancyId: string) {
               if (event.session_id) {
                 setSessionId(event.session_id);
               }
+              
+              // Show toast when interview is complete
+              if (event.is_complete) {
+                setIsComplete(true);
+                toast.success('Interview voltooid', {
+                  description: 'De test screening is afgerond.',
+                });
+              }
             } else if (event.type === 'error') {
               setIsLoading(false);
               setError(event.message || 'Unknown error');
@@ -180,6 +192,7 @@ export function useScreeningChat(vacancyId: string) {
     setError(null);
     setIsStarted(false);
     setIsStarting(false);
+    setIsComplete(false);
     // Reset refs immediately (no closure issues)
     isStartedRef.current = false;
     isStartingRef.current = false;
@@ -193,6 +206,7 @@ export function useScreeningChat(vacancyId: string) {
     sessionId,
     isStarted,
     isStarting,
+    isComplete,
     sendMessage,
     startConversation,
     resetChat,

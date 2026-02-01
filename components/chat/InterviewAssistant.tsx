@@ -105,6 +105,9 @@ export function InterviewAssistant({
   const [isVacancyOpen, setIsVacancyOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  
+  // Ref-based guard to prevent duplicate submissions (avoids React state batching race condition)
+  const isSubmittingRef = useRef(false);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -202,11 +205,21 @@ export function InterviewAssistant({
   };
 
   const handleSubmit = async () => {
-    if (!input.trim() || isLoading) return;
+    const requestId = `req-${Date.now()}`;
+    
+    // Use ref guard to prevent duplicate submissions (React state batching can cause race conditions)
+    if (!input.trim() || isLoading || isSubmittingRef.current) {
+      console.log(`[handleSubmit ${requestId}] BLOCKED - input empty: ${!input.trim()}, isLoading: ${isLoading}, isSubmitting: ${isSubmittingRef.current}`);
+      return;
+    }
     if (!sessionId) {
       addMessage('assistant', 'Er is nog geen sessie actief. Genereer eerst de vragen.');
       return;
     }
+
+    // Set ref guard immediately (synchronous, before any state updates)
+    isSubmittingRef.current = true;
+    console.log(`[handleSubmit ${requestId}] STARTED - guard set to true at ${new Date().toISOString()}`);
 
     const userMessage = input.trim();
     setInput('');
@@ -219,36 +232,51 @@ export function InterviewAssistant({
     const maxRetries = 3;
     let lastError: Error | null = null;
 
-    for (let attempt = 0; attempt < maxRetries; attempt++) {
-      try {
-        const { interview: updatedInterview, message: responseMessage } = await sendFeedback(sessionId, userMessage, handleSSEEvent);
-        const questions = convertToFrontendQuestions(updatedInterview);
-        onQuestionsUpdate(questions);
-        addMessage('assistant', responseMessage || 'Ik heb de vragen aangepast op basis van je feedback.');
-        setIsLoading(false);
-        setFeedbackStatus('');
-        setFeedbackThinkingContent(''); // Clear thinking content on success
-        return; // Success, exit the function
-      } catch (error) {
-        lastError = error instanceof Error ? error : new Error(String(error));
-        console.warn(`Send feedback attempt ${attempt + 1} failed:`, error);
-        
-        // If we have more retries, wait with exponential backoff before trying again
-        if (attempt < maxRetries - 1) {
-          const backoffMs = Math.pow(2, attempt) * 1000; // 1s, 2s, 4s
-          setFeedbackStatus('Opnieuw proberen...');
-          await new Promise(resolve => setTimeout(resolve, backoffMs));
-          setFeedbackStatus('Feedback verwerken...');
+    try {
+      for (let attempt = 0; attempt < maxRetries; attempt++) {
+        try {
+          console.log(`[handleSubmit ${requestId}] Attempt ${attempt + 1} starting at ${new Date().toISOString()}`);
+          const { interview: updatedInterview, message: responseMessage } = await sendFeedback(sessionId, userMessage, handleSSEEvent);
+          console.log(`[handleSubmit ${requestId}] Attempt ${attempt + 1} SUCCESS at ${new Date().toISOString()}`);
+          const questions = convertToFrontendQuestions(updatedInterview);
+          onQuestionsUpdate(questions);
+          addMessage('assistant', responseMessage || 'Ik heb de vragen aangepast op basis van je feedback.');
+          setIsLoading(false);
+          setFeedbackStatus('');
+          setFeedbackThinkingContent(''); // Clear thinking content on success
+          return; // Success, exit the function
+        } catch (error) {
+          lastError = error instanceof Error ? error : new Error(String(error));
+          console.warn(`[handleSubmit ${requestId}] Attempt ${attempt + 1} FAILED at ${new Date().toISOString()}:`, error);
+          
+          // If we have more retries, wait before trying again
+          if (attempt < maxRetries - 1) {
+            // First retry is quick (200ms) and silent, subsequent retries are slower with feedback
+            const backoffMs = attempt === 0 ? 200 : Math.pow(2, attempt - 1) * 1000; // 200ms, 1s, 2s
+            console.log(`[handleSubmit ${requestId}] Will retry in ${backoffMs}ms`);
+            if (attempt > 0) {
+              // Only show "Opnieuw proberen" after the first quick retry fails
+              setFeedbackStatus('Opnieuw proberen...');
+            }
+            await new Promise(resolve => setTimeout(resolve, backoffMs));
+            if (attempt > 0) {
+              setFeedbackStatus('Feedback verwerken...');
+            }
+          }
         }
       }
-    }
 
-    // All retries failed
-    console.error('Failed to send feedback after all retries:', lastError);
-    addMessage('assistant', 'Er is een fout opgetreden bij het verwerken van je feedback. Probeer het opnieuw.');
-    setIsLoading(false);
-    setFeedbackStatus('');
-    setFeedbackThinkingContent(''); // Clear thinking content on error
+      // All retries failed
+      console.error(`[handleSubmit ${requestId}] All ${maxRetries} retries failed:`, lastError);
+      addMessage('assistant', 'Er is een fout opgetreden bij het verwerken van je feedback. Probeer het opnieuw.');
+      setIsLoading(false);
+      setFeedbackStatus('');
+      setFeedbackThinkingContent(''); // Clear thinking content on error
+    } finally {
+      // Always reset the ref guard when done
+      isSubmittingRef.current = false;
+      console.log(`[handleSubmit ${requestId}] COMPLETED - guard reset to false at ${new Date().toISOString()}`);
+    }
   };
 
   return (
@@ -378,6 +406,7 @@ export function InterviewAssistant({
           <PromptInputActions className="flex items-center justify-end gap-2 pt-2">
             <PromptInputAction tooltip="Verstuur">
               <Button
+                type="button"
                 variant="default"
                 size="icon"
                 className="h-7 w-7 rounded-full"

@@ -19,6 +19,7 @@ export interface OutboundScreeningRequest {
   phone_number: string;    // E.164 format, e.g., "+31612345678"
   first_name?: string;     // Optional, used for personalization
   last_name?: string;      // Optional, used for personalization
+  is_test?: boolean;       // Optional, marks conversation as test
 }
 
 export interface OutboundScreeningResponse {

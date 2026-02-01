@@ -1,6 +1,6 @@
 'use client';
 
-import { Users, ArrowRight, Phone } from 'lucide-react';
+import { Users, ArrowRight, Phone, X, FlaskConical } from 'lucide-react';
 import Image from 'next/image';
 import {
   Table,
@@ -99,30 +99,40 @@ export function ApplicationsTable({
               className={`cursor-pointer transition-colors ${
                 selectedId === application.id 
                   ? 'bg-blue-50 hover:bg-blue-100' 
-                  : ''
+                  : application.isTest
+                    ? 'bg-amber-50/50 hover:bg-amber-100/50'
+                    : ''
               }`}
             >
             <TableCell>
               <div className="min-w-0">
-                <span className="font-medium text-gray-900 block">
-                  {application.candidateName}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="font-medium text-gray-900">
+                    {application.candidateName}
+                  </span>
+                  {application.isTest && (
+                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-100 text-amber-700">
+                      <FlaskConical className="w-3 h-3" />
+                      Test
+                    </span>
+                  )}
+                </div>
                 <div className="flex items-center gap-3 mt-0.5">
                   <ScoreDisplayInline 
                     knockoutPassed={application.knockoutPassed ?? knockoutPassed}
                     knockoutTotal={application.knockoutTotal ?? knockoutAnswers.length}
                     qualifyingAnswered={application.qualificationCount ?? qualifyingAnswers.length}
-                    completed={application.completed}
+                    completed={application.status === 'completed'}
                   />
                   <StatusLabel 
-                    completed={application.completed} 
+                    status={application.status} 
                     qualified={application.qualified} 
                   />
                 </div>
               </div>
             </TableCell>
             <TableCell className="px-4 text-center">
-              <OverallScoreBadge score={application.overallScore} completed={application.completed} />
+              <OverallScoreBadge score={application.overallScore} completed={application.status === 'completed'} />
             </TableCell>
             <TableCell className="px-4 text-gray-500 text-sm">
               {formatInterviewSlot(application.interviewSlot) || '-'}
@@ -137,7 +147,7 @@ export function ApplicationsTable({
               {application.interactionTime}
             </TableCell>
             <TableCell className="px-4 text-center">
-              <SyncedStatus synced={application.synced} />
+              <SyncedStatus synced={application.synced} isTest={application.isTest} />
             </TableCell>
             <TableCell className="text-right pl-4">
                 <button
@@ -159,8 +169,8 @@ export function ApplicationsTable({
   );
 }
 
-function StatusLabel({ completed, qualified }: { completed: boolean; qualified: boolean }) {
-  if (!completed) {
+function StatusLabel({ status, qualified }: { status: 'active' | 'processing' | 'completed'; qualified: boolean }) {
+  if (status === 'active') {
     return (
       <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-500">
         Niet afgerond
@@ -168,6 +178,15 @@ function StatusLabel({ completed, qualified }: { completed: boolean; qualified: 
     );
   }
   
+  if (status === 'processing') {
+    return (
+      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-100 text-blue-700">
+        Bezig met verwerken
+      </span>
+    );
+  }
+  
+  // status === 'completed'
   if (qualified) {
     return (
       <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-green-100 text-green-700">
@@ -218,7 +237,16 @@ function ScoreDisplayInline({
   );
 }
 
-function SyncedStatus({ synced }: { synced?: boolean }) {
+function SyncedStatus({ synced, isTest }: { synced?: boolean; isTest?: boolean }) {
+  // Test applications are never synced - show a cross
+  if (isTest) {
+    return (
+      <span className="inline-flex items-center justify-center" title="Test - wordt niet gesynchroniseerd">
+        <X className="w-4 h-4 text-gray-400" />
+      </span>
+    );
+  }
+  
   if (!synced) {
     return <span className="text-gray-400">-</span>;
   }

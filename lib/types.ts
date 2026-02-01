@@ -5,6 +5,7 @@ export type VacancySource = 'salesforce' | 'bullhorn' | 'manual';
 export interface VacancyChannels {
   voice: boolean;
   whatsapp: boolean;
+  cv: boolean;
 }
 
 export interface Vacancy {
@@ -98,6 +99,7 @@ export interface Interview {
 
 // Application types (pre-screening results)
 export type AnswerRating = 'excellent' | 'good' | 'average' | 'poor';
+export type ApplicationStatus = 'active' | 'processing' | 'completed';
 
 export interface ApplicationAnswer {
   questionId: string;
@@ -106,6 +108,7 @@ export interface ApplicationAnswer {
   passed: boolean | null;
   score?: number;
   rating?: AnswerRating;
+  motivation?: string;
 }
 
 export interface Application {
@@ -113,7 +116,7 @@ export interface Application {
   vacancyId: string;
   candidateName: string;
   channel: 'voice' | 'whatsapp';
-  completed: boolean;
+  status: ApplicationStatus;
   qualified: boolean;
   overallScore?: number;
   knockoutPassed?: number;
@@ -127,6 +130,7 @@ export interface Application {
   synced: boolean;
   syncedAt?: string | null;
   interviewSlot?: string | null;
+  isTest?: boolean;
 }
 
 // Metrics types

@@ -184,6 +184,9 @@ export async function sendFeedback(
   userMessage: string,
   onEvent: StatusCallback
 ): Promise<{ interview: Interview; message: string }> {
+  const requestId = `sf-${Date.now()}`;
+  console.log(`[sendFeedback ${requestId}] Starting request for session: ${sessionId} at ${new Date().toISOString()}`);
+  
   const response = await fetch(`${BACKEND_URL}/interview/feedback`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -196,36 +199,81 @@ export async function sendFeedback(
   const decoder = new TextDecoder();
   let interview: Interview | null = null;
   let responseMessage = '';
+  let buffer = ''; // Buffer for partial lines across chunks
 
   if (!reader) throw new Error('No response body');
 
+  let chunkCount = 0;
   while (true) {
     const { done, value } = await reader.read();
-    if (done) break;
+    if (done) {
+      console.log(`[sendFeedback ${requestId}] Stream ended at ${new Date().toISOString()}. Chunks received: ${chunkCount}, Interview received: ${!!interview}, Buffer remaining: "${buffer}"`);
+      break;
+    }
 
-    const chunk = decoder.decode(value);
-    const lines = chunk.split('\n');
+    chunkCount++;
+    // Append new chunk to buffer
+    const chunkText = decoder.decode(value, { stream: true });
+    console.log(`[sendFeedback ${requestId}] Chunk ${chunkCount} raw:`, JSON.stringify(chunkText));
+    buffer += chunkText;
+    
+    // Process complete lines from the buffer
+    const lines = buffer.split('\n');
+    // Keep the last (potentially incomplete) line in the buffer
+    buffer = lines.pop() || '';
 
     for (const line of lines) {
-      if (line.startsWith('data: ')) {
-        const data = line.slice(6);
-        if (data === '[DONE]') continue;
+      const trimmedLine = line.trim();
+      if (!trimmedLine) continue; // Skip empty lines
+      if (!trimmedLine.startsWith('data: ')) {
+        console.log(`[sendFeedback ${requestId}] Non-data line:`, JSON.stringify(trimmedLine));
+        continue;
+      }
+      
+      const data = trimmedLine.slice(6);
+      if (data === '[DONE]') {
+        console.log(`[sendFeedback ${requestId}] Received [DONE]`);
+        continue;
+      }
 
-        try {
-          const event: SSEEvent = JSON.parse(data);
-          onEvent(event);
-          if (event.type === 'complete') {
-            interview = event.interview || null;
-            responseMessage = event.message || '';
-          }
-        } catch (e) {
-          console.error('Failed to parse SSE event:', e);
+      try {
+        const event: SSEEvent = JSON.parse(data);
+        console.log(`[sendFeedback ${requestId}] Received event: ${event.type}`);
+        onEvent(event);
+        if (event.type === 'complete') {
+          interview = event.interview || null;
+          responseMessage = event.message || '';
         }
+      } catch (e) {
+        console.error(`[sendFeedback ${requestId}] Failed to parse SSE event:`, data, e);
       }
     }
   }
 
-  if (!interview) throw new Error('No interview returned');
+  // Process any remaining data in the buffer
+  if (buffer.trim().startsWith('data: ')) {
+    const data = buffer.trim().slice(6);
+    if (data !== '[DONE]') {
+      try {
+        const event: SSEEvent = JSON.parse(data);
+        console.log(`[sendFeedback ${requestId}] Received final event from buffer: ${event.type}`);
+        onEvent(event);
+        if (event.type === 'complete') {
+          interview = event.interview || null;
+          responseMessage = event.message || '';
+        }
+      } catch (e) {
+        console.error(`[sendFeedback ${requestId}] Failed to parse final SSE event:`, data, e);
+      }
+    }
+  }
+
+  if (!interview) {
+    console.error(`[sendFeedback ${requestId}] No interview in response - this will trigger retry`);
+    throw new Error('No interview returned');
+  }
+  
+  console.log(`[sendFeedback ${requestId}] Success`);
   return { interview, message: responseMessage };
 }
 
@@ -252,6 +300,7 @@ interface BackendVacancy {
   channels: {
     voice: boolean;
     whatsapp: boolean;
+    cv: boolean;
   };
 }
 
@@ -270,7 +319,7 @@ function convertVacancy(v: BackendVacancy): Vacancy {
     sourceId: v.source_id,
     hasScreening: v.has_screening ?? false,
     isOnline: v.is_online ?? null,
-    channels: v.channels ?? { voice: false, whatsapp: false },
+    channels: v.channels ?? { voice: false, whatsapp: false, cv: false },
   };
 }
 
@@ -341,6 +390,7 @@ interface BackendQuestionAnswer {
   passed: boolean | null;
   score?: number;
   rating?: 'excellent' | 'good' | 'average' | 'poor';
+  motivation?: string;
 }
 
 interface BackendApplication {
@@ -348,7 +398,7 @@ interface BackendApplication {
   vacancy_id: string;
   candidate_name: string;
   channel: 'voice' | 'whatsapp';
-  completed: boolean;
+  status: 'active' | 'processing' | 'completed';
   qualified: boolean;
   overall_score?: number;
   knockout_passed?: number;
@@ -362,6 +412,7 @@ interface BackendApplication {
   synced: boolean;
   synced_at: string | null;
   interview_slot?: string | null;
+  is_test?: boolean;
 }
 
 function convertApplication(a: BackendApplication): Application {
@@ -370,7 +421,7 @@ function convertApplication(a: BackendApplication): Application {
     vacancyId: a.vacancy_id,
     candidateName: a.candidate_name,
     channel: a.channel,
-    completed: a.completed,
+    status: a.status,
     qualified: a.qualified,
     overallScore: a.overall_score,
     knockoutPassed: a.knockout_passed,
@@ -387,10 +438,12 @@ function convertApplication(a: BackendApplication): Application {
       passed: ans.passed,
       score: ans.score,
       rating: ans.rating,
+      motivation: ans.motivation,
     })),
     synced: a.synced,
     syncedAt: a.synced_at,
     interviewSlot: a.interview_slot,
+    isTest: a.is_test ?? false,
   };
 }
 
@@ -401,7 +454,7 @@ export async function getApplications(
   vacancyId: string,
   params?: {
     qualified?: boolean;
-    completed?: boolean;
+    status?: 'active' | 'processing' | 'completed';
     synced?: boolean;
     limit?: number;
     offset?: number;
@@ -411,8 +464,8 @@ export async function getApplications(
   if (params?.qualified !== undefined) {
     searchParams.set('qualified', params.qualified.toString());
   }
-  if (params?.completed !== undefined) {
-    searchParams.set('completed', params.completed.toString());
+  if (params?.status !== undefined) {
+    searchParams.set('status', params.status);
   }
   if (params?.synced !== undefined) {
     searchParams.set('synced', params.synced.toString());
@@ -556,6 +609,7 @@ export async function deletePreScreening(vacancyId: string): Promise<void> {
 export interface PublishPreScreeningRequest {
   enable_voice?: boolean;
   enable_whatsapp?: boolean;
+  enable_cv?: boolean;
 }
 
 export interface PublishPreScreeningResponse {
@@ -579,6 +633,27 @@ export interface UpdateStatusResponse {
   whatsapp_agent_id?: string;
 }
 
+// Extended types for individual channel control
+export interface UpdateChannelStatusRequest {
+  is_online?: boolean;
+  voice_enabled?: boolean;
+  whatsapp_enabled?: boolean;
+  cv_enabled?: boolean;
+}
+
+export interface UpdateChannelStatusResponse {
+  status: 'success';
+  is_online: boolean;
+  channels: {
+    voice: boolean;
+    whatsapp: boolean;
+    cv: boolean;
+  };
+  message: string;
+  elevenlabs_agent_id?: string;
+  whatsapp_agent_id?: string;
+}
+
 /**
  * Publish a pre-screening and create AI agents.
  * Publishing automatically sets the pre-screening online.
@@ -593,6 +668,7 @@ export async function publishPreScreening(
     body: JSON.stringify({
       enable_voice: options.enable_voice ?? true,
       enable_whatsapp: options.enable_whatsapp ?? true,
+      enable_cv: options.enable_cv ?? true,
     }),
   });
 
@@ -621,6 +697,31 @@ export async function updatePreScreeningStatus(
   if (!response.ok) {
     const error = await response.json().catch(() => ({ detail: 'Failed to update status' }));
     throw new Error(error.detail || 'Failed to update status');
+  }
+
+  return response.json();
+}
+
+/**
+ * Update individual channel status for a published pre-screening.
+ * Allows toggling Voice and WhatsApp channels independently.
+ * 
+ * Note: Requires backend support for channel-specific toggles.
+ * See app/docs/BACKEND_BRIEF_CHANNEL_TOGGLES.md for API specification.
+ */
+export async function updateChannelStatus(
+  vacancyId: string,
+  options: UpdateChannelStatusRequest
+): Promise<UpdateChannelStatusResponse> {
+  const response = await fetch(`${BACKEND_URL}/vacancies/${vacancyId}/pre-screening/status`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(options),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: 'Failed to update channel status' }));
+    throw new Error(error.detail || 'Failed to update channel status');
   }
 
   return response.json();

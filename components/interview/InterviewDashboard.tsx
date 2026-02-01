@@ -4,13 +4,14 @@ import { Users, CheckCircle, Award } from 'lucide-react';
 import { MetricCard } from '@/components/metrics/MetricCard';
 
 export type AnswerRating = 'excellent' | 'good' | 'average' | 'poor';
+export type ApplicationStatus = 'active' | 'processing' | 'completed';
 
 export interface Application {
   id: string;
   candidateName: string;
   interactionTime: string; // e.g., "2m 34s"
   interactionSeconds: number;
-  completed: boolean;
+  status: ApplicationStatus;
   qualified: boolean;
   overallScore?: number;
   knockoutPassed?: number;
@@ -21,6 +22,7 @@ export interface Application {
   synced?: boolean;
   channel: 'voice' | 'whatsapp';
   interviewSlot?: string | null;
+  isTest?: boolean;
   answers: {
     questionId: string;
     questionText: string;
@@ -28,6 +30,7 @@ export interface Application {
     passed?: boolean;
     score?: number;
     rating?: AnswerRating;
+    motivation?: string;
   }[];
 }
 
@@ -37,7 +40,7 @@ interface InterviewDashboardProps {
 
 export function InterviewDashboard({ applications }: InterviewDashboardProps) {
   const totalApplications = applications.length;
-  const completedCount = applications.filter(a => a.completed).length;
+  const completedCount = applications.filter(a => a.status === 'completed').length;
   const qualifiedCount = applications.filter(a => a.qualified).length;
   
   const completionRate = totalApplications > 0 

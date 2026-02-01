@@ -23,8 +23,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Switch } from '@/components/ui/switch';
-import { Loader2, ArrowLeft, CheckCircle, XCircle, Pencil, Smartphone, RotateCcw, LayoutDashboard, Phone, MessageCircle } from 'lucide-react';
+import { Loader2, ArrowLeft, CheckCircle, XCircle, Pencil, Smartphone, RotateCcw, LayoutDashboard } from 'lucide-react';
 import { ChatBubbleLeftRightIcon } from '@heroicons/react/24/outline';
 import { 
   generateInterview, 
@@ -41,55 +40,15 @@ import {
   savePreScreening,
   publishPreScreening,
   updatePreScreeningStatus,
+  updateChannelStatus,
 } from '@/lib/interview-api';
 import { PublishDialog, PublishChannels } from '@/components/pre-screening/PublishDialog';
 import { TriggerInterviewDialog } from '@/components/pre-screening/TriggerInterviewDialog';
+import { ChannelStatusPopover } from '@/components/pre-screening/ChannelStatusPopover';
 import { toast } from 'sonner';
-import { Vacancy, Application as BackendApplication } from '@/lib/types';
+import { Vacancy } from '@/lib/types';
+import { convertToComponentApplication } from '@/lib/pre-screening-utils';
 import Link from 'next/link';
-
-// Helper to format seconds to "Xm Ys" format
-function formatInteractionTime(seconds: number): string {
-  const minutes = Math.floor(seconds / 60);
-  const secs = seconds % 60;
-  if (minutes === 0) return `${secs}s`;
-  return `${minutes}m ${secs.toString().padStart(2, '0')}s`;
-}
-
-// Convert backend Application to component Application format
-function convertToComponentApplication(app: BackendApplication): Application {
-  return {
-    id: app.id,
-    candidateName: app.candidateName,
-    interactionTime: formatInteractionTime(app.interactionSeconds),
-    interactionSeconds: app.interactionSeconds,
-    completed: app.completed,
-    qualified: app.qualified,
-    overallScore: app.overallScore,
-    knockoutPassed: app.knockoutPassed,
-    knockoutTotal: app.knockoutTotal,
-    qualificationCount: app.qualificationCount,
-    summary: app.summary,
-    timestamp: app.startedAt,
-    synced: app.synced,
-    channel: app.channel,
-    interviewSlot: app.interviewSlot,
-    answers: app.answers.map(a => ({
-      questionId: a.questionId,
-      questionText: a.questionText,
-      answer: a.answer,
-      passed: a.passed ?? undefined,
-      score: a.score,
-      rating: a.rating,
-    })),
-  };
-}
-
-// Check if vacancy is a kassamedewerker position (for smart insights)
-function isKassamedewerkerVacancy(title: string): boolean {
-  return title.toLowerCase().includes('kassamedewerker') || 
-         title.toLowerCase().includes('kassa');
-}
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -113,6 +72,11 @@ export default function EditPreScreeningPage({ params }: PageProps) {
   const [publishedAt, setPublishedAt] = useState<string | null>(null);
   const [isOnline, setIsOnline] = useState(false);
   const [isTogglingStatus, setIsTogglingStatus] = useState(false);
+  
+  // Channel status state (derived from agent IDs or channels object)
+  const [voiceEnabled, setVoiceEnabled] = useState(false);
+  const [whatsappEnabled, setWhatsappEnabled] = useState(false);
+  const [cvEnabled, setCvEnabled] = useState(false);
   
   // Question generation state
   const [questions, setQuestions] = useState<GeneratedQuestion[]>([]);
@@ -252,7 +216,26 @@ export default function EditPreScreeningPage({ params }: PageProps) {
           
           // Set publishing state from pre-screening data
           setPublishedAt(preScreeningData.published_at ?? null);
-          setIsOnline(preScreeningData.is_online ?? false);
+          
+          // Use vacancy object for is_online and channels (source of truth)
+          setIsOnline(vacancyData.isOnline ?? false);
+          
+          // Set channel status from vacancy's channels object
+          if (vacancyData.channels) {
+            setVoiceEnabled(vacancyData.channels.voice ?? false);
+            setWhatsappEnabled(vacancyData.channels.whatsapp ?? false);
+            setCvEnabled(vacancyData.channels.cv ?? false);
+          } else {
+            // Fallback to agent IDs for backwards compatibility
+            const hasVoice = !!preScreeningData.elevenlabs_agent_id;
+            const hasWhatsapp = !!preScreeningData.whatsapp_agent_id;
+            setVoiceEnabled(hasVoice);
+            setWhatsappEnabled(hasWhatsapp);
+            setCvEnabled(false);
+          }
+          
+          // Default to dashboard view when loading existing pre-screening
+          setViewMode('dashboard');
         }
       } catch (err) {
         console.error('Failed to fetch vacancy:', err);
@@ -414,6 +397,7 @@ export default function EditPreScreeningPage({ params }: PageProps) {
   }, [questions, buildPreScreeningConfigFromQuestions]);
 
   // Auto-save questions to database (debounced)
+  // Also updates ElevenLabs agent if one exists
   const autoSaveQuestions = useCallback((questionsToSave: GeneratedQuestion[]) => {
     if (!vacancy) return;
     
@@ -470,7 +454,27 @@ export default function EditPreScreeningPage({ params }: PageProps) {
         });
         
         console.log('Auto-saved questions to database');
-        toast.success('Wijzigingen opgeslagen');
+        
+        // If an ElevenLabs agent exists, update it with the new questions
+        // The agent is always "online" on ElevenLabs side - our is_online flag just controls UI visibility
+        if (existingPreScreening?.elevenlabs_agent_id) {
+          try {
+            await publishPreScreening(vacancy.id, {
+              enable_voice: voiceEnabled,
+              enable_whatsapp: whatsappEnabled,
+              enable_cv: cvEnabled,
+            });
+            console.log('ElevenLabs agent updated with new questions');
+            toast.success('Wijzigingen opgeslagen en agent bijgewerkt');
+          } catch (agentError) {
+            console.error('Failed to update ElevenLabs agent:', agentError);
+            // Still show success for database save, but warn about agent update
+            toast.success('Wijzigingen opgeslagen');
+            toast.error('Agent bijwerken mislukt. Publiceer opnieuw om te synchroniseren.');
+          }
+        } else {
+          toast.success('Wijzigingen opgeslagen');
+        }
       } catch (error) {
         console.error('Auto-save failed:', error);
         toast.error('Opslaan mislukt. Probeer het opnieuw.');
@@ -478,7 +482,7 @@ export default function EditPreScreeningPage({ params }: PageProps) {
         setIsAutoSaving(false);
       }
     }, 500);
-  }, [vacancy, buildPreScreeningConfigFromQuestions]);
+  }, [vacancy, buildPreScreeningConfigFromQuestions, existingPreScreening?.elevenlabs_agent_id, voiceEnabled, whatsappEnabled, cvEnabled]);
 
   // Generate interview questions via backend API with retry logic
   const doGenerateInterview = useCallback(async (existingSessionId?: string) => {
@@ -663,8 +667,9 @@ export default function EditPreScreeningPage({ params }: PageProps) {
       
       // Republish with the same channels that are already active
       const publishResult = await publishPreScreening(vacancy.id, {
-        enable_voice: !!existingPreScreening?.elevenlabs_agent_id,
-        enable_whatsapp: !!existingPreScreening?.whatsapp_agent_id,
+        enable_voice: voiceEnabled,
+        enable_whatsapp: whatsappEnabled,
+        enable_cv: cvEnabled,
       });
       
       console.log('Agents updated successfully!', publishResult);
@@ -703,6 +708,7 @@ export default function EditPreScreeningPage({ params }: PageProps) {
       const publishResult = await publishPreScreening(vacancy.id, {
         enable_voice: channels.voice,
         enable_whatsapp: channels.whatsapp,
+        enable_cv: channels.cv,
       });
       
       console.log('Pre-screening published successfully!', publishResult);
@@ -710,6 +716,12 @@ export default function EditPreScreeningPage({ params }: PageProps) {
       // Update local state with publish result
       setPublishedAt(publishResult.published_at);
       setIsOnline(publishResult.is_online);
+      
+      // Update channel states to match what was just published
+      setVoiceEnabled(channels.voice);
+      setWhatsappEnabled(channels.whatsapp);
+      setCvEnabled(channels.cv);
+      
       updateExistingPreScreeningState(publishResult, config);
       
       // Show success toast
@@ -766,6 +778,84 @@ export default function EditPreScreeningPage({ params }: PageProps) {
       toast.error(error instanceof Error ? error.message : 'Status wijzigen mislukt. Probeer het opnieuw.');
     } finally {
       setIsTogglingStatus(false);
+    }
+  };
+
+  // Individual channel toggle handlers
+  // Note: These require backend support for individual channel control
+  // For now, they update local state optimistically and call the API
+  const handleVoiceToggle = async (enabled: boolean) => {
+    if (!vacancy || !publishedAt) return;
+    
+    const previousState = voiceEnabled;
+    setVoiceEnabled(enabled);
+    
+    try {
+      const result = await updateChannelStatus(vacancy.id, { voice_enabled: enabled });
+      // Update all channel states from response
+      if (result.channels) {
+        setVoiceEnabled(result.channels.voice);
+        setWhatsappEnabled(result.channels.whatsapp);
+        setCvEnabled(result.channels.cv);
+      }
+      toast.success(enabled 
+        ? 'Voice kanaal geactiveerd' 
+        : 'Voice kanaal gedeactiveerd'
+      );
+    } catch (error) {
+      setVoiceEnabled(previousState);
+      console.error('Failed to update voice channel:', error);
+      toast.error('Kanaal wijzigen mislukt. Probeer het opnieuw.');
+    }
+  };
+
+  const handleWhatsappToggle = async (enabled: boolean) => {
+    if (!vacancy || !publishedAt) return;
+    
+    const previousState = whatsappEnabled;
+    setWhatsappEnabled(enabled);
+    
+    try {
+      const result = await updateChannelStatus(vacancy.id, { whatsapp_enabled: enabled });
+      // Update all channel states from response
+      if (result.channels) {
+        setVoiceEnabled(result.channels.voice);
+        setWhatsappEnabled(result.channels.whatsapp);
+        setCvEnabled(result.channels.cv);
+      }
+      toast.success(enabled 
+        ? 'WhatsApp kanaal geactiveerd' 
+        : 'WhatsApp kanaal gedeactiveerd'
+      );
+    } catch (error) {
+      setWhatsappEnabled(previousState);
+      console.error('Failed to update whatsapp channel:', error);
+      toast.error('Kanaal wijzigen mislukt. Probeer het opnieuw.');
+    }
+  };
+
+  const handleCvToggle = async (enabled: boolean) => {
+    if (!vacancy || !publishedAt) return;
+    
+    const previousState = cvEnabled;
+    setCvEnabled(enabled);
+    
+    try {
+      const result = await updateChannelStatus(vacancy.id, { cv_enabled: enabled });
+      // Update all channel states from response
+      if (result.channels) {
+        setVoiceEnabled(result.channels.voice);
+        setWhatsappEnabled(result.channels.whatsapp);
+        setCvEnabled(result.channels.cv);
+      }
+      toast.success(enabled 
+        ? 'Smart CV kanaal geactiveerd' 
+        : 'Smart CV kanaal gedeactiveerd'
+      );
+    } catch (error) {
+      setCvEnabled(previousState);
+      console.error('Failed to update cv channel:', error);
+      toast.error('Kanaal wijzigen mislukt. Probeer het opnieuw.');
     }
   };
 
@@ -964,17 +1054,6 @@ export default function EditPreScreeningPage({ params }: PageProps) {
             <ArrowLeft className="w-5 h-5" />
           </button>
           <h1 className="text-lg font-semibold text-gray-900">{vacancy.title}</h1>
-          {/* Channel icons - show when online */}
-          {publishedAt && isOnline && (
-            <div className="flex items-center gap-1.5 ml-2">
-              {existingPreScreening?.elevenlabs_agent_id && (
-                <Phone className="w-4 h-4 text-gray-400" />
-              )}
-              {existingPreScreening?.whatsapp_agent_id && (
-                <MessageCircle className="w-4 h-4 text-gray-400" />
-              )}
-            </div>
-          )}
         </div>
         <div className="flex items-center gap-4">
           {/* Trigger Interview Button - only show when agent is online */}
@@ -989,7 +1068,7 @@ export default function EditPreScreeningPage({ params }: PageProps) {
                 alt="" 
                 className="w-5 h-5 rounded-sm object-contain"
               />
-              Solliciteer
+              Test sollicitatie
             </button>
           )}
           {/* Three-way Toggle */}
@@ -1040,18 +1119,17 @@ export default function EditPreScreeningPage({ params }: PageProps) {
           
           {/* Agent Online Toggle or Publish Button */}
           {publishedAt ? (
-            <div className="flex items-center gap-2">
-              <label htmlFor="agent-online-toggle" className="text-sm text-gray-500">
-                Agent online
-              </label>
-              <Switch
-                id="agent-online-toggle"
-                checked={isOnline}
-                disabled={isTogglingStatus}
-                onCheckedChange={handleStatusToggle}
-                className="data-[state=checked]:bg-green-500"
-              />
-            </div>
+            <ChannelStatusPopover
+              isOnline={isOnline}
+              voiceEnabled={voiceEnabled}
+              whatsappEnabled={whatsappEnabled}
+              cvEnabled={cvEnabled}
+              onToggleMaster={handleStatusToggle}
+              onToggleVoice={handleVoiceToggle}
+              onToggleWhatsapp={handleWhatsappToggle}
+              onToggleCv={handleCvToggle}
+              disabled={isTogglingStatus}
+            />
           ) : (
             <button
               type="button"
@@ -1306,8 +1384,9 @@ export default function EditPreScreeningPage({ params }: PageProps) {
         onOpenChange={setShowTriggerInterviewDialog}
         vacancyId={vacancy.id}
         vacancyTitle={vacancy.title}
-        hasWhatsApp={!!existingPreScreening?.whatsapp_agent_id}
-        hasVoice={!!existingPreScreening?.elevenlabs_agent_id}
+        hasWhatsApp={whatsappEnabled}
+        hasVoice={voiceEnabled}
+        hasCv={cvEnabled}
       />
 
       {/* Unsaved Changes Confirmation Dialog */}

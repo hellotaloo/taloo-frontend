@@ -58,7 +58,7 @@ function convertToComponentApplication(app: BackendApplication): Application {
     candidateName: app.candidateName,
     interactionTime: formatInteractionTime(app.interactionSeconds),
     interactionSeconds: app.interactionSeconds,
-    completed: app.completed,
+    status: app.status,
     qualified: app.qualified,
     timestamp: app.startedAt,
     synced: app.synced,

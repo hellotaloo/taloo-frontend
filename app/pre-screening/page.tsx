@@ -1,6 +1,6 @@
 'use client';
 
-import { Phone, CheckCircle2, Users, MapPin, Building2, ArrowRight, Archive, Loader2, Info, ExternalLink, Calendar, Plus, Zap } from 'lucide-react';
+import { Phone, CheckCircle2, Users, MapPin, Building2, ArrowRight, Archive, Loader2, Info, ExternalLink, Calendar, Plus, Zap, MessageCircle, FileText } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { useState, useEffect, useMemo, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -186,32 +186,38 @@ function StatusBadge({ isOnline }: { isOnline: boolean | null }) {
 }
 
 // Channel icons component showing active channels
-function ChannelIcons({ channels }: { channels: { voice: boolean; whatsapp: boolean } }) {
-  const hasAnyChannel = channels.voice || channels.whatsapp;
+function ChannelIcons({ channels }: { channels: { voice: boolean; whatsapp: boolean; cv: boolean } }) {
+  const hasAnyChannel = channels.voice || channels.whatsapp || channels.cv;
   
   if (!hasAnyChannel) {
-    return <span className="text-gray-400 flex justify-center">-</span>;
+    return <span className="text-gray-400">-</span>;
   }
   
   return (
-    <div className="flex items-center justify-center gap-2">
-      {channels.voice && (
-        <Image
-          src="/phone.png"
-          alt="Voice"
-          width={18}
-          height={18}
-          title="Voice channel active"
-        />
-      )}
+    <div className="flex items-center gap-1.5">
       {channels.whatsapp && (
-        <Image
-          src="/whatsapp.png"
-          alt="WhatsApp"
-          width={18}
-          height={18}
+        <div 
+          className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center"
           title="WhatsApp channel active"
-        />
+        >
+          <MessageCircle className="w-3.5 h-3.5 text-green-600" />
+        </div>
+      )}
+      {channels.voice && (
+        <div 
+          className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center"
+          title="Voice channel active"
+        >
+          <Phone className="w-3.5 h-3.5 text-blue-600" />
+        </div>
+      )}
+      {channels.cv && (
+        <div 
+          className="w-6 h-6 rounded-full bg-purple-100 flex items-center justify-center"
+          title="Smart CV channel active"
+        >
+          <FileText className="w-3.5 h-3.5 text-purple-600" />
+        </div>
       )}
     </div>
   );

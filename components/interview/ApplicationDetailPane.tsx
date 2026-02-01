@@ -1,7 +1,8 @@
 'use client';
 
-import { X, CheckCircle, XCircle, Clock, MessageSquare, Award, UserX, ExternalLink, TrendingUp, FileText } from 'lucide-react';
+import { X, CheckCircle, XCircle, Clock, MessageSquare, Award, UserX, ExternalLink, TrendingUp, FileText, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Application } from './InterviewDashboard';
 
 interface ApplicationDetailPaneProps {
@@ -78,9 +79,9 @@ export function ApplicationDetailPane({ application, onClose }: ApplicationDetai
           <div className="grid grid-cols-3 gap-2">
             <CompactStatusCard
               label="Status"
-              value={application.completed ? 'Afgerond' : 'Niet afgerond'}
-              icon={application.completed ? CheckCircle : XCircle}
-              variant={application.completed ? 'success' : 'error'}
+              value={application.status === 'completed' ? 'Afgerond' : application.status === 'processing' ? 'Bezig met verwerken' : 'Niet afgerond'}
+              icon={application.status === 'completed' ? CheckCircle : XCircle}
+              variant={application.status === 'completed' ? 'success' : application.status === 'processing' ? 'neutral' : 'error'}
             />
             <CompactStatusCard
               label="Kwalificatie"
@@ -221,6 +222,7 @@ interface AnswerCardProps {
     passed?: boolean;
     score?: number;
     rating?: AnswerRating;
+    motivation?: string;
   };
   showStatus?: boolean;
 }
@@ -246,27 +248,42 @@ function getRatingColor(rating: AnswerRating): string {
 function AnswerCard({ answer, showStatus = false }: AnswerCardProps) {
   return (
     <div className="bg-gray-50 rounded-lg p-3">
-      <div className="flex items-start justify-between gap-2">
-        <p className="text-sm text-gray-700 font-medium">{answer.questionText}</p>
-        {showStatus && answer.passed !== undefined && (
-          <span className={`shrink-0 ${answer.passed ? 'text-green-500' : 'text-red-500'}`}>
-            {answer.passed ? (
-              <CheckCircle className="w-4 h-4" />
-            ) : (
-              <XCircle className="w-4 h-4" />
-            )}
-          </span>
-        )}
-      </div>
+      <p className="text-sm text-gray-700 font-medium">{answer.questionText}</p>
       <p className="text-sm text-gray-600 mt-2 italic">"{answer.answer}"</p>
-      {/* Show score and rating for qualifying questions */}
-      {answer.score !== undefined && (
+      {/* Show passed/failed badge for knockout questions */}
+      {showStatus && answer.passed !== undefined && (
+        <div className="mt-2">
+          <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${
+            answer.passed 
+              ? 'bg-green-100 text-green-700' 
+              : 'bg-red-100 text-red-700'
+          }`}>
+            {answer.passed ? 'Passed' : 'Not passed'}
+          </span>
+        </div>
+      )}
+      {/* Show score and rating only for qualifying questions (not knockout) */}
+      {!showStatus && answer.score !== undefined && (
         <div className="flex items-center gap-2 mt-2">
           <span className="text-xs text-gray-500">Score: <span className="font-medium text-gray-700">{answer.score}</span></span>
           {answer.rating && (
             <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${getRatingColor(answer.rating)}`}>
               {getRatingLabel(answer.rating)}
             </span>
+          )}
+          {answer.motivation && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button type="button" className="text-gray-400 hover:text-gray-600 transition-colors">
+                    <Info className="w-3.5 h-3.5" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-xs text-xs">
+                  <p>{answer.motivation}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           )}
         </div>
       )}

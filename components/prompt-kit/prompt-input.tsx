@@ -39,7 +39,10 @@ function PromptInput({
   className,
 }: PromptInputProps) {
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
+    // Only handle Enter from textarea elements to avoid double-submission
+    // when Enter is pressed on the submit button (which also triggers onClick)
+    const target = e.target as HTMLElement
+    if (e.key === "Enter" && !e.shiftKey && target.tagName === "TEXTAREA") {
       e.preventDefault()
       onSubmit()
     }

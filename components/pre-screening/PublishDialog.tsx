@@ -12,11 +12,12 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Switch } from '@/components/ui/switch';
-import { Phone, MessageSquare, Loader2 } from 'lucide-react';
+import { Phone, MessageSquare, Loader2, FileText } from 'lucide-react';
 
 export interface PublishChannels {
   voice: boolean;
   whatsapp: boolean;
+  cv: boolean;
 }
 
 interface PublishDialogProps {
@@ -34,16 +35,17 @@ export function PublishDialog({
 }: PublishDialogProps) {
   const [enableVoice, setEnableVoice] = useState(true);
   const [enableWhatsApp, setEnableWhatsApp] = useState(true);
+  const [enableCv, setEnableCv] = useState(true);
   const [isPublishing, setIsPublishing] = useState(false);
 
   const handlePublish = async () => {
-    if (!enableVoice && !enableWhatsApp) {
+    if (!enableVoice && !enableWhatsApp && !enableCv) {
       return; // At least one channel must be enabled
     }
 
     setIsPublishing(true);
     try {
-      await onPublish({ voice: enableVoice, whatsapp: enableWhatsApp });
+      await onPublish({ voice: enableVoice, whatsapp: enableWhatsApp, cv: enableCv });
       onOpenChange(false);
     } catch (error) {
       console.error('Publish failed:', error);
@@ -52,7 +54,7 @@ export function PublishDialog({
     }
   };
 
-  const canPublish = enableVoice || enableWhatsApp;
+  const canPublish = enableVoice || enableWhatsApp || enableCv;
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
@@ -103,6 +105,24 @@ export function PublishDialog({
               <Switch
                 checked={enableWhatsApp}
                 onCheckedChange={setEnableWhatsApp}
+                disabled={isPublishing}
+                className="data-[state=checked]:bg-green-600"
+              />
+            </div>
+
+            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+              <div className="flex items-center gap-3">
+                <div className="flex items-center justify-center w-8 h-8 bg-purple-100 rounded-lg">
+                  <FileText className="w-4 h-4 text-purple-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-900">Smart CV</p>
+                  <p className="text-xs text-gray-500">Automatische CV-analyse en screening</p>
+                </div>
+              </div>
+              <Switch
+                checked={enableCv}
+                onCheckedChange={setEnableCv}
                 disabled={isPublishing}
                 className="data-[state=checked]:bg-green-600"
               />
