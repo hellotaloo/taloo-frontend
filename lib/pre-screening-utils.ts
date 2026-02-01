@@ -36,6 +36,7 @@ export function convertToComponentApplication(app: BackendApplication): Componen
     answers: app.answers.map(a => ({
       questionId: a.questionId,
       questionText: a.questionText,
+      questionType: a.questionType,
       answer: a.answer,
       passed: a.passed ?? undefined,
       score: a.score,

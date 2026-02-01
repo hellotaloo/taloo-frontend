@@ -20,12 +20,13 @@ export interface Application {
   summary?: string;
   timestamp: string;
   synced?: boolean;
-  channel: 'voice' | 'whatsapp';
+  channel: 'voice' | 'whatsapp' | 'cv';
   interviewSlot?: string | null;
   isTest?: boolean;
   answers: {
     questionId: string;
     questionText: string;
+    questionType: 'knockout' | 'qualification';
     answer: string;
     passed?: boolean;
     score?: number;

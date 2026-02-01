@@ -11,6 +11,8 @@ import {
   CheckCheck,
 } from 'lucide-react';
 import { useScreeningChat } from '@/hooks/use-screening-chat';
+import { useSimulationChat } from '@/hooks/use-simulation-chat';
+import type { SimulationPersona } from '@/lib/types';
 
 interface Message {
   id: string;
@@ -133,7 +135,7 @@ export function WhatsAppChat({
   candidateName = 'Test Kandidaat',
   isActive = true,
 }: WhatsAppChatProps) {
-  // State for scripted scenarios (pass/fail)
+  // State for scripted scenarios (pass/fail without vacancyId)
   const [scriptedMessages, setScriptedMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -145,14 +147,33 @@ export function WhatsAppChat({
   // Hook for real API chat in manual mode
   const screeningChat = useScreeningChat(vacancyId || '');
   
-  // Determine if we're using API mode (manual + valid vacancyId)
-  const isApiMode = scenario === 'manual' && !!vacancyId;
+  // Hook for simulation API (pass/fail with vacancyId)
+  const simulationChat = useSimulationChat(vacancyId || '');
   
-  // Use API messages in API mode, scripted messages otherwise
-  const messages = isApiMode ? screeningChat.messages : scriptedMessages;
-  const setMessages = isApiMode ? undefined : setScriptedMessages;
+  // Determine which mode we're in:
+  // - simulation mode: pass/fail scenarios WITH a vacancyId (uses real simulation API)
+  // - api mode: manual scenario WITH a vacancyId (interactive chat)
+  // - scripted mode: pass/fail scenarios WITHOUT vacancyId (uses hardcoded scripts)
+  const isSimulationMode = (scenario === 'pass' || scenario === 'fail') && !!vacancyId;
+  const isApiMode = scenario === 'manual' && !!vacancyId;
+  const isScriptedMode = (scenario === 'pass' || scenario === 'fail') && !vacancyId;
+  
+  // Get the right persona for simulation
+  const getSimulationPersona = (): SimulationPersona => {
+    if (scenario === 'pass') return 'qualified';
+    if (scenario === 'fail') return 'unqualified';
+    return 'qualified';
+  };
+  
+  // Use appropriate messages based on mode
+  const messages = isSimulationMode 
+    ? simulationChat.messages 
+    : isApiMode 
+      ? screeningChat.messages 
+      : scriptedMessages;
+  const setMessages = isScriptedMode ? setScriptedMessages : undefined;
 
-  // Select the appropriate script based on scenario
+  // Select the appropriate script based on scenario (for scripted mode fallback)
   const conversationScript = scenario === 'fail' ? failScript : passScript;
 
   // Track the last reset key to prevent duplicate starts
@@ -178,8 +199,26 @@ export function WhatsAppChat({
       startTimeoutRef.current = null;
     }
     
-    // Reset API chat if in API mode
-    if (isApiMode) {
+    // Reset simulation chat if in simulation mode
+    if (isSimulationMode) {
+      simulationChat.reset();
+      
+      // Reset the ref so we can start fresh
+      lastResetKeyRef.current = null;
+      
+      // Start simulation with appropriate persona
+      const currentResetKey = resetKey;
+      startTimeoutRef.current = setTimeout(() => {
+        if (lastResetKeyRef.current === currentResetKey) {
+          return; // Already started for this resetKey
+        }
+        lastResetKeyRef.current = currentResetKey;
+        const persona = getSimulationPersona();
+        simulationChat.startSimulation(persona, undefined, candidateName);
+      }, 50);
+    }
+    // Reset API chat if in API mode (manual + vacancyId)
+    else if (isApiMode) {
       screeningChat.resetChat();
       
       // Reset the ref so we can start fresh (needed when switching tabs)
@@ -268,10 +307,10 @@ export function WhatsAppChat({
     scrollToBottom();
   }, [messages, scrollToBottom]);
 
-  // Simulate conversation (only for scripted scenarios, not API mode)
+  // Simulate conversation (only for scripted scenarios, not API or simulation mode)
   useEffect(() => {
-    // Don't run simulation in API mode
-    if (isApiMode) return;
+    // Don't run scripted simulation in API mode or simulation mode
+    if (isApiMode || isSimulationMode) return;
     if (currentIndex >= conversationScript.length) return;
 
     const nextMessage = conversationScript[currentIndex];
@@ -303,7 +342,7 @@ export function WhatsAppChat({
 
       return () => clearTimeout(timer);
     }
-  }, [currentIndex, conversationScript, addNextMessage, isApiMode]);
+  }, [currentIndex, conversationScript, addNextMessage, isApiMode, isSimulationMode]);
 
   // Auto-resize textarea as content grows
   useEffect(() => {
@@ -422,7 +461,7 @@ export function WhatsAppChat({
         ))}
         
         {/* Typing indicator */}
-        {(isTyping || (isApiMode && screeningChat.isLoading)) && (
+        {(isTyping || (isApiMode && screeningChat.isLoading) || (isSimulationMode && simulationChat.isRunning)) && (
           <div 
             className="flex justify-start mb-1"
             style={{

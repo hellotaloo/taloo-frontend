@@ -23,7 +23,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Loader2, ArrowLeft, CheckCircle, XCircle, Pencil, Smartphone, RotateCcw, LayoutDashboard } from 'lucide-react';
+import { Loader2, ArrowLeft, CheckCircle, Pencil, Smartphone, RotateCcw, LayoutDashboard } from 'lucide-react';
 import { ChatBubbleLeftRightIcon } from '@heroicons/react/24/outline';
 import { 
   generateInterview, 
@@ -1264,34 +1264,6 @@ export default function EditPreScreeningPage({ params }: PageProps) {
               <div className="flex items-center justify-center gap-2 mt-6">
                 <button
                   onClick={() => {
-                    setChatScenario('pass');
-                    setChatResetKey(prev => prev + 1);
-                  }}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                    chatScenario === 'pass'
-                      ? 'bg-green-100 text-green-700 border border-green-200'
-                      : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
-                  }`}
-                >
-                  <CheckCircle className="w-4 h-4" />
-                  Pass
-                </button>
-                <button
-                  onClick={() => {
-                    setChatScenario('fail');
-                    setChatResetKey(prev => prev + 1);
-                  }}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                    chatScenario === 'fail'
-                      ? 'bg-red-100 text-red-700 border border-red-200'
-                      : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
-                  }`}
-                >
-                  <XCircle className="w-4 h-4" />
-                  Fail
-                </button>
-                <button
-                  onClick={() => {
                     setChatScenario('manual');
                     setChatResetKey(prev => prev + 1);
                   }}
@@ -1304,14 +1276,28 @@ export default function EditPreScreeningPage({ params }: PageProps) {
                   <ChatBubbleLeftRightIcon className="w-4 h-4" />
                   Manual
                 </button>
+                <button
+                  onClick={() => {
+                    setChatScenario('pass');
+                    setChatResetKey(prev => prev + 1);
+                  }}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                    chatScenario === 'pass'
+                      ? 'bg-green-100 text-green-700 border border-green-200'
+                      : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+                  }`}
+                >
+                  <CheckCircle className="w-4 h-4" />
+                  Auto response
+                </button>
+                <button
+                  onClick={() => setChatResetKey(prev => prev + 1)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                  Reset
+                </button>
               </div>
-              <button
-                onClick={() => setChatResetKey(prev => prev + 1)}
-                className="inline-flex items-center gap-1 px-2 py-4 text-sm text-gray-500 hover:text-gray-700 transition-colors"
-              >
-                <RotateCcw className="w-3.5 h-3.5" />
-                Reset
-              </button>
             </div>
           </div>
         </div>

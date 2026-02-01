@@ -85,8 +85,54 @@ export interface FlowEdge {
 }
 
 // Interview types
-export type InterviewChannel = 'voice' | 'whatsapp';
+export type InterviewChannel = 'voice' | 'whatsapp' | 'cv';
 export type InterviewStatus = 'started' | 'completed' | 'abandoned';
+
+// CV Application types
+export interface CVApplicationRequest {
+  pdf_base64: string;
+  candidate_name: string;
+  candidate_phone?: string;
+  candidate_email?: string;
+}
+
+export interface CVQuestionAnswer {
+  question_id: string;
+  question_text: string;
+  answer: string | null;
+  passed: boolean | null;  // true=answered, null=needs clarification, false=failed
+  score: number | null;
+  rating: string | null;
+  motivation?: string | null;
+}
+
+export interface CVApplicationResponse {
+  id: string;
+  vacancy_id: string;
+  candidate_name: string;
+  channel: 'cv';
+  status: 'completed';
+  qualified: boolean;
+  started_at: string;
+  completed_at: string;
+  interaction_seconds: number;
+  answers: CVQuestionAnswer[];
+  synced: boolean;
+  knockout_passed: number;
+  knockout_total: number;
+  qualification_count: number;
+  summary: string;
+  meeting_slots?: string[];  // Available meeting slots for qualified candidates
+}
+
+export interface CVAnalysisResult {
+  applicationId: string;
+  summary: string;
+  needsClarification: boolean;
+  answeredQuestions: CVQuestionAnswer[];
+  clarificationQuestions: CVQuestionAnswer[];
+  meetingSlots: string[];  // Available meeting slots for booking
+}
 
 export interface Interview {
   id: string;
@@ -109,6 +155,7 @@ export type ApplicationStatus = 'active' | 'processing' | 'completed';
 export interface ApplicationAnswer {
   questionId: string;
   questionText: string;
+  questionType: 'knockout' | 'qualification';
   answer: string;
   passed: boolean | null;
   score?: number;
@@ -120,7 +167,7 @@ export interface Application {
   id: string;
   vacancyId: string;
   candidateName: string;
-  channel: 'voice' | 'whatsapp';
+  channel: 'voice' | 'whatsapp' | 'cv';
   status: ApplicationStatus;
   qualified: boolean;
   overallScore?: number;
@@ -165,4 +212,93 @@ export interface FinetuneInstruction {
   isActive: boolean;
   createdAt: string;
   updatedAt?: string;
+}
+
+// =============================================================================
+// Interview Simulation Types
+// =============================================================================
+
+export type SimulationPersona = 
+  | 'qualified' 
+  | 'borderline' 
+  | 'unqualified' 
+  | 'rushed' 
+  | 'enthusiastic' 
+  | 'custom';
+
+export interface SimulationRequest {
+  persona?: SimulationPersona;
+  custom_persona?: string | null;
+  candidate_name?: string;
+}
+
+export interface SimulationQAPair {
+  question: string;
+  answer: string;
+  turn: number;
+}
+
+export interface SimulationMessage {
+  role: 'agent' | 'candidate';
+  message: string;
+  turn: number;
+}
+
+// SSE Event types from simulation endpoint
+export interface SimulationStartEvent {
+  type: 'start';
+  message: string;
+  candidate_name: string;
+}
+
+export interface SimulationAgentEvent {
+  type: 'agent';
+  message: string;
+  turn: number;
+}
+
+export interface SimulationCandidateEvent {
+  type: 'candidate';
+  message: string;
+  turn: number;
+}
+
+export interface SimulationCompleteEvent {
+  type: 'complete';
+  simulation_id: string;
+  outcome: 'completed' | 'max_turns_reached';
+  qa_pairs: SimulationQAPair[];
+  total_turns: number;
+}
+
+export interface SimulationErrorEvent {
+  type: 'error';
+  message: string;
+}
+
+export type SimulationSSEEvent = 
+  | SimulationStartEvent 
+  | SimulationAgentEvent 
+  | SimulationCandidateEvent 
+  | SimulationCompleteEvent 
+  | SimulationErrorEvent;
+
+export interface Simulation {
+  id: string;
+  vacancy_id: string;
+  persona: SimulationPersona;
+  custom_persona?: string | null;
+  candidate_name: string;
+  qa_pairs: SimulationQAPair[];
+  conversation?: SimulationMessage[];
+  outcome: 'completed' | 'max_turns_reached';
+  total_turns: number;
+  created_at: string;
+}
+
+export interface SimulationListResponse {
+  simulations: Simulation[];
+  total: number;
+  limit: number;
+  offset: number;
 }

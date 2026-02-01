@@ -450,6 +450,7 @@ export async function getVacancy(vacancyId: string): Promise<Vacancy> {
 interface BackendQuestionAnswer {
   question_id: string;
   question_text: string;
+  question_type: 'knockout' | 'qualification';
   answer: string;
   passed: boolean | null;
   score?: number;
@@ -498,6 +499,7 @@ function convertApplication(a: BackendApplication): Application {
     answers: a.answers.map((ans): ApplicationAnswer => ({
       questionId: ans.question_id,
       questionText: ans.question_text,
+      questionType: ans.question_type,
       answer: ans.answer,
       passed: ans.passed,
       score: ans.score,
@@ -786,6 +788,157 @@ export async function updateChannelStatus(
   if (!response.ok) {
     const error = await response.json().catch(() => ({ detail: 'Failed to update channel status' }));
     throw new Error(error.detail || 'Failed to update channel status');
+  }
+
+  return response.json();
+}
+
+// =============================================================================
+// Interview Simulation API
+// =============================================================================
+
+import type { 
+  SimulationPersona, 
+  SimulationRequest, 
+  SimulationSSEEvent,
+  Simulation,
+  SimulationListResponse,
+} from './types';
+
+export type SimulationEventCallback = (event: SimulationSSEEvent) => void;
+
+/**
+ * Run an interview simulation with a virtual candidate.
+ * Returns an SSE stream that delivers messages in real-time.
+ * 
+ * @param vacancyId - The vacancy UUID to simulate
+ * @param onEvent - Callback for each SSE event (start, agent, candidate, complete, error)
+ * @param options - Optional persona and candidate name
+ */
+export async function runSimulation(
+  vacancyId: string,
+  onEvent: SimulationEventCallback,
+  options?: SimulationRequest
+): Promise<void> {
+  const response = await fetch(`${BACKEND_URL}/vacancies/${vacancyId}/simulate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      persona: options?.persona ?? 'qualified',
+      custom_persona: options?.custom_persona ?? null,
+      candidate_name: options?.candidate_name,
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: 'Failed to start simulation' }));
+    throw new Error(error.detail || 'Failed to start simulation');
+  }
+
+  const reader = response.body?.getReader();
+  if (!reader) throw new Error('No response body');
+
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    
+    // Process complete lines from the buffer
+    const lines = buffer.split('\n');
+    buffer = lines.pop() || '';
+
+    for (const line of lines) {
+      const trimmedLine = line.trim();
+      if (!trimmedLine.startsWith('data: ')) continue;
+      
+      const data = trimmedLine.slice(6);
+      if (data === '[DONE]') continue;
+
+      try {
+        const event: SimulationSSEEvent = JSON.parse(data);
+        onEvent(event);
+      } catch (e) {
+        console.error('Failed to parse simulation SSE event:', e);
+      }
+    }
+  }
+
+  // Process any remaining data in the buffer
+  if (buffer.trim().startsWith('data: ')) {
+    const data = buffer.trim().slice(6);
+    if (data !== '[DONE]') {
+      try {
+        const event: SimulationSSEEvent = JSON.parse(data);
+        onEvent(event);
+      } catch (e) {
+        console.error('Failed to parse final simulation SSE event:', e);
+      }
+    }
+  }
+}
+
+/**
+ * List all simulations for a vacancy.
+ */
+export async function listSimulations(
+  vacancyId: string,
+  params?: {
+    persona?: SimulationPersona;
+    limit?: number;
+    offset?: number;
+  }
+): Promise<SimulationListResponse> {
+  const searchParams = new URLSearchParams();
+  if (params?.persona) searchParams.set('persona', params.persona);
+  if (params?.limit) searchParams.set('limit', params.limit.toString());
+  if (params?.offset) searchParams.set('offset', params.offset.toString());
+
+  const url = `${BACKEND_URL}/vacancies/${vacancyId}/simulations${searchParams.toString() ? '?' + searchParams : ''}`;
+  const response = await fetch(url);
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch simulations');
+  }
+
+  return response.json();
+}
+
+/**
+ * Get detailed simulation including full conversation.
+ */
+export async function getSimulation(
+  vacancyId: string,
+  simulationId: string
+): Promise<Simulation> {
+  const response = await fetch(`${BACKEND_URL}/vacancies/${vacancyId}/simulations/${simulationId}`);
+
+  if (!response.ok) {
+    if (response.status === 404) {
+      throw new Error('Simulation not found');
+    }
+    throw new Error('Failed to fetch simulation');
+  }
+
+  return response.json();
+}
+
+/**
+ * Delete a simulation.
+ */
+export async function deleteSimulation(
+  vacancyId: string,
+  simulationId: string
+): Promise<{ status: string; id: string }> {
+  const response = await fetch(`${BACKEND_URL}/vacancies/${vacancyId}/simulations/${simulationId}`, {
+    method: 'DELETE',
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to delete simulation');
   }
 
   return response.json();

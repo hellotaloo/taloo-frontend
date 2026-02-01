@@ -8,7 +8,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import * as VisuallyHidden from '@radix-ui/react-visually-hidden';
-import { FileText, MessageCircle, Phone, X, Upload, Loader2, CheckCircle2 } from 'lucide-react';
+import { FileText, MessageCircle, Phone, X, Upload, Loader2, CheckCircle2, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   initiateOutboundScreening,
@@ -16,7 +16,11 @@ import {
   formatPhoneNumber,
   getScreeningErrorMessage,
   ScreeningChannel,
+  submitCVApplication,
+  parseCVResponse,
+  CVFormData,
 } from '@/lib/screening-api';
+import type { CVAnalysisResult } from '@/lib/types';
 
 interface TriggerInterviewDialogProps {
   open: boolean;
@@ -47,6 +51,8 @@ export function TriggerInterviewDialog({
   const [emailValue, setEmailValue] = useState('');
   const [cvFile, setCvFile] = useState<File | null>(null);
   const [cvStep, setCvStep] = useState<CvSubmissionStep>('form');
+  const [cvResult, setCvResult] = useState<CVAnalysisResult | null>(null);
+  const [cvError, setCvError] = useState<string | null>(null);
   // Phone section fields
   const [phoneFirstName, setPhoneFirstName] = useState('');
   const [phoneLastName, setPhoneLastName] = useState('');
@@ -77,6 +83,8 @@ export function TriggerInterviewDialog({
     setEmailValue('');
     setCvFile(null);
     setCvStep('form');
+    setCvResult(null);
+    setCvError(null);
   };
 
   // Handle dialog close
@@ -92,18 +100,37 @@ export function TriggerInterviewDialog({
     setIsSubmitting(method);
     setPhoneError(null);
     
-    // Handle CV submission separately (not part of outbound screening API)
+    // Handle CV submission via the CV Application API
     if (method === 'email') {
+      if (!cvFile) {
+        setCvError('Selecteer eerst een CV bestand.');
+        setIsSubmitting(null);
+        return;
+      }
+
       // Show processing screen
       setCvStep('processing');
+      setCvError(null);
       setIsSubmitting(null);
       
-      // Simulate upload and processing (5 seconds)
-      await new Promise(resolve => setTimeout(resolve, 5000));
-      console.log('Trigger interview via CV:', { vacancyId, firstName, lastName, email: emailValue, cvFile: cvFile?.name });
-      
-      // Show confirmation screen
-      setCvStep('confirmation');
+      try {
+        const formData: CVFormData = {
+          file: cvFile,
+          firstName,
+          lastName,
+          email: emailValue,
+        };
+        
+        const response = await submitCVApplication(vacancyId, formData);
+        const result = parseCVResponse(response);
+        
+        setCvResult(result);
+        setCvStep('confirmation');
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Er ging iets mis bij het verwerken van je CV.';
+        setCvError(errorMessage);
+        setCvStep('form');
+      }
       return;
     }
     
@@ -181,104 +208,154 @@ export function TriggerInterviewDialog({
         )}
 
         {/* CV Confirmation Screen */}
-        {cvStep === 'confirmation' && (
-          <div className="flex flex-col items-center justify-center py-12 px-8 max-w-md mx-auto">
-            <VisuallyHidden.Root>
-              <AlertDialogTitle>CV verwerkt - Vervolgvragen</AlertDialogTitle>
-            </VisuallyHidden.Root>
-            <div className="w-16 h-16 rounded-full bg-[#CDFE00]/20 flex items-center justify-center mb-6">
-              <CheckCircle2 className="w-8 h-8 text-[#CDFE00]" />
-            </div>
-            <h2 className="text-2xl font-semibold text-gray-900 mb-4 text-center">
-              Op basis van je CV hebben we nog een paar vragen
-            </h2>
-            <p className="text-gray-600 text-center mb-6">
-              Mag Izzy, onze digitale assistent, contact met je opnemen? Bij een match kun je binnen 3 dagen een gesprek inplannen met de recruiter.
-            </p>
-            
-            {/* Contact method selection */}
-            <div className="w-full space-y-4">
-              {/* Toggle between WhatsApp and Call - only show if both are available */}
-              {hasBothPhoneOptions && (
-                <div className="flex items-center gap-1 p-1 bg-gray-100 rounded-lg">
-                  <button
-                    type="button"
-                    onClick={() => setPhoneContactMethod('whatsapp')}
-                    className={`flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                      phoneContactMethod === 'whatsapp'
-                        ? 'bg-white text-gray-900 shadow-sm'
-                        : 'text-gray-500 hover:text-gray-700'
-                    }`}
-                  >
-                    <MessageCircle className="w-4 h-4" />
-                    WhatsApp
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setPhoneContactMethod('phone')}
-                    className={`flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                      phoneContactMethod === 'phone'
-                        ? 'bg-white text-gray-900 shadow-sm'
-                        : 'text-gray-500 hover:text-gray-700'
-                    }`}
-                  >
-                    <Phone className="w-4 h-4" />
-                    Bellen
-                  </button>
+        {cvStep === 'confirmation' && cvResult && (
+          <>
+            {/* Success - Candidate is a match, show booking options */}
+            {!cvResult.needsClarification && (
+              <div className="flex flex-col items-center justify-center py-12 px-8 max-w-lg mx-auto">
+                <VisuallyHidden.Root>
+                  <AlertDialogTitle>Je bent een match</AlertDialogTitle>
+                </VisuallyHidden.Root>
+                <div className="w-16 h-16 rounded-full bg-[#CDFE00]/20 flex items-center justify-center mb-6">
+                  <CheckCircle2 className="w-8 h-8 text-[#CDFE00]" />
                 </div>
-              )}
-
-              {/* Phone input */}
-              <div className={`flex items-center gap-2 px-4 py-3 rounded-lg border bg-white ${
-                phoneError ? 'border-red-300' : 'border-gray-200'
-              }`}>
-                {/* Belgian flag */}
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <div className="w-6 h-4 rounded-sm overflow-hidden flex">
-                    <div className="w-1/3 bg-black" />
-                    <div className="w-1/3 bg-yellow-400" />
-                    <div className="w-1/3 bg-red-500" />
+                <h2 className="text-2xl font-semibold text-gray-900 mb-2 text-center">
+                  Je bent een match!
+                </h2>
+                <p className="text-gray-600 text-center mb-6">
+                  Boek meteen een gesprek in met de recruiter
+                </p>
+                
+                {/* Booking slots */}
+                {cvResult.meetingSlots.length > 0 && (
+                  <div className="w-full space-y-3 mb-4">
+                    {cvResult.meetingSlots.map((slot, index) => (
+                      <button
+                        key={index}
+                        className="w-full flex items-center gap-4 p-4 rounded-lg border border-gray-200 hover:border-[#CDFE00] hover:bg-[#CDFE00]/5 transition-colors text-left group"
+                      >
+                        <div className="w-10 h-10 rounded-full bg-gray-100 group-hover:bg-[#CDFE00]/20 flex items-center justify-center transition-colors">
+                          <Calendar className="w-5 h-5 text-gray-600" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-medium text-gray-900 capitalize">{slot}</p>
+                        </div>
+                      </button>
+                    ))}
                   </div>
-                </div>
-                <input
-                  type="tel"
-                  value={phoneValue}
-                  onChange={(e) => {
-                    setPhoneValue(e.target.value);
-                    setPhoneError(null);
-                  }}
-                  className="flex-1 text-gray-700 focus:outline-none bg-transparent"
-                  placeholder="+32 XXX XX XX XX"
-                />
-              </div>
-              
-              {/* Error message */}
-              {phoneError && (
-                <div className="p-3 bg-red-50 text-red-700 rounded-lg text-sm">
-                  {phoneError}
-                </div>
-              )}
-
-              <div className="flex gap-3 w-full pt-2">
+                )}
+                
+                {/* Contact me option */}
                 <button
                   onClick={() => handleDialogClose(false)}
-                  className="flex-1 py-3 px-4 rounded-lg border border-gray-200 text-gray-700 font-medium hover:bg-gray-50 transition-colors"
+                  className="w-full py-3 px-4 rounded-lg border border-gray-200 text-gray-600 font-medium hover:bg-gray-50 transition-colors text-sm"
                 >
-                  Nee, bedankt
-                </button>
-                <button
-                  onClick={() => handleSubmit(phoneContactMethod)}
-                  disabled={phoneValue.replace(/\s/g, '').length < 12 || isSubmitting !== null}
-                  className="flex-1 py-3 px-4 rounded-lg bg-[#CDFE00] text-gray-900 font-medium hover:bg-[#bce900] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isSubmitting === phoneContactMethod
-                    ? 'Bezig...'
-                    : phoneContactMethod === 'whatsapp' ? 'WhatsApp mij' : 'Bel mij'
-                  }
+                  Contacteer mij voor een ander moment
                 </button>
               </div>
-            </div>
-          </div>
+            )}
+
+            {/* Clarification needed - Ask for follow-up contact */}
+            {cvResult.needsClarification && (
+              <div className="flex flex-col items-center justify-center py-12 px-8 max-w-md mx-auto">
+                <VisuallyHidden.Root>
+                  <AlertDialogTitle>CV verwerkt - Vervolgvragen</AlertDialogTitle>
+                </VisuallyHidden.Root>
+                <div className="w-16 h-16 rounded-full bg-[#CDFE00]/20 flex items-center justify-center mb-6">
+                  <CheckCircle2 className="w-8 h-8 text-[#CDFE00]" />
+                </div>
+                <h2 className="text-2xl font-semibold text-gray-900 mb-4 text-center">
+                  We hebben nog een paar vragen
+                </h2>
+                <p className="text-gray-600 text-center mb-6">
+                  Onze digitale assistent Izzy kan je direct contacteren. Bij een match kun je meteen een gesprek inplannen met de recruiter.
+                </p>
+                
+                {/* Contact method selection */}
+                <div className="w-full space-y-4">
+                  {/* Toggle between WhatsApp and Call - only show if both are available */}
+                  {hasBothPhoneOptions && (
+                    <div className="flex items-center gap-1 p-1 bg-gray-100 rounded-lg">
+                      <button
+                        type="button"
+                        onClick={() => setPhoneContactMethod('whatsapp')}
+                        className={`flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                          phoneContactMethod === 'whatsapp'
+                            ? 'bg-white text-gray-900 shadow-sm'
+                            : 'text-gray-500 hover:text-gray-700'
+                        }`}
+                      >
+                        <MessageCircle className="w-4 h-4" />
+                        WhatsApp
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPhoneContactMethod('phone')}
+                        className={`flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                          phoneContactMethod === 'phone'
+                            ? 'bg-white text-gray-900 shadow-sm'
+                            : 'text-gray-500 hover:text-gray-700'
+                        }`}
+                      >
+                        <Phone className="w-4 h-4" />
+                        Bellen
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Phone input */}
+                  <div className={`flex items-center gap-2 px-4 py-3 rounded-lg border bg-white ${
+                    phoneError ? 'border-red-300' : 'border-gray-200'
+                  }`}>
+                    {/* Belgian flag */}
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <div className="w-6 h-4 rounded-sm overflow-hidden flex">
+                        <div className="w-1/3 bg-black" />
+                        <div className="w-1/3 bg-yellow-400" />
+                        <div className="w-1/3 bg-red-500" />
+                      </div>
+                    </div>
+                    <input
+                      type="tel"
+                      value={phoneValue}
+                      onChange={(e) => {
+                        setPhoneValue(e.target.value);
+                        setPhoneError(null);
+                      }}
+                      className="flex-1 text-gray-700 focus:outline-none bg-transparent"
+                      placeholder="+32 XXX XX XX XX"
+                    />
+                  </div>
+                  
+                  {/* Error message */}
+                  {phoneError && (
+                    <div className="p-3 bg-red-50 text-red-700 rounded-lg text-sm">
+                      {phoneError}
+                    </div>
+                  )}
+
+                  <div className="flex gap-3 w-full pt-2">
+                    <button
+                      onClick={() => handleDialogClose(false)}
+                      className="flex-1 py-3 px-4 rounded-lg border border-gray-200 text-gray-700 font-medium hover:bg-gray-50 transition-colors"
+                    >
+                      Nee, bedankt
+                    </button>
+                    <button
+                      onClick={() => handleSubmit(phoneContactMethod)}
+                      disabled={phoneValue.replace(/\s/g, '').length < 12 || isSubmitting !== null}
+                      className="flex-1 py-3 px-4 rounded-lg bg-[#CDFE00] text-gray-900 font-medium hover:bg-[#bce900] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isSubmitting === phoneContactMethod
+                        ? 'Bezig...'
+                        : phoneContactMethod === 'whatsapp' ? 'WhatsApp mij' : 'Bel mij'
+                      }
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </>
         )}
 
         {/* Main form screens */}
@@ -356,6 +433,14 @@ export function TriggerInterviewDialog({
                 onChange={(e) => setEmailValue(e.target.value)}
                 className="w-full px-4 py-3 rounded-lg border border-gray-200 text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#CDFE00]/50 focus:border-[#CDFE00]"
               />
+              
+              {/* CV Error message */}
+              {cvError && (
+                <div className="p-3 bg-red-50 text-red-700 rounded-lg text-sm">
+                  {cvError}
+                </div>
+              )}
+              
               <button
                 onClick={() => handleSubmit('email')}
                 disabled={!emailValue || !firstName || !lastName || !cvFile || isSubmitting !== null}

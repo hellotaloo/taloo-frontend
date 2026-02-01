@@ -13,8 +13,8 @@ interface ApplicationDetailPaneProps {
 export function ApplicationDetailPane({ application, onClose }: ApplicationDetailPaneProps) {
   if (!application) return null;
 
-  const knockoutAnswers = application.answers.filter(a => a.passed !== undefined);
-  const qualifyingAnswers = application.answers.filter(a => a.passed === undefined);
+  const knockoutAnswers = application.answers.filter(a => a.questionType === 'knockout');
+  const qualifyingAnswers = application.answers.filter(a => a.questionType === 'qualification');
   const failedKnockout = knockoutAnswers.find(a => a.passed === false);
 
   return (
@@ -56,8 +56,8 @@ export function ApplicationDetailPane({ application, onClose }: ApplicationDetai
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto p-4 space-y-6">
-        {/* Executive Summary */}
-        {application.summary && (
+        {/* Executive Summary - only show when completed */}
+        {application.summary && application.status === 'completed' && (
           <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-3">
             <div className="flex items-center gap-1.5 mb-1.5">
               <div className="w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
@@ -79,18 +79,18 @@ export function ApplicationDetailPane({ application, onClose }: ApplicationDetai
           <div className="grid grid-cols-3 gap-2">
             <CompactStatusCard
               label="Status"
-              value={application.status === 'completed' ? 'Afgerond' : application.status === 'processing' ? 'Bezig met verwerken' : 'Niet afgerond'}
-              icon={application.status === 'completed' ? CheckCircle : XCircle}
-              variant={application.status === 'completed' ? 'success' : application.status === 'processing' ? 'neutral' : 'error'}
+              value={application.status === 'completed' ? 'Afgerond' : application.status === 'processing' ? 'Verwerken...' : 'Bezig'}
+              icon={application.status === 'completed' ? CheckCircle : Clock}
+              variant={application.status === 'completed' ? 'success' : 'info'}
             />
             <CompactStatusCard
               label="Kwalificatie"
-              value={application.qualified ? 'Gekwalificeerd' : 'Niet gekwalificeerd'}
-              icon={application.qualified ? Award : UserX}
-              variant={application.qualified ? 'success' : 'error'}
+              value={application.status === 'completed' ? (application.qualified ? 'Gekwalificeerd' : 'Niet gekwalificeerd') : '-'}
+              icon={application.status === 'completed' ? (application.qualified ? Award : UserX) : Award}
+              variant={application.status === 'completed' ? (application.qualified ? 'success' : 'error') : 'neutral'}
             />
             {application.overallScore !== undefined && (
-              <CompactScoreCard score={application.overallScore} />
+              <CompactScoreCard score={application.overallScore} pending={application.status !== 'completed'} />
             )}
           </div>
           {/* Secondary stats row */}
@@ -163,7 +163,7 @@ interface CompactStatusCardProps {
   label: string;
   value: string;
   icon: React.ComponentType<{ className?: string }>;
-  variant: 'success' | 'error' | 'neutral';
+  variant: 'success' | 'error' | 'neutral' | 'info';
 }
 
 function CompactStatusCard({ label, value, icon: Icon, variant }: CompactStatusCardProps) {
@@ -171,12 +171,14 @@ function CompactStatusCard({ label, value, icon: Icon, variant }: CompactStatusC
     success: 'bg-green-50 border-green-200 text-green-700',
     error: 'bg-red-50 border-red-200 text-red-700',
     neutral: 'bg-gray-50 border-gray-200 text-gray-700',
+    info: 'bg-blue-50 border-blue-200 text-blue-700',
   };
 
   const iconStyles = {
     success: 'text-green-500',
     error: 'text-red-500',
     neutral: 'text-gray-400',
+    info: 'text-blue-500',
   };
 
   return (
@@ -190,7 +192,20 @@ function CompactStatusCard({ label, value, icon: Icon, variant }: CompactStatusC
   );
 }
 
-function CompactScoreCard({ score }: { score: number }) {
+function CompactScoreCard({ score, pending = false }: { score: number; pending?: boolean }) {
+  // When pending, show greyed out state
+  if (pending) {
+    return (
+      <div className="border rounded-lg px-2.5 py-2 bg-gray-50 border-gray-200 text-gray-700">
+        <div className="flex items-center gap-1.5 mb-0.5">
+          <TrendingUp className="w-3 h-3 text-gray-400" />
+          <span className="text-[10px] font-medium opacity-75">Score</span>
+        </div>
+        <p className="text-xs font-semibold">-</p>
+      </div>
+    );
+  }
+
   let colorClasses: { bg: string; border: string; text: string; icon: string };
   if (score >= 80) {
     colorClasses = { bg: 'bg-green-50', border: 'border-green-200', text: 'text-green-700', icon: 'text-green-500' };
@@ -218,6 +233,7 @@ type AnswerRating = 'excellent' | 'good' | 'average' | 'poor';
 interface AnswerCardProps {
   answer: {
     questionText: string;
+    questionType?: 'knockout' | 'qualification';
     answer: string;
     passed?: boolean;
     score?: number;
@@ -246,32 +262,50 @@ function getRatingColor(rating: AnswerRating): string {
 }
 
 function AnswerCard({ answer, showStatus = false }: AnswerCardProps) {
+  const isKnockout = answer.questionType === 'knockout';
+  const hasScore = answer.score !== undefined && answer.score !== null;
+  const hasRating = !!answer.rating;
+  const hasMotivation = !!answer.motivation;
+
+  const hasAnswer = answer.answer && answer.answer.trim() !== '';
+
   return (
     <div className="bg-gray-50 rounded-lg p-3">
       <p className="text-sm text-gray-700 font-medium">{answer.questionText}</p>
-      <p className="text-sm text-gray-600 mt-2 italic">"{answer.answer}"</p>
-      {/* Show passed/failed badge for knockout questions */}
-      {showStatus && answer.passed !== undefined && (
-        <div className="mt-2">
-          <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${
-            answer.passed 
-              ? 'bg-green-100 text-green-700' 
-              : 'bg-red-100 text-red-700'
-          }`}>
-            {answer.passed ? 'Passed' : 'Not passed'}
-          </span>
-        </div>
+      {hasAnswer ? (
+        <p className="text-sm text-gray-600 mt-2 italic">"{answer.answer}"</p>
+      ) : (
+        <p className="text-sm text-gray-400 mt-2 italic">Waiting for answer</p>
       )}
-      {/* Show score and rating only for qualifying questions (not knockout) */}
-      {!showStatus && answer.score !== undefined && (
-        <div className="flex items-center gap-2 mt-2">
-          <span className="text-xs text-gray-500">Score: <span className="font-medium text-gray-700">{answer.score}</span></span>
-          {answer.rating && (
-            <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${getRatingColor(answer.rating)}`}>
-              {getRatingLabel(answer.rating)}
+      
+      {/* Status and score row */}
+      {(showStatus || hasScore || hasRating) && (
+        <div className="flex items-center gap-2 mt-2 flex-wrap">
+          {/* Show passed/failed badge for knockout questions */}
+          {showStatus && answer.passed !== undefined && (
+            <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${
+              answer.passed 
+                ? 'bg-green-100 text-green-700' 
+                : 'bg-red-100 text-red-700'
+            }`}>
+              {answer.passed ? 'Passed' : 'Not passed'}
             </span>
           )}
-          {answer.motivation && (
+          
+          {/* Show score for qualifying questions only */}
+          {hasScore && !isKnockout && (
+            <span className="text-xs text-gray-500">Score: <span className="font-medium text-gray-700">{answer.score}</span></span>
+          )}
+          
+          {/* Show rating badge for all questions that have it */}
+          {hasRating && (
+            <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${getRatingColor(answer.rating!)}`}>
+              {getRatingLabel(answer.rating!)}
+            </span>
+          )}
+          
+          {/* Show motivation tooltip for all questions that have it */}
+          {hasMotivation && (
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
