@@ -81,7 +81,7 @@ export function PublishDialog({
                 </div>
                 <div>
                   <p className="text-sm font-medium text-gray-900">Voice Call</p>
-                  <p className="text-xs text-gray-500">ElevenLabs agent voor telefonische interviews</p>
+                  <p className="text-xs text-gray-500">Voice agent voor telefonische interviews</p>
                 </div>
               </div>
               <Switch
