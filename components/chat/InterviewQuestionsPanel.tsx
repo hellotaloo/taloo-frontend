@@ -701,9 +701,9 @@ function SortableQuestionItem({
   // Determine label text and styling based on change_status
   const changeStatus = question.changeStatus;
   const labelConfig = changeStatus === 'new' 
-    ? { text: 'new', className: 'text-blue-600 bg-blue-200' }
+    ? { text: 'nieuw', className: 'text-blue-600 bg-blue-200' }
     : changeStatus === 'updated'
-    ? { text: 'updated', className: 'text-amber-600 bg-amber-200' }
+    ? { text: 'gewijzigd', className: 'text-amber-600 bg-amber-200' }
     : null;
 
   return (

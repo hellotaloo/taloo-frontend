@@ -40,7 +40,7 @@ export function ApplicationDetailPane({ application, onClose }: ApplicationDetai
             href="#"
             className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-gray-600 hover:text-gray-900 transition-colors"
           >
-            View in ATS
+            Bekijken in ATS
             <ExternalLink className="w-3 h-3" />
           </a>
           <Button
@@ -64,7 +64,7 @@ export function ApplicationDetailPane({ application, onClose }: ApplicationDetai
                 <FileText className="w-2.5 h-2.5 text-white" />
               </div>
               <p className="text-[10px] font-semibold text-white uppercase tracking-wide">
-                Executive Summary
+                Samenvatting
               </p>
             </div>
             <p className="text-sm text-white leading-relaxed">
@@ -268,14 +268,17 @@ function AnswerCard({ answer, showStatus = false }: AnswerCardProps) {
   const hasMotivation = !!answer.motivation;
 
   const hasAnswer = answer.answer && answer.answer.trim() !== '';
+  const showAnswerContent = answer.passed != null;
 
   return (
     <div className="bg-gray-50 rounded-lg p-3">
       <p className="text-sm text-gray-700 font-medium">{answer.questionText}</p>
-      {hasAnswer ? (
-        <p className="text-sm text-gray-600 mt-2 italic">"{answer.answer}"</p>
-      ) : (
-        <p className="text-sm text-gray-400 mt-2 italic">Waiting for answer</p>
+      {showAnswerContent && (
+        hasAnswer ? (
+          <p className="text-sm text-gray-600 mt-2 italic">"{answer.answer}"</p>
+        ) : (
+          <p className="text-sm text-gray-400 mt-2 italic">Wacht op antwoord</p>
+        )
       )}
       
       {/* Status and score row */}
@@ -288,7 +291,7 @@ function AnswerCard({ answer, showStatus = false }: AnswerCardProps) {
                 ? 'bg-green-100 text-green-700' 
                 : 'bg-red-100 text-red-700'
             }`}>
-              {answer.passed ? 'Passed' : 'Not passed'}
+              {answer.passed ? 'Geslaagd' : 'Niet geslaagd'}
             </span>
           )}
           

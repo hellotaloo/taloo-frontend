@@ -55,12 +55,12 @@ const mainNavItems = [
 ];
 
 const primaryNavItems = [
-  { name: 'Inbox', href: '/inbox', icon: Inbox, badge: 15 },
+  { name: 'Inbox', href: '/inbox', icon: Inbox },
 ];
 
 const overzichtenItems = [
   { name: 'Pre-screening', href: '/pre-screening', icon: Phone, badgeKey: 'newVacancies' as const },
-  { name: 'Insights', href: '/insights', icon: Target, badge: '+2' },
+  { name: 'Insights', href: '/insights', icon: Target, badge: '2' },
 ];
 
 const footerNavItems = [
@@ -108,15 +108,15 @@ export function AppSidebar() {
           <DropdownMenuTrigger asChild>
             <button className="flex items-center gap-3 w-full hover:bg-sidebar-accent rounded-lg p-2 -m-2 transition-colors">
               <Image
-                src="/taloo-icon-big.svg"
-                alt="Taloo"
+                src="/mockup/itzu-logo-icon.png"
+                alt="ITZU"
                 width={40}
                 height={40}
-                className="w-10 h-10 rounded-lg"
+                className="w-10 h-10 rounded-lg object-contain"
               />
               <div className="flex-1 text-left">
                 <p className="text-sm font-semibold text-sidebar-foreground">
-                  Taloo NV
+                  ITZU
                 </p>
                 <p className="text-xs text-sidebar-foreground/60">Enterprise</p>
               </div>
@@ -125,7 +125,7 @@ export function AppSidebar() {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-56">
             <DropdownMenuItem>
-              <span>Taloo NV</span>
+              <span>ITZU</span>
             </DropdownMenuItem>
             <DropdownMenuItem>
               <span>Switch workspace...</span>

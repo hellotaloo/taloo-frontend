@@ -59,7 +59,7 @@ function PendingSetup({
         <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-3">
           <CheckCircle2 className="w-6 h-6 text-gray-400" />
         </div>
-        <p className="text-sm text-gray-500">All vacancies have been set up.</p>
+        <p className="text-sm text-gray-500">Alle vacatures zijn ingesteld.</p>
       </div>
     );
   }
@@ -68,9 +68,9 @@ function PendingSetup({
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead className="w-full">Vacancy</TableHead>
-          <TableHead>Source</TableHead>
-          <TableHead>Imported</TableHead>
+          <TableHead className="w-full">Vacature</TableHead>
+          <TableHead>Bron</TableHead>
+          <TableHead>Geïmporteerd</TableHead>
           <TableHead className="text-right"></TableHead>
         </TableRow>
       </TableHeader>
@@ -103,7 +103,7 @@ function PendingSetup({
                 <button 
                   onClick={(e) => { e.stopPropagation(); onViewSource(vacancy); }}
                   className="inline-flex items-center gap-1.5 text-gray-500 hover:text-gray-700 transition-colors cursor-pointer"
-                  title="View source record"
+                  title="Brongegevens bekijken"
                 >
                   <Image 
                     src="/salesforc-logo-cloud.png" 
@@ -112,14 +112,14 @@ function PendingSetup({
                     height={11}
                     className="opacity-70"
                   />
-                  <span className="text-xs font-medium">View</span>
+                  <span className="text-xs font-medium">Bekijken</span>
                   <ExternalLink className="w-3 h-3" />
                 </button>
               ) : vacancy.source === 'bullhorn' ? (
                 <button 
                   onClick={(e) => { e.stopPropagation(); onViewSource(vacancy); }}
                   className="inline-flex items-center gap-1.5 text-gray-500 hover:text-gray-700 transition-colors cursor-pointer"
-                  title="View source record"
+                  title="Brongegevens bekijken"
                 >
                   <Image 
                     src="/bullhorn-icon-small.png" 
@@ -128,11 +128,11 @@ function PendingSetup({
                     height={16}
                     className="opacity-70"
                   />
-                  <span className="text-xs font-medium">View</span>
+                  <span className="text-xs font-medium">Bekijken</span>
                   <ExternalLink className="w-3 h-3" />
                 </button>
               ) : (
-                <span className="text-xs text-gray-500">Manual</span>
+                <span className="text-xs text-gray-500">Handmatig</span>
               )}
             </TableCell>
             <TableCell className="text-gray-500 text-sm">
@@ -144,7 +144,7 @@ function PendingSetup({
                   onClick={(e) => e.stopPropagation()}
                   className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
                 >
-                  Generate pre-screening
+                  Pre-screening genereren
                 <ArrowRight className="w-3 h-3" />
               </Link>
             </TableCell>
@@ -179,8 +179,8 @@ function StatusBadge({ isOnline }: { isOnline: boolean | null }) {
   // isOnline === null means draft (not published yet)
   return (
     <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700">
-      <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-      Draft
+        <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+      Concept
     </span>
   );
 }
@@ -198,7 +198,7 @@ function ChannelIcons({ channels }: { channels: { voice: boolean; whatsapp: bool
       {channels.whatsapp && (
         <div 
           className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center"
-          title="WhatsApp channel active"
+          title="WhatsApp-kanaal actief"
         >
           <MessageCircle className="w-3.5 h-3.5 text-green-600" />
         </div>
@@ -206,7 +206,7 @@ function ChannelIcons({ channels }: { channels: { voice: boolean; whatsapp: bool
       {channels.voice && (
         <div 
           className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center"
-          title="Voice channel active"
+          title="Telefoon-kanaal actief"
         >
           <Phone className="w-3.5 h-3.5 text-blue-600" />
         </div>
@@ -214,7 +214,7 @@ function ChannelIcons({ channels }: { channels: { voice: boolean; whatsapp: bool
       {channels.cv && (
         <div 
           className="w-6 h-6 rounded-full bg-purple-100 flex items-center justify-center"
-          title="Smart CV channel active"
+          title="Smart CV-kanaal actief"
         >
           <FileText className="w-3.5 h-3.5 text-purple-600" />
         </div>
@@ -232,10 +232,10 @@ function formatRelativeDate(dateString: string | null | undefined) {
   const diffHours = Math.floor(diffMs / 3600000);
   const diffDays = Math.floor(diffMs / 86400000);
   
-  if (diffMins < 1) return 'Just now';
-  if (diffMins < 60) return `${diffMins}m ago`;
-  if (diffHours < 24) return `${diffHours}h ago`;
-  if (diffDays < 7) return `${diffDays}d ago`;
+  if (diffMins < 1) return 'Zojuist';
+  if (diffMins < 60) return `${diffMins}m geleden`;
+  if (diffHours < 24) return `${diffHours}u geleden`;
+  if (diffDays < 7) return `${diffDays}d geleden`;
   return date.toLocaleDateString('nl-BE', { day: 'numeric', month: 'short' });
 }
 
@@ -248,7 +248,7 @@ function GeneratedTable({ vacancies }: { vacancies: Vacancy[] }) {
         <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-3">
           <Zap className="w-6 h-6 text-gray-400" />
         </div>
-        <p className="text-sm text-gray-500">No generated pre-screenings yet.</p>
+        <p className="text-sm text-gray-500">Nog geen pre-screenings gegenereerd.</p>
       </div>
     );
   }
@@ -257,12 +257,12 @@ function GeneratedTable({ vacancies }: { vacancies: Vacancy[] }) {
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead className="w-full">Vacancy</TableHead>
-          <TableHead className="text-center">Channels</TableHead>
-          <TableHead className="text-center">Candidates</TableHead>
-          <TableHead className="text-center">Completed</TableHead>
-          <TableHead className="text-center">Qualified</TableHead>
-          <TableHead>Last Activity</TableHead>
+          <TableHead className="w-full">Vacature</TableHead>
+          <TableHead className="text-center">Kanalen</TableHead>
+          <TableHead className="text-center">Kandidaten</TableHead>
+          <TableHead className="text-center">Afgerond</TableHead>
+          <TableHead className="text-center">Gekwalificeerd</TableHead>
+          <TableHead>Laatste activiteit</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -332,7 +332,7 @@ function ArchivedTable({ vacancies }: { vacancies: Vacancy[] }) {
         <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-3">
           <Archive className="w-6 h-6 text-gray-400" />
         </div>
-        <p className="text-sm text-gray-500">No archived vacancies.</p>
+        <p className="text-sm text-gray-500">Geen gearchiveerde vacatures.</p>
       </div>
     );
   }
@@ -341,12 +341,12 @@ function ArchivedTable({ vacancies }: { vacancies: Vacancy[] }) {
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead className="w-full">Vacancy</TableHead>
-          <TableHead className="text-center">Channels</TableHead>
-          <TableHead className="text-center">Candidates</TableHead>
-          <TableHead className="text-center">Completed</TableHead>
-          <TableHead className="text-center">Qualified</TableHead>
-          <TableHead>Archived</TableHead>
+          <TableHead className="w-full">Vacature</TableHead>
+          <TableHead className="text-center">Kanalen</TableHead>
+          <TableHead className="text-center">Kandidaten</TableHead>
+          <TableHead className="text-center">Afgerond</TableHead>
+          <TableHead className="text-center">Gekwalificeerd</TableHead>
+          <TableHead>Gearchiveerd</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -455,7 +455,7 @@ function PreScreeningContent() {
         setStats(statsData);
       } catch (err) {
         console.error('Failed to fetch data:', err);
-        setError('Failed to load data');
+        setError('Gegevens laden mislukt');
       } finally {
         setIsLoading(false);
       }
@@ -490,7 +490,7 @@ function PreScreeningContent() {
     return (
       <div className="flex items-center justify-center py-24">
         <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
-        <span className="ml-2 text-gray-500">Loading vacancies...</span>
+        <span className="ml-2 text-gray-500">Vacatures laden...</span>
       </div>
     );
   }
@@ -503,7 +503,7 @@ function PreScreeningContent() {
           onClick={() => window.location.reload()}
           className="mt-4 text-blue-500 hover:underline"
         >
-          Retry
+          Opnieuw proberen
         </button>
       </div>
     );
@@ -517,7 +517,7 @@ function PreScreeningContent() {
           Pre-screening
         </h1>
         <p className="text-sm text-gray-500">
-          Overview of your conversational pre-screening
+          Overzicht van je conversationele pre-screening
         </p>
       </div>
 
@@ -529,27 +529,27 @@ function PreScreeningContent() {
         {/* Weekly Pre-screening Metrics - 4 cards in a row */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           <MetricCard
-            title="Total Pre-screening"
+            title="Totaal pre-screening"
             value={weeklyMetrics.total}
-            label="This week"
+            label="Deze week"
             icon={Phone}
             variant="blue"
             sparklineData={weeklyMetrics.dailyData}
           />
           
           <MetricCard
-            title="Completion Rate"
+            title="Afrondingspercentage"
             value={`${weeklyMetrics.completionRate}%`}
-            label="This week"
+            label="Deze week"
             icon={CheckCircle2}
             variant="dark"
             progress={weeklyMetrics.completionRate}
           />
           
           <MetricCard
-            title="Qualified"
+            title="Gekwalificeerd"
             value={weeklyMetrics.qualified}
-            label={`${weeklyMetrics.qualificationRate}% of completed`}
+            label={`${weeklyMetrics.qualificationRate}% van afgerond`}
             icon={Users}
             variant="lime"
             sparklineData={weeklyMetrics.dailyData}
@@ -567,21 +567,21 @@ function PreScreeningContent() {
           <TabsList variant="line">
             <TabsTrigger value="new">
               <Plus className="w-3.5 h-3.5" />
-              New
+              Nieuw
               <span className="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-600">
                 {newVacancies.length}
               </span>
             </TabsTrigger>
             <TabsTrigger value="generated">
               <Zap className="w-3.5 h-3.5" />
-              Generated
+              Gegenereerd
               <span className="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-600">
                 {generatedVacancies.length}
               </span>
             </TabsTrigger>
             <TabsTrigger value="archived">
               <Archive className="w-3.5 h-3.5" />
-              Archived
+              Gearchiveerd
               <span className="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-600">
                 {archivedVacancies.length}
               </span>
@@ -590,7 +590,7 @@ function PreScreeningContent() {
 
           <div className="flex items-center gap-2">
             <label htmlFor="auto-generate" className="text-sm text-gray-600">
-              Auto generate
+              Automatisch genereren
             </label>
             <Switch
               id="auto-generate"
@@ -604,7 +604,7 @@ function PreScreeningContent() {
                 </button>
               </TooltipTrigger>
               <TooltipContent side="bottom" className="max-w-[240px]">
-                When enabled, every vacancy sent to Taloo will be automatically converted to a pre-screening. Pre-screening can always be modified later.
+                Indien ingeschakeld wordt elke vacature naar Taloo automatisch omgezet naar een pre-screening. Pre-screening kan altijd later worden aangepast.
               </TooltipContent>
             </Tooltip>
           </div>
@@ -650,10 +650,10 @@ function PreScreeningContent() {
                   className="opacity-80"
                 />
               ) : null}
-              <SheetTitle className="text-lg">Source Record</SheetTitle>
+              <SheetTitle className="text-lg">Brongegevens</SheetTitle>
             </div>
             <SheetDescription>
-              Original vacancy data from {selectedVacancy?.source === 'salesforce' ? 'Salesforce' : selectedVacancy?.source === 'bullhorn' ? 'Bullhorn' : 'source'}
+              Originele vacaturegegevens van {selectedVacancy?.source === 'salesforce' ? 'Salesforce' : selectedVacancy?.source === 'bullhorn' ? 'Bullhorn' : 'bron'}
             </SheetDescription>
           </SheetHeader>
           
@@ -680,12 +680,12 @@ function PreScreeningContent() {
               {/* Imported Date */}
               <div className="flex items-center gap-2 text-sm text-gray-500 pb-4 border-b">
                 <Calendar className="w-4 h-4" />
-                <span>Imported {formatDate(selectedVacancy.createdAt)}</span>
+                <span>Geïmporteerd {formatDate(selectedVacancy.createdAt)}</span>
               </div>
 
               {/* Description */}
               <div>
-                <h4 className="text-sm font-medium text-gray-700 mb-2">Job Description</h4>
+                <h4 className="text-sm font-medium text-gray-700 mb-2">Functieomschrijving</h4>
                 <div className="text-sm text-gray-600 leading-relaxed">
                   <ReactMarkdown
                     components={{
@@ -721,7 +721,7 @@ function PreScreeningContent() {
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 transition-colors"
                 >
-                  Open in {selectedVacancy.source === 'salesforce' ? 'Salesforce' : selectedVacancy.source === 'bullhorn' ? 'Bullhorn' : 'source'}
+                  Openen in {selectedVacancy.source === 'salesforce' ? 'Salesforce' : selectedVacancy.source === 'bullhorn' ? 'Bullhorn' : 'bron'}
                   <ExternalLink className="w-4 h-4" />
                 </a>
               </div>
@@ -734,32 +734,32 @@ function PreScreeningContent() {
       <AlertDialog open={showAutoGenerateConfirm} onOpenChange={setShowAutoGenerateConfirm}>
         <AlertDialogContent className="max-w-md">
           <AlertDialogHeader>
-            <AlertDialogTitle>Enable auto-generate?</AlertDialogTitle>
+            <AlertDialogTitle>Automatisch genereren inschakelen?</AlertDialogTitle>
             <AlertDialogDescription asChild>
               <div className="space-y-2 text-sm text-gray-600">
                 {newVacancies.length > 0 ? (
                   <p>
-                    This will create pre-screening interviews for your{' '}
-                    <span className="font-medium text-gray-900">{newVacancies.length} new</span> and all future vacancies.
+                    Dit maakt pre-screening interviews aan voor je{' '}
+                    <span className="font-medium text-gray-900">{newVacancies.length} nieuwe</span> en alle toekomstige vacatures.
                   </p>
                 ) : (
                   <p>
-                    Pre-screening interviews will be created automatically for all future vacancies.
+                    Pre-screening interviews worden automatisch aangemaakt voor alle toekomstige vacatures.
                   </p>
                 )}
                 <p className="text-gray-500 text-xs">
-                  You can edit or disable individual pre-screenings anytime.
+                  Je kunt individuele pre-screenings altijd bewerken of uitschakelen.
                 </p>
               </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>Annuleren</AlertDialogCancel>
             <AlertDialogAction 
               onClick={confirmAutoGenerate}
               className="bg-green-600 hover:bg-green-700 focus:ring-green-500"
             >
-              Enable
+              Inschakelen
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

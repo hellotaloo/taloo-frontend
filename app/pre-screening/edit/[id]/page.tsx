@@ -1054,7 +1054,7 @@ export default function EditPreScreeningPage({ params }: PageProps) {
     return (
       <div className="flex items-center justify-center h-[calc(100vh-40px)]">
         <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
-        <span className="ml-2 text-gray-500">Loading vacancy...</span>
+        <span className="ml-2 text-gray-500">Vacature laden...</span>
       </div>
     );
   }
@@ -1062,9 +1062,9 @@ export default function EditPreScreeningPage({ params }: PageProps) {
   if (vacancyError || !vacancy) {
     return (
       <div className="flex flex-col items-center justify-center h-[calc(100vh-40px)]">
-        <p className="text-gray-500 mb-4">Vacancy not found</p>
+        <p className="text-gray-500 mb-4">Vacature niet gevonden</p>
         <Link href="/pre-screening" className="text-blue-500 hover:underline">
-          Back to pre-screening
+          Terug naar pre-screening
         </Link>
       </div>
     );
@@ -1088,14 +1088,14 @@ export default function EditPreScreeningPage({ params }: PageProps) {
             <button
               type="button"
               onClick={() => setShowTriggerInterviewDialog(true)}
-              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium bg-[#CDFE00] hover:bg-[#bce900] text-gray-900 transition-colors"
+              className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium bg-[#21224B] hover:bg-[#2a2c5c] text-white transition-colors"
             >
               <img 
-                src="/dummy-client-logo.png" 
+                src="/mockup/izu-icon.png" 
                 alt="" 
                 className="w-5 h-5 rounded-sm object-contain"
               />
-              Test sollicitatie
+              Sollicitatie testen
             </button>
           )}
           {/* Three-way Toggle */}
@@ -1274,7 +1274,7 @@ export default function EditPreScreeningPage({ params }: PageProps) {
                   }`}
                 >
                   <ChatBubbleLeftRightIcon className="w-4 h-4" />
-                  Manual
+                  Handmatig
                 </button>
                 <button
                   onClick={() => {
@@ -1288,14 +1288,14 @@ export default function EditPreScreeningPage({ params }: PageProps) {
                   }`}
                 >
                   <CheckCircle className="w-4 h-4" />
-                  Auto response
+                  Auto-antwoord
                 </button>
                 <button
                   onClick={() => setChatResetKey(prev => prev + 1)}
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"
                 >
                   <RotateCcw className="w-4 h-4" />
-                  Reset
+                  Herstarten
                 </button>
               </div>
             </div>
@@ -1314,13 +1314,12 @@ export default function EditPreScreeningPage({ params }: PageProps) {
             {isLoadingApplications ? (
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
-                <span className="ml-2 text-gray-500">Loading applications...</span>
+                <span className="ml-2 text-gray-500">Sollicitaties laden...</span>
               </div>
             ) : (
               <>
                 <InterviewDashboard applications={applications} />
                 <div className="mt-6">
-                  <h2 className="text-sm font-semibold text-gray-700 mb-3">Kandidaten</h2>
                   <ApplicationsTable 
                     applications={applications}
                     selectedId={selectedApplicationId}

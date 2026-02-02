@@ -56,7 +56,7 @@ function convertToComponentApplication(app: BackendApplication): Application {
   return {
     id: app.id,
     candidateName: app.candidateName,
-    interactionTime: app.channel === 'cv' ? '-' : formatInteractionTime(app.interactionSeconds),
+    interactionTime: app.channel === 'cv' || app.status !== 'completed' ? '-' : formatInteractionTime(app.interactionSeconds),
     interactionSeconds: app.interactionSeconds,
     status: app.status,
     qualified: app.qualified,
@@ -150,7 +150,7 @@ export default function GeneratePreScreeningPage({ params }: PageProps) {
         }
       } catch (err) {
         console.error('Failed to fetch vacancy:', err);
-        setVacancyError('Vacancy not found');
+        setVacancyError('Vacature niet gevonden');
       } finally {
         setIsLoadingVacancy(false);
       }
@@ -451,7 +451,7 @@ export default function GeneratePreScreeningPage({ params }: PageProps) {
     return (
       <div className="flex items-center justify-center h-[calc(100vh-40px)]">
         <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
-        <span className="ml-2 text-gray-500">Loading vacancy...</span>
+        <span className="ml-2 text-gray-500">Vacature laden...</span>
       </div>
     );
   }
@@ -459,9 +459,9 @@ export default function GeneratePreScreeningPage({ params }: PageProps) {
   if (vacancyError || !vacancy) {
     return (
       <div className="flex flex-col items-center justify-center h-[calc(100vh-40px)]">
-        <p className="text-gray-500 mb-4">Vacancy not found</p>
+        <p className="text-gray-500 mb-4">Vacature niet gevonden</p>
         <Link href="/pre-screening" className="text-blue-500 hover:underline">
-          Back to pre-screening
+          Terug naar pre-screening
         </Link>
       </div>
     );
@@ -543,13 +543,12 @@ export default function GeneratePreScreeningPage({ params }: PageProps) {
           {isLoadingApplications ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
-              <span className="ml-2 text-gray-500">Loading applications...</span>
+              <span className="ml-2 text-gray-500">Sollicitaties laden...</span>
             </div>
           ) : (
             <>
               <InterviewDashboard applications={applications} />
               <div>
-                <h2 className="text-sm font-semibold text-gray-700 mb-3">Sollicitaties</h2>
                 <ApplicationsTable 
                   applications={applications}
                   selectedId={selectedApplicationId}
@@ -588,7 +587,7 @@ export default function GeneratePreScreeningPage({ params }: PageProps) {
         <div className="flex items-center gap-4">
           {/* Test interview toggle */}
           <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-500">Test interview:</span>
+            <span className="text-sm text-gray-500">Test sollicitatie:</span>
             <div className="flex rounded-lg overflow-hidden border border-gray-200">
               <button
                 onClick={() => setRightPanelView('assistant')}

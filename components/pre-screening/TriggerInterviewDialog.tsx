@@ -222,8 +222,8 @@ export function TriggerInterviewDialog({
             <VisuallyHidden.Root>
               <AlertDialogTitle>CV uploaden & verwerken</AlertDialogTitle>
             </VisuallyHidden.Root>
-            <Loader2 className="w-12 h-12 text-[#CDFE00] animate-spin mb-6" />
-            <h2 className="text-2xl font-semibold text-gray-900 mb-2">CV uploaden & verwerken</h2>
+            <Loader2 className="w-12 h-12 text-[#FEAE03] animate-spin mb-6" />
+            <h2 className="text-2xl font-semibold text-[#21224B] mb-2">CV uploaden & verwerken</h2>
             <p className="text-gray-500 text-center mb-6">Even geduld, we analyseren je CV...</p>
             <div className="w-full max-w-sm border-l-2 border-gray-200 pl-4 space-y-2 text-left">
               {CV_PROCESSING_STEPS.map((label, index) => {
@@ -243,7 +243,7 @@ export function TriggerInterviewDialog({
                     {isDone ? (
                       <Check className="w-4 h-4 shrink-0 text-gray-400" />
                     ) : isCurrent ? (
-                      <span className="w-1 h-1 rounded-full bg-[#CDFE00] shrink-0 animate-pulse" />
+                      <span className="w-1 h-1 rounded-full bg-[#FEAE03] shrink-0 animate-pulse" />
                     ) : (
                       <span className="w-4 shrink-0" />
                     )}
@@ -264,10 +264,10 @@ export function TriggerInterviewDialog({
                 <VisuallyHidden.Root>
                   <AlertDialogTitle>Je bent een match</AlertDialogTitle>
                 </VisuallyHidden.Root>
-                <div className="w-16 h-16 rounded-full bg-[#CDFE00]/20 flex items-center justify-center mb-6">
-                  <CheckCircle2 className="w-8 h-8 text-[#CDFE00]" />
+                <div className="w-16 h-16 rounded-full bg-[#FEAE03]/20 flex items-center justify-center mb-6">
+                  <CheckCircle2 className="w-8 h-8 text-[#FEAE03]" />
                 </div>
-                <h2 className="text-2xl font-semibold text-gray-900 mb-2 text-center">
+                <h2 className="text-2xl font-semibold text-[#21224B] mb-2 text-center">
                   Je bent een match!
                 </h2>
                 <p className="text-gray-600 text-center mb-6">
@@ -280,13 +280,13 @@ export function TriggerInterviewDialog({
                     {cvResult.meetingSlots.map((slot, index) => (
                       <button
                         key={index}
-                        className="w-full flex items-center gap-4 p-4 rounded-lg border border-gray-200 hover:border-[#CDFE00] hover:bg-[#CDFE00]/5 transition-colors text-left group"
+                        className="w-full flex items-center gap-4 p-4 rounded-lg border border-gray-200 hover:border-[#FEAE03] hover:bg-[#FEAE03]/5 transition-colors text-left group"
                       >
-                        <div className="w-10 h-10 rounded-full bg-gray-100 group-hover:bg-[#CDFE00]/20 flex items-center justify-center transition-colors">
+                        <div className="w-10 h-10 rounded-full bg-gray-100 group-hover:bg-[#FEAE03]/20 flex items-center justify-center transition-colors">
                           <Calendar className="w-5 h-5 text-gray-600" />
                         </div>
                         <div className="flex-1">
-                          <p className="font-medium text-gray-900 capitalize">{slot}</p>
+                          <p className="font-medium text-[#21224B] capitalize">{slot}</p>
                         </div>
                       </button>
                     ))}
@@ -305,22 +305,25 @@ export function TriggerInterviewDialog({
 
             {/* Clarification needed - Ask for follow-up contact */}
             {cvResult.needsClarification && (
-              <div className="flex flex-col items-center justify-center py-12 px-8 max-w-md mx-auto">
+              <div className="flex flex-col items-center py-12 px-8">
                 <VisuallyHidden.Root>
-                  <AlertDialogTitle>CV verwerkt - Vervolgvragen</AlertDialogTitle>
+                  <AlertDialogTitle>Bedankt voor je sollicitatie!</AlertDialogTitle>
                 </VisuallyHidden.Root>
-                <div className="w-16 h-16 rounded-full bg-[#CDFE00]/20 flex items-center justify-center mb-6">
-                  <CheckCircle2 className="w-8 h-8 text-[#CDFE00]" />
+                <div className="w-16 h-16 rounded-full bg-[#FEAE03]/20 flex items-center justify-center mb-6 shrink-0">
+                  <CheckCircle2 className="w-8 h-8 text-[#FEAE03]" />
                 </div>
-                <h2 className="text-2xl font-semibold text-gray-900 mb-4 text-center">
-                  We hebben nog een paar vragen
+                <h2 className="text-2xl font-semibold text-[#21224B] mb-4 text-center">
+                  Bedankt voor je sollicitatie!
                 </h2>
-                <p className="text-gray-600 text-center mb-6">
-                  Onze digitale assistent Izzy kan je direct contacteren. Bij een match kun je meteen een gesprek inplannen met de recruiter.
-                </p>
-                
-                {/* Contact method selection */}
-                <div className="w-full space-y-4">
+                <div className="max-w-md mx-auto mb-6">
+                  <p className="text-gray-600 text-center text-sm leading-relaxed">
+                  <strong>Izzy, onze digitale assistent,</strong> stelt eventueel nog een paar korte vragen om het gesprek met de recruiter goed voor te bereiden. 
+                  De beslissing ligt altijd bij de recruiter.
+                  </p>
+                </div>
+
+                {/* Contact method selection - same width as before, no max-w-2xl */}
+                <div className="w-full max-w-md space-y-4">
                   {/* Toggle between WhatsApp and Call - only show if both are available */}
                   {hasBothPhoneOptions && (
                     <div className="flex items-center gap-1 p-1 bg-gray-100 rounded-lg">
@@ -392,7 +395,7 @@ export function TriggerInterviewDialog({
                     <button
                       onClick={() => handleSubmit(phoneContactMethod)}
                       disabled={phoneValue.replace(/\s/g, '').length < 12 || isSubmitting !== null}
-                      className="flex-1 py-3 px-4 rounded-lg bg-[#CDFE00] text-gray-900 font-medium hover:bg-[#bce900] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="flex-1 py-3 px-4 rounded-lg bg-[#21224B] text-[#FEAE03] font-medium hover:bg-[#2a2c5c] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {isSubmitting === phoneContactMethod
                         ? 'Bezig...'
@@ -412,7 +415,7 @@ export function TriggerInterviewDialog({
             {/* Only show title when both options are available */}
             {hasCv && hasPhoneOption ? (
               <AlertDialogHeader className="px-8 pt-8 pb-6">
-                <AlertDialogTitle className="text-3xl font-semibold text-center text-gray-900">
+                <AlertDialogTitle className="text-3xl font-semibold text-center text-[#21224B]">
                   Hoe wil je solliciteren?
                 </AlertDialogTitle>
               </AlertDialogHeader>
@@ -441,7 +444,7 @@ export function TriggerInterviewDialog({
               <label className="block">
                 <div className={`w-full px-4 py-3 rounded-lg border border-dashed cursor-pointer transition-colors ${
                   cvFile 
-                    ? 'border-[#CDFE00] bg-[#CDFE00]/5' 
+                    ? 'border-[#FEAE03] bg-[#FEAE03]/5' 
                     : 'border-gray-300 hover:border-gray-400'
                 }`}>
                   <div className="flex items-center gap-3">
@@ -464,14 +467,14 @@ export function TriggerInterviewDialog({
                   placeholder="Voornaam"
                   value={firstName}
                   onChange={(e) => setFirstName(e.target.value)}
-                  className="w-full px-4 py-3 rounded-lg border border-gray-200 text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#CDFE00]/50 focus:border-[#CDFE00]"
+                  className="w-full px-4 py-3 rounded-lg border border-gray-200 text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#FEAE03]/50 focus:border-[#FEAE03]"
                 />
                 <input
                   type="text"
                   placeholder="Achternaam"
                   value={lastName}
                   onChange={(e) => setLastName(e.target.value)}
-                  className="w-full px-4 py-3 rounded-lg border border-gray-200 text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#CDFE00]/50 focus:border-[#CDFE00]"
+                  className="w-full px-4 py-3 rounded-lg border border-gray-200 text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#FEAE03]/50 focus:border-[#FEAE03]"
                 />
               </div>
               <input
@@ -479,7 +482,7 @@ export function TriggerInterviewDialog({
                 placeholder="jouw@email.com"
                 value={emailValue}
                 onChange={(e) => setEmailValue(e.target.value)}
-                className="w-full px-4 py-3 rounded-lg border border-gray-200 text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#CDFE00]/50 focus:border-[#CDFE00]"
+                className="w-full px-4 py-3 rounded-lg border border-gray-200 text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#FEAE03]/50 focus:border-[#FEAE03]"
               />
               
               {/* CV Error message */}
@@ -492,7 +495,7 @@ export function TriggerInterviewDialog({
               <button
                 onClick={() => handleSubmit('email')}
                 disabled={!emailValue || !firstName || !lastName || !cvFile || isSubmitting !== null}
-                className="w-full py-3 px-4 rounded-lg bg-[#CDFE00] text-gray-900 font-medium hover:bg-[#bce900] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full py-3 px-4 rounded-lg bg-[#21224B] text-[#FEAE03] font-medium hover:bg-[#2a2c5c] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isSubmitting === 'email' ? 'Bezig...' : 'Solliciteer met CV'}
               </button>
@@ -558,14 +561,14 @@ export function TriggerInterviewDialog({
                     placeholder="Voornaam"
                     value={phoneFirstName}
                     onChange={(e) => setPhoneFirstName(e.target.value)}
-                    className="w-full px-4 py-3 rounded-lg border border-gray-200 text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#CDFE00]/50 focus:border-[#CDFE00]"
+                    className="w-full px-4 py-3 rounded-lg border border-gray-200 text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#FEAE03]/50 focus:border-[#FEAE03]"
                   />
                   <input
                     type="text"
                     placeholder="Achternaam"
                     value={phoneLastName}
                     onChange={(e) => setPhoneLastName(e.target.value)}
-                    className="w-full px-4 py-3 rounded-lg border border-gray-200 text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#CDFE00]/50 focus:border-[#CDFE00]"
+                    className="w-full px-4 py-3 rounded-lg border border-gray-200 text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#FEAE03]/50 focus:border-[#FEAE03]"
                   />
                 </div>
                 <div className={`flex items-center gap-2 px-4 py-3 rounded-lg border bg-white ${
@@ -601,7 +604,7 @@ export function TriggerInterviewDialog({
                 <button
                   onClick={() => handleSubmit(phoneContactMethod)}
                   disabled={phoneValue.replace(/\s/g, '').length < 12 || !phoneFirstName || !phoneLastName || isSubmitting !== null}
-                  className="w-full py-3 px-4 rounded-lg bg-[#CDFE00] text-gray-900 font-medium hover:bg-[#bce900] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full py-3 px-4 rounded-lg bg-[#21224B] text-[#FEAE03] font-medium hover:bg-[#2a2c5c] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isSubmitting === phoneContactMethod
                     ? phoneContactMethod === 'whatsapp' ? 'Bezig...' : 'Bellen...'

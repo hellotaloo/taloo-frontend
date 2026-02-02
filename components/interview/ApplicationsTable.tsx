@@ -78,10 +78,10 @@ export function ApplicationsTable({
         <TableRow>
           <TableHead className="w-full">Kandidaat</TableHead>
           <TableHead className="px-4 text-center">Score</TableHead>
-          <TableHead className="px-4">Interview slot</TableHead>
+          <TableHead className="px-4">Interview moment</TableHead>
+          <TableHead className="px-4">Interactietijd</TableHead>
           <TableHead className="px-4 text-center">Kanaal</TableHead>
           <TableHead className="px-4">Datum</TableHead>
-          <TableHead className="px-4">Interactietijd</TableHead>
           <TableHead className="px-4 text-center">Synced</TableHead>
           <TableHead className="text-right pl-4"></TableHead>
         </TableRow>
@@ -137,14 +137,14 @@ export function ApplicationsTable({
             <TableCell className="px-4 text-gray-500 text-sm">
               {formatInterviewSlot(application.interviewSlot) || '-'}
             </TableCell>
+            <TableCell className="px-4 text-gray-500 text-sm">
+              {application.interactionTime}
+            </TableCell>
             <TableCell className="px-4 text-center">
               <ChannelIcon channel={application.channel} />
             </TableCell>
             <TableCell className="px-4 text-gray-500 text-sm">
               {formatDate(application.timestamp)}
-            </TableCell>
-            <TableCell className="px-4 text-gray-500 text-sm">
-              {application.interactionTime}
             </TableCell>
             <TableCell className="px-4 text-center">
               <SyncedStatus synced={application.synced} isTest={application.isTest} />
@@ -157,7 +157,7 @@ export function ApplicationsTable({
                   }}
                   className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
                 >
-                  View details
+                  Details bekijken
                   <ArrowRight className="w-3 h-3" />
                 </button>
               </TableCell>
@@ -226,7 +226,7 @@ function ScoreDisplayInline({
           <span className="font-medium text-gray-400">-</span>
         </div>
         <div className="flex items-center gap-1">
-          <span className="text-gray-400">Qualifying:</span>
+          <span className="text-gray-400">Kwalificerend:</span>
           <span className="font-medium text-gray-400">-</span>
         </div>
       </div>
@@ -245,7 +245,7 @@ function ScoreDisplayInline({
       </div>
       {qualifyingAnswered > 0 && (
         <div className="flex items-center gap-1">
-          <span className="text-gray-400">Qualifying:</span>
+          <span className="text-gray-400">Kwalificerend:</span>
           <span className="font-medium text-gray-600">{qualifyingAnswered}</span>
         </div>
       )}
