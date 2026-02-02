@@ -425,16 +425,9 @@ export const dummyFinetuneInstructions: FinetuneInstruction[] = [
     isActive: true,
     createdAt: '2026-01-07T10:00:00Z',
   },
+
   {
     id: 'ft-11',
-    agent: 'interview-generator',
-    category: 'difficulty',
-    instruction: 'Basisinterview voor juniors, uitdagend voor seniors',
-    isActive: true,
-    createdAt: '2026-01-05T11:30:00Z',
-  },
-  {
-    id: 'ft-12',
     agent: 'interview-generator',
     category: 'avoid',
     instruction: 'Geen stressvragen of trick questions',
