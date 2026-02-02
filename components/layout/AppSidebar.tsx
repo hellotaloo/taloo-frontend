@@ -165,9 +165,6 @@ export function AppSidebar() {
                       <span className="text-sm">{item.name}</span>
                     </Link>
                   </SidebarMenuButton>
-                  {item.badge && (
-                    <SidebarMenuBadge>{item.badge}</SidebarMenuBadge>
-                  )}
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>
