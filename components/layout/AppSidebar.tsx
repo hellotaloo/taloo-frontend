@@ -97,11 +97,11 @@ export function AppSidebar() {
     return pathname === href || (href !== '/' && pathname.startsWith(href));
   };
 
-  const getOverzichtBadge = (item: (typeof overzichtenItems)[number]) => {
+  const getOverzichtBadge = (item: (typeof overzichtenItems)[number]): React.ReactNode => {
     if ('badgeKey' in item && item.badgeKey === 'newVacancies' && newVacanciesCount !== null) {
       return newVacanciesCount;
     }
-    return 'badge' in item ? item.badge : undefined;
+    return undefined;
   };
 
 
