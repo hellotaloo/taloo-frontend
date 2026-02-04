@@ -76,8 +76,9 @@ function PendingSetup({
       </TableHeader>
       <TableBody>
         {vacancies.map((vacancy) => (
-          <TableRow 
+          <TableRow
             key={vacancy.id}
+            data-testid={`pending-vacancy-row-${vacancy.id}`}
             className="cursor-pointer"
             onClick={() => router.push(`/pre-screening/edit/${vacancy.id}`)}
           >
@@ -100,8 +101,9 @@ function PendingSetup({
             </TableCell>
             <TableCell>
               {vacancy.source === 'salesforce' ? (
-                <button 
+                <button
                   onClick={(e) => { e.stopPropagation(); onViewSource(vacancy); }}
+                  data-testid={`view-source-btn-${vacancy.id}`}
                   className="inline-flex items-center gap-1.5 text-gray-500 hover:text-gray-700 transition-colors cursor-pointer"
                   title="Brongegevens bekijken"
                 >
@@ -116,8 +118,9 @@ function PendingSetup({
                   <ExternalLink className="w-3 h-3" />
                 </button>
               ) : vacancy.source === 'bullhorn' ? (
-                <button 
+                <button
                   onClick={(e) => { e.stopPropagation(); onViewSource(vacancy); }}
+                  data-testid={`view-source-btn-${vacancy.id}`}
                   className="inline-flex items-center gap-1.5 text-gray-500 hover:text-gray-700 transition-colors cursor-pointer"
                   title="Brongegevens bekijken"
                 >
@@ -142,6 +145,7 @@ function PendingSetup({
                 <Link
                   href={`/pre-screening/edit/${vacancy.id}`}
                   onClick={(e) => e.stopPropagation()}
+                  data-testid={`generate-prescreening-btn-${vacancy.id}`}
                   className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
                 >
                   Pre-screening genereren
@@ -241,7 +245,7 @@ function formatRelativeDate(dateString: string | null | undefined) {
 
 function GeneratedTable({ vacancies }: { vacancies: Vacancy[] }) {
   const router = useRouter();
-  
+
   if (vacancies.length === 0) {
     return (
       <div className="text-center py-12">
@@ -269,8 +273,9 @@ function GeneratedTable({ vacancies }: { vacancies: Vacancy[] }) {
         {vacancies.map((vacancy) => {
           const hasActivity = vacancy.candidatesCount > 0;
           return (
-            <TableRow 
+            <TableRow
               key={vacancy.id}
+              data-testid={`generated-vacancy-row-${vacancy.id}`}
               className="cursor-pointer"
               onClick={() => router.push(`/pre-screening/view/${vacancy.id}`)}
             >
@@ -353,8 +358,9 @@ function ArchivedTable({ vacancies }: { vacancies: Vacancy[] }) {
         {vacancies.map((vacancy) => {
           const hasActivity = vacancy.candidatesCount > 0;
           return (
-            <TableRow 
+            <TableRow
               key={vacancy.id}
+              data-testid={`archived-vacancy-row-${vacancy.id}`}
               className="cursor-pointer"
               onClick={() => router.push(`/pre-screening/view/${vacancy.id}`)}
             >
@@ -565,21 +571,21 @@ function PreScreeningContent() {
         <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-2">
         <div className="flex items-center justify-between">
           <TabsList variant="line">
-            <TabsTrigger value="new">
+            <TabsTrigger value="new" data-testid="tab-new-vacancies">
               <Plus className="w-3.5 h-3.5" />
               Nieuw
               <span className="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-600">
                 {newVacancies.length}
               </span>
             </TabsTrigger>
-            <TabsTrigger value="generated">
+            <TabsTrigger value="generated" data-testid="tab-generated-vacancies">
               <Zap className="w-3.5 h-3.5" />
               Gegenereerd
               <span className="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-600">
                 {generatedVacancies.length}
               </span>
             </TabsTrigger>
-            <TabsTrigger value="archived">
+            <TabsTrigger value="archived" data-testid="tab-archived-vacancies">
               <Archive className="w-3.5 h-3.5" />
               Gearchiveerd
               <span className="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-600">

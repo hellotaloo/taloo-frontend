@@ -58,14 +58,12 @@ const mainNavItems = [
 
 const primaryNavItems = [
   { name: 'Inbox', href: '/inbox', icon: Inbox },
-  { name: 'Insights', href: '/insights', icon: Target },
+
 ];
 
 const overzichtenItems = [
   { name: 'Pre-screening', href: '/pre-screening', icon: Phone, badgeKey: 'newVacancies' as const },
-  { name: 'Vacatures', href: '/vacatures', icon: Briefcase },
-  { name: 'Kandidaten', href: '/kandidaten', icon: Users },
-  { name: 'Onboarding', href: '/onboarding', icon: UserPlus },
+  { name: 'Insights', href: '/insights', icon: Target },
 ];
 
 const footerNavItems = [
@@ -113,7 +111,7 @@ export function AppSidebar() {
           <DropdownMenuTrigger asChild>
             <button className="flex items-center gap-3 w-full hover:bg-sidebar-accent rounded-lg p-2 -m-2 transition-colors">
               <Image
-                src="/mockup/itzu-logo-icon.png"
+                src="/taloo-icon-big.svg"
                 alt="ITZU"
                 width={40}
                 height={40}
@@ -121,7 +119,7 @@ export function AppSidebar() {
               />
               <div className="flex-1 text-left">
                 <p className="text-sm font-semibold text-sidebar-foreground">
-                  ITZU
+                  Taloo
                 </p>
                 <p className="text-xs text-sidebar-foreground/60">Enterprise</p>
               </div>

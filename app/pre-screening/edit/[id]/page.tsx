@@ -1088,11 +1088,11 @@ export default function EditPreScreeningPage({ params }: PageProps) {
             <button
               type="button"
               onClick={() => setShowTriggerInterviewDialog(true)}
-              className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium bg-[#21224B] hover:bg-[#2a2c5c] text-white transition-colors"
+              className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium bg-brand-lime-green hover:brightness-95 text-black transition-colors"
             >
-              <img 
-                src="/mockup/izu-icon.png" 
-                alt="" 
+              <img
+                src="/dummy-client-logo.png"
+                alt=""
                 className="w-5 h-5 rounded-sm object-contain"
               />
               Sollicitatie testen
