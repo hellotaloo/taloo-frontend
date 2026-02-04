@@ -13,11 +13,12 @@ import {
   Settings,
   Search,
   MoreHorizontal,
-  Target,
   SlidersHorizontal,
   Smartphone,
   Users,
   UserPlus,
+  FileCheck,
+  ScanSearch,
 } from 'lucide-react';
 import { PencilSquareIcon } from '@heroicons/react/24/outline';
 
@@ -57,19 +58,20 @@ const mainNavItems = [
 ];
 
 const primaryNavItems = [
-  { name: 'Inbox', href: '/inbox', icon: Inbox },
+  { name: 'Inbox', href: '/inbox', icon: Inbox }
 
 ];
 
 const overzichtenItems = [
   { name: 'Pre-screening', href: '/pre-screening', icon: Phone, badgeKey: 'newVacancies' as const },
-  { name: 'Insights', href: '/insights', icon: Target },
+  { name: 'Pre-onboarding', href: '/pre-onboarding', icon: FileCheck, badgeKey: 'newVacancies' as const },
+  { name: 'Pattern Finder', href: '/insights', icon: ScanSearch },
+
 ];
 
 const footerNavItems = [
   { name: 'Finetune', href: '/finetune', icon: SlidersHorizontal },
-  { name: 'Admin', href: '/admin', icon: Settings },
-  { name: 'Zoeken', href: '/search', icon: Search },
+  { name: 'Admin', href: '/admin', icon: Settings }
 ];
 
 export function AppSidebar() {
@@ -179,7 +181,7 @@ export function AppSidebar() {
           <SidebarGroup className="py-0 mt-6">
             <SidebarGroupLabel asChild>
               <CollapsibleTrigger className="flex items-center gap-2 w-full group/label">
-                <span>Overzichten</span>
+                <span>Assistenten</span>
                 <ChevronRight className="ml-auto h-4 w-4 transition-transform group-data-[state=open]/label:rotate-90" />
               </CollapsibleTrigger>
             </SidebarGroupLabel>
