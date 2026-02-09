@@ -25,8 +25,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { 
-  generateInterview, 
+import { PageLayout, PageLayoutHeader, PageLayoutContent } from '@/components/layout/page-layout';
+import {
+  generateInterview,
   reorderQuestions, 
   SSEEvent, 
   Interview,
@@ -540,52 +541,34 @@ export default function GenerateInterviewPage({ params }: PageProps) {
 
   // Editing state - Flow builder view
   return (
-    <div className="flex flex-col h-[calc(100vh-40px)] -m-6">
-      {/* Header with vacancy info - full width */}
-      <div className="flex items-center justify-between px-6 py-6">
-        <div className="flex items-center gap-2">
-          <h1 className="text-lg font-semibold text-gray-900">{vacancy.title}</h1>
-          <span className="text-sm text-gray-400">•</span>
-          <span className="text-sm text-gray-500">{vacancy.company}</span>
-          <span className="text-sm text-gray-400">•</span>
-          <span className="text-sm text-gray-500">{vacancy.location}</span>
-          <span className="inline-flex items-center ml-2 px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">
-            Concept
-          </span>
-        </div>
-        <div className="flex items-center gap-2">
-          <label htmlFor="agent-online-edit" className="text-sm text-gray-400">
-            Agent online
-          </label>
-          <Switch
-            id="agent-online-edit"
-            checked={isAgentOnline}
-            disabled
-            className="data-[state=checked]:bg-green-500"
-          />
-        </div>
-      </div>
-
-      {/* Full-width divider line */}
-      <div className="border-t border-gray-200" />
-
-      {/* Content area below the line */}
-      <div className="flex flex-1 min-h-0">
-        {/* Left column - Interview Questions Panel */}
-        <div className="flex-1 overflow-y-auto p-6 min-h-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-          <div className="max-w-[720px] -mt-3">
-            <InterviewQuestionsPanel 
-              questions={questions} 
-              isGenerating={isGenerating}
-              highlightedIds={highlightedIds}
-              onQuestionClick={handleQuestionClick}
-              onReorder={handleReorder}
+    <PageLayout>
+      <PageLayoutHeader>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <h1 className="text-lg font-semibold text-gray-900">{vacancy.title}</h1>
+            <span className="text-sm text-gray-400">•</span>
+            <span className="text-sm text-gray-500">{vacancy.company}</span>
+            <span className="text-sm text-gray-400">•</span>
+            <span className="text-sm text-gray-500">{vacancy.location}</span>
+            <span className="inline-flex items-center ml-2 px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">
+              Concept
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <label htmlFor="agent-online-edit" className="text-sm text-gray-400">
+              Agent online
+            </label>
+            <Switch
+              id="agent-online-edit"
+              checked={isAgentOnline}
+              disabled
+              className="data-[state=checked]:bg-green-500"
             />
           </div>
         </div>
-
-        {/* Right column - Chat Assistant */}
-        <div className="hidden lg:flex w-[500px] flex-col border-l border-gray-200 min-h-0">
+      </PageLayoutHeader>
+      <PageLayoutContent
+        sidebar={
           <InterviewAssistant
             vacancyTitle={vacancy.title}
             vacancyText={vacancy.description}
@@ -601,8 +584,19 @@ export default function GenerateInterviewPage({ params }: PageProps) {
             externalPrompt={pendingPrompt}
             onExternalPromptConsumed={() => setPendingPrompt('')}
           />
-        </div>
-      </div>
-    </div>
+        }
+        sidebarWidth={500}
+      >
+        <div className="max-w-[720px] -mt-3">
+            <InterviewQuestionsPanel 
+              questions={questions} 
+              isGenerating={isGenerating}
+              highlightedIds={highlightedIds}
+              onQuestionClick={handleQuestionClick}
+              onReorder={handleReorder}
+            />
+          </div>
+      </PageLayoutContent>
+    </PageLayout>
   );
 }

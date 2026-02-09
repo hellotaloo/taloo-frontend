@@ -20,6 +20,7 @@ import { cn } from '@/lib/utils';
 import { Text, Flex } from '@radix-ui/themes';
 import { Button } from '@/components/ui/button';
 import { ChatAssistant, type PromptSuggestion } from '@/components/kit/chat';
+import { PageLayout, PageLayoutHeader, PageLayoutContent } from '@/components/layout/page-layout';
 
 // Insight data structure
 interface Insight {
@@ -414,29 +415,44 @@ export default function InsightsPage() {
   }, []);
 
   return (
-    <div className="flex flex-col h-[calc(100vh-40px)] -m-6">
-      {/* Header - Full width */}
-      <div className="flex items-center justify-between px-6 py-6">
-        <div>
-          <h1 className="text-lg font-semibold text-gray-900">Insights</h1>
-          <p className="text-sm text-gray-500">Ontdek verborgen patronen en optimaliseer je hiring proces</p>
-        </div>
-        <div className="flex items-center gap-4">
+    <PageLayout>
+      <PageLayoutHeader
+        title="Insights"
+        description="Ontdek verborgen patronen en optimaliseer je hiring proces"
+        action={
           <div className="flex items-center gap-2 text-sm text-gray-500">
             <Users className="w-4 h-4" />
             <span>Gebaseerd op <span className="font-medium text-gray-700">2.4k</span> screenings</span>
           </div>
-        </div>
-      </div>
+        }
+      />
+      <PageLayoutContent
+        sidebar={
+          <ChatAssistant
+            initialMessage={`Ik ben je digitale collega voor insights.
 
-      {/* Full-width divider line */}
-      <div className="border-t border-gray-200" />
-
-      {/* Content area below the line */}
-      <div className="flex flex-1 min-h-0">
-        {/* Left column - Main Content */}
-        <div className="flex-1 overflow-y-auto p-6 min-h-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-          <div className="space-y-8">
+Ik maak van data duidelijke inzichten, zonder ruis of dashboards-gedoe.`}
+            placeholder="Stel een vraag over de inzichten..."
+            loadingMessage="Analyseren..."
+            onSubmit={handleChatSubmit}
+            showActions={false}
+            suggestions={[
+              {
+                label: 'Hoe verbeter ik conversie?',
+                prompt: 'Hoe kan ik de conversie van mijn pre-screenings verbeteren?',
+                icon: TrendingUp,
+              },
+              {
+                label: 'Voice vs WhatsApp',
+                prompt: 'Wanneer moet ik voice gebruiken in plaats van WhatsApp?',
+                icon: Phone,
+              },
+            ]}
+          />
+        }
+        sidebarWidth={420}
+      >
+        <div className="space-y-8">
             {/* Summary Stats */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {summaryStats.map((stat, idx) => {
@@ -501,33 +517,7 @@ export default function InsightsPage() {
               </div>
             </div>
           </div>
-        </div>
-
-        {/* Right column - Chat Assistant */}
-        <div className="hidden lg:flex w-[420px] flex-col border-l border-gray-200 min-h-0">
-          <ChatAssistant
-            initialMessage={`Ik ben je digitale collega voor insights.
-
-Ik maak van data duidelijke inzichten, zonder ruis of dashboards-gedoe.`}
-            placeholder="Stel een vraag over de inzichten..."
-            loadingMessage="Analyseren..."
-            onSubmit={handleChatSubmit}
-            showActions={false}
-            suggestions={[
-              {
-                label: 'Hoe verbeter ik conversie?',
-                prompt: 'Hoe kan ik de conversie van mijn pre-screenings verbeteren?',
-                icon: TrendingUp,
-              },
-              {
-                label: 'Voice vs WhatsApp',
-                prompt: 'Wanneer moet ik voice gebruiken in plaats van WhatsApp?',
-                icon: Phone,
-              },
-            ]}
-          />
-        </div>
-      </div>
-    </div>
+      </PageLayoutContent>
+    </PageLayout>
   );
 }

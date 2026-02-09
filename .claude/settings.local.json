@@ -6,7 +6,9 @@
       "Bash(curl:*)",
       "Bash(grep:*)",
       "Bash(python3:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(wc -l:*)",
+      "Bash(npm run build:*)"
     ]
   }
 }

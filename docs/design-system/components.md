@@ -248,6 +248,31 @@ import { MetricCard, Sparkline } from '@/components/kit/metric-card';
 </MetricCard>
 ```
 
+### CollapseBox
+
+**Purpose:** Card-style collapsible section with header (icon + title + chevron), optional scrollable content, and optional footer link. Use for vacancy text, long descriptions, or any expandable content block.
+
+**Location:** `components/kit/collapse-box/`
+
+```tsx
+import { CollapseBox } from '@/components/kit/collapse-box';
+import { FileText } from 'lucide-react';
+
+<CollapseBox
+  title="Vacaturetekst"
+  icon={FileText}
+  defaultOpen
+  contentMaxHeight="400px"
+  footerLink={{ href: 'https://...', label: 'Bekijk in Salesforce' }}
+>
+  <div className="prose prose-sm">
+    {/* Markdown or structured content */}
+  </div>
+</CollapseBox>
+```
+
+**Props:** `title`, `icon?`, `children`, `footerLink?`, `defaultOpen?`, `open?`, `onOpenChange?`, `contentMaxHeight?`, `className?`, `contentClassName?`
+
 ### StatusBadge
 
 **Purpose:** Display online/offline/concept status

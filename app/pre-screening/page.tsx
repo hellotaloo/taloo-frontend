@@ -15,6 +15,7 @@ import {
   GeneratedVacanciesTable,
   ArchivedVacanciesTable,
 } from '@/components/blocks/vacancy-table';
+import { PageLayout, PageLayoutHeader, PageLayoutContent } from '@/components/layout/page-layout';
 import {
   Table,
   TableBody,
@@ -155,22 +156,12 @@ function PreScreeningContent() {
   }
   
   return (
-    <div className="flex flex-col h-[calc(100vh-40px)] -m-6">
-      {/* Header - Fixed */}
-      <div className="px-6 py-6">
-        <h1 className="text-lg font-semibold text-gray-900">
-          Pre-screening
-        </h1>
-        <p className="text-sm text-gray-500">
-          Overzicht van je conversationele pre-screening
-        </p>
-      </div>
-
-      {/* Full-width divider line */}
-      <div className="border-t border-gray-200" />
-
-      {/* Scrollable content area */}
-      <div className="flex-1 overflow-y-auto p-6 min-h-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+    <PageLayout>
+      <PageLayoutHeader
+        title="Pre-screening"
+        description="Overzicht van je conversationele pre-screening"
+      />
+      <PageLayoutContent>
         {/* Weekly Pre-screening Metrics - 4 cards in a row */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           <MetricCard
@@ -270,7 +261,6 @@ function PreScreeningContent() {
           <ArchivedVacanciesTable vacancies={archivedVacancies} />
         </TabsContent>
       </Tabs>
-      </div>
 
       {/* Source Record Sheet */}
       <Sheet open={!!selectedVacancy} onOpenChange={(open) => !open && setSelectedVacancy(null)}>
@@ -409,7 +399,8 @@ function PreScreeningContent() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+      </PageLayoutContent>
+    </PageLayout>
   );
 }
 

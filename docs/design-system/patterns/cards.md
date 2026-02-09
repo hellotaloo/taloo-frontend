@@ -205,6 +205,31 @@ import { MetricCard } from '@/components/kit/metric-card';
 </Card>
 ```
 
+## Collapsible Card (CollapseBox)
+
+Use the kit component `CollapseBox` for expandable card content with a consistent header and optional footer link.
+
+```tsx
+import { CollapseBox } from '@/components/kit/collapse-box';
+import { FileText } from 'lucide-react';
+
+<CollapseBox
+  title="Vacaturetekst"
+  icon={FileText}
+  defaultOpen={false}
+  contentMaxHeight="400px"
+  footerLink={{ href: '/external', label: 'Bekijk in Salesforce' }}
+>
+  <div className="text-sm text-gray-600 prose prose-sm max-w-none">
+    <h3 className="font-semibold text-gray-800">Over deze job</h3>
+    <p>...</p>
+    <ul className="list-disc list-inside">...</ul>
+  </div>
+</CollapseBox>
+```
+
+**When to use:** Long text (vacancy descriptions, terms, context) that should be expandable to save space; optional external link in footer.
+
 ## List Cards
 
 ### Card List Layout

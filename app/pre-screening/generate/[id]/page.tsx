@@ -26,7 +26,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { 
+import { PageLayout, PageLayoutHeader, PageLayoutContent } from '@/components/layout/page-layout';
+import {
   generateInterview, 
   reorderQuestions, 
   SSEEvent, 
@@ -573,68 +574,77 @@ export default function GeneratePreScreeningPage({ params }: PageProps) {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-40px)] -m-6">
-      <div className="flex items-center justify-between px-6 py-6">
-        <div className="flex items-center gap-2">
-          <h1 className="text-lg font-semibold text-gray-900">{vacancy.title}</h1>
-          <span className="text-sm text-gray-400">•</span>
-          <span className="text-sm text-gray-500">{vacancy.company}</span>
-          <span className="text-sm text-gray-400">•</span>
-          <span className="text-sm text-gray-500">{vacancy.location}</span>
-          <span className="inline-flex items-center ml-2 px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">
-            Concept
-          </span>
-        </div>
-        <div className="flex items-center gap-4">
-          {/* Test interview toggle */}
+    <PageLayout>
+      <PageLayoutHeader>
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-500">Test sollicitatie:</span>
-            <div className="flex rounded-lg overflow-hidden border border-gray-200">
-              <button
-                onClick={() => setRightPanelView('assistant')}
-                className={`px-3 py-1.5 text-sm font-medium flex items-center gap-1.5 transition-colors ${
-                  rightPanelView === 'assistant'
-                    ? 'bg-gray-100 text-gray-900'
-                    : 'bg-white text-gray-500 hover:bg-gray-50'
-                }`}
-              >
-                <Phone className="w-4 h-4" />
-                Bellen
-              </button>
-              <button
-                onClick={() => setRightPanelView('whatsapp')}
-                className={`px-3 py-1.5 text-sm font-medium flex items-center gap-1.5 transition-colors ${
-                  rightPanelView === 'whatsapp'
-                    ? 'bg-[#25D366] text-white'
-                    : 'bg-white text-gray-500 hover:bg-gray-50'
-                }`}
-              >
-                <MessageSquare className="w-4 h-4" />
-                WhatsApp
-              </button>
+            <h1 className="text-lg font-semibold text-gray-900">{vacancy.title}</h1>
+            <span className="text-sm text-gray-400">•</span>
+            <span className="text-sm text-gray-500">{vacancy.company}</span>
+            <span className="text-sm text-gray-400">•</span>
+            <span className="text-sm text-gray-500">{vacancy.location}</span>
+            <span className="inline-flex items-center ml-2 px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">
+              Concept
+            </span>
+          </div>
+          <div className="flex items-center gap-4">
+            {/* Test interview toggle */}
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-500">Test sollicitatie:</span>
+              <div className="flex rounded-lg overflow-hidden border border-gray-200">
+                <button
+                  onClick={() => setRightPanelView('assistant')}
+                  className={`px-3 py-1.5 text-sm font-medium flex items-center gap-1.5 transition-colors ${
+                    rightPanelView === 'assistant'
+                      ? 'bg-gray-100 text-gray-900'
+                      : 'bg-white text-gray-500 hover:bg-gray-50'
+                  }`}
+                >
+                  <Phone className="w-4 h-4" />
+                  Bellen
+                </button>
+                <button
+                  onClick={() => setRightPanelView('whatsapp')}
+                  className={`px-3 py-1.5 text-sm font-medium flex items-center gap-1.5 transition-colors ${
+                    rightPanelView === 'whatsapp'
+                      ? 'bg-[#25D366] text-white'
+                      : 'bg-white text-gray-500 hover:bg-gray-50'
+                  }`}
+                >
+                  <MessageSquare className="w-4 h-4" />
+                  WhatsApp
+                </button>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <label htmlFor="agent-online-edit" className="text-sm text-gray-400">
+                Agent online
+              </label>
+              <Switch
+                id="agent-online-edit"
+                checked={isAgentOnline}
+                disabled
+                className="data-[state=checked]:bg-green-500"
+              />
             </div>
           </div>
-
-          <div className="flex items-center gap-2">
-            <label htmlFor="agent-online-edit" className="text-sm text-gray-400">
-              Agent online
-            </label>
-            <Switch
-              id="agent-online-edit"
-              checked={isAgentOnline}
-              disabled
-              className="data-[state=checked]:bg-green-500"
-            />
-          </div>
         </div>
-      </div>
-
-      <div className="border-t border-gray-200" />
-
-      <div className="flex flex-1 min-h-0">
-        {/* Questions panel - 50% */}
-        <div className="w-1/2 overflow-y-auto p-6 min-h-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-          <div className="max-w-[720px] -mt-3">
+      </PageLayoutHeader>
+      <PageLayoutContent
+        sidebar={
+          <div className="flex items-center justify-center bg-gray-50 p-6 h-full">
+            <div className="transform scale-[0.85] origin-center">
+              <IPhoneMockup>
+                <WhatsAppChat />
+              </IPhoneMockup>
+            </div>
+          </div>
+        }
+        sidebarWidth="w-1/2"
+        contentClassName="w-1/2"
+      >
+        <div className="max-w-[720px] -mt-3">
             <InterviewQuestionsPanel 
               questions={questions} 
               isGenerating={isGenerating}
@@ -643,17 +653,7 @@ export default function GeneratePreScreeningPage({ params }: PageProps) {
               onReorder={handleReorder}
             />
           </div>
-        </div>
-
-        {/* Phone mockup - 50% */}
-        <div className="hidden lg:flex w-1/2 flex-col border-l border-gray-200 min-h-0 items-center justify-center bg-gray-50 p-6">
-          <div className="transform scale-[0.85] origin-center">
-            <IPhoneMockup>
-              <WhatsAppChat />
-            </IPhoneMockup>
-          </div>
-        </div>
-      </div>
-    </div>
+      </PageLayoutContent>
+    </PageLayout>
   );
 }

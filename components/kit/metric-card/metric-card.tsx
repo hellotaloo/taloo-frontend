@@ -4,7 +4,7 @@ import { LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Sparkline } from './sparkline';
 
-type CardVariant = 'blue' | 'lime' | 'dark' | 'purple' | 'orange';
+type CardVariant = 'blue' | 'lime' | 'dark' | 'purple' | 'orange' | 'pink';
 
 interface MetricCardProps {
   title: string;
@@ -64,6 +64,14 @@ const variantStyles: Record<CardVariant, {
     sparkline: '#f97316',
     progress: 'bg-orange-500',
     progressBg: 'bg-orange-200',
+  },
+  pink: {
+    bg: 'bg-pink-100',
+    text: 'text-gray-900',
+    muted: 'text-gray-600',
+    sparkline: '#E51399',
+    progress: 'bg-pink-500',
+    progressBg: 'bg-pink-200',
   },
 };
 
