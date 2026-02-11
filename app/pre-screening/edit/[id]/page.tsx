@@ -1076,7 +1076,7 @@ export default function EditPreScreeningPage({ params }: PageProps) {
 
   return (
     <div className="flex flex-col h-[calc(100vh-40px)] -m-6">
-      <div className="flex items-center justify-between px-6 py-6">
+      <div className="flex items-center justify-between px-6 py-4">
         <div className="flex items-center gap-3">
           <button
             onClick={() => handleNavigateAway(() => router.back())}

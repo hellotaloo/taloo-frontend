@@ -3,7 +3,7 @@
 import { cn } from '@/lib/utils';
 
 export interface StatusBadgeProps {
-  isOnline: boolean | null;
+  isOnline: boolean | null | undefined;
   className?: string;
 }
 
@@ -11,7 +11,7 @@ export interface StatusBadgeProps {
  * Status badge component showing online/offline/concept status
  * - isOnline === true: Online (green)
  * - isOnline === false: Offline (gray)
- * - isOnline === null: Concept/Draft (amber)
+ * - isOnline === null/undefined: Concept/Draft (amber)
  */
 export function StatusBadge({ isOnline, className }: StatusBadgeProps) {
   if (isOnline === true) {

@@ -2,12 +2,12 @@
 
 import { Phone, CheckCircle2, Users, MapPin, Building2, ArrowRight, Archive, Loader2, Info, ExternalLink, Calendar, Plus, Zap, MessageCircle, FileText } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
-import { useState, useEffect, useMemo, Suspense } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Vacancy } from '@/lib/types';
-import { getVacancies, getDashboardStats, DashboardStats } from '@/lib/interview-api';
+import { getPreScreeningVacancies, getDashboardStats, DashboardStats } from '@/lib/interview-api';
 import { MetricCard, ChannelCard } from '@/components/kit/metric-card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
@@ -53,8 +53,10 @@ function formatDate(dateString: string | null | undefined) {
 function PreScreeningContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  
-  const [vacancies, setVacancies] = useState<Vacancy[]>([]);
+
+  const [newVacancies, setNewVacancies] = useState<Vacancy[]>([]);
+  const [generatedVacancies, setGeneratedVacancies] = useState<Vacancy[]>([]);
+  const [archivedVacancies, setArchivedVacancies] = useState<Vacancy[]>([]);
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -77,27 +79,31 @@ function PreScreeningContent() {
     setAutoGenerate(true);
     setShowAutoGenerateConfirm(false);
   };
-  
+
   // Get active tab from URL, default to 'new'
   const activeTab = searchParams.get('tab') || 'new';
-  
+
   const handleTabChange = (value: string) => {
     const params = new URLSearchParams(searchParams.toString());
     params.set('tab', value);
     router.replace(`/pre-screening?${params.toString()}`, { scroll: false });
   };
 
-  // Fetch vacancies and stats on mount
+  // Fetch vacancies from agent endpoints and stats on mount
   useEffect(() => {
     async function fetchData() {
       try {
         setIsLoading(true);
         setError(null);
-        const [vacanciesData, statsData] = await Promise.all([
-          getVacancies(),
+        const [newData, generatedData, archivedData, statsData] = await Promise.all([
+          getPreScreeningVacancies('new'),
+          getPreScreeningVacancies('generated'),
+          getPreScreeningVacancies('archived'),
           getDashboardStats(),
         ]);
-        setVacancies(vacanciesData.vacancies);
+        setNewVacancies(newData.vacancies);
+        setGeneratedVacancies(generatedData.vacancies);
+        setArchivedVacancies(archivedData.vacancies);
         setStats(statsData);
       } catch (err) {
         console.error('Failed to fetch data:', err);
@@ -109,17 +115,6 @@ function PreScreeningContent() {
 
     fetchData();
   }, []);
-
-  // Filter vacancies by status
-  // New: vacancies without pre-screening generated
-  const newVacancies = useMemo(() => 
-    vacancies.filter(v => v.status === 'new'), [vacancies]);
-  // Generated: vacancies with pre-screening (draft, in_progress, agent_created, screening_active)
-  const generatedVacancies = useMemo(() => 
-    vacancies.filter(v => v.status === 'draft' || v.status === 'in_progress' || v.status === 'agent_created' || v.status === 'screening_active'), [vacancies]);
-  // Archived: archived vacancies
-  const archivedVacancies = useMemo(() => 
-    vacancies.filter(v => v.status === 'archived'), [vacancies]);
 
   // Use stats from API or fallback to zeros
   const weeklyMetrics = {
@@ -247,10 +242,7 @@ function PreScreeningContent() {
         </div>
         
         <TabsContent value="new" className="">
-          <PendingVacanciesTable
-            vacancies={newVacancies}
-            onViewSource={setSelectedVacancy}
-          />
+          <PendingVacanciesTable vacancies={newVacancies} />
         </TabsContent>
 
         <TabsContent value="generated" className="">

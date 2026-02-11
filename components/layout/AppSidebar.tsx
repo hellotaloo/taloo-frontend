@@ -19,6 +19,7 @@ import {
   UserPlus,
   FileCheck,
   ScanSearch,
+  LayoutList,
 } from 'lucide-react';
 import { PencilSquareIcon } from '@heroicons/react/24/outline';
 
@@ -50,7 +51,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { getVacancies } from '@/lib/interview-api';
+import { getPreScreeningVacancies, getPreOnboardingVacancies } from '@/lib/interview-api';
 
 // Navigation data
 const mainNavItems = [
@@ -58,15 +59,14 @@ const mainNavItems = [
 ];
 
 const primaryNavItems = [
-  { name: 'Inbox', href: '/inbox', icon: Inbox }
-
+  { name: 'Inbox', href: '/inbox', icon: Inbox },
+  { name: 'Overzichten', href: '/overviews', icon: LayoutList },
 ];
 
 const overzichtenItems = [
-  { name: 'Pre-screening', href: '/pre-screening', icon: Phone, badgeKey: 'newVacancies' as const },
-  { name: 'Pre-onboarding', href: '/pre-onboarding', icon: FileCheck, badgeKey: 'newVacancies' as const },
+  { name: 'Pre-screening', href: '/pre-screening', icon: Phone, badgeKey: 'prescreening' as const },
+  { name: 'Pre-onboarding', href: '/pre-onboarding', icon: FileCheck, badgeKey: 'preonboarding' as const },
   { name: 'Pattern Finder', href: '/insights', icon: ScanSearch },
-
 ];
 
 const footerNavItems = [
@@ -77,19 +77,28 @@ const footerNavItems = [
 export function AppSidebar() {
   const pathname = usePathname();
   const [overzichtenOpen, setOverzichtenOpen] = React.useState(true);
-  const [newVacanciesCount, setNewVacanciesCount] = React.useState<number | null>(null);
+  const [prescreeningCount, setPrescreeningCount] = React.useState<number | null>(null);
+  const [preonboardingCount, setPreonboardingCount] = React.useState<number | null>(null);
 
   React.useEffect(() => {
     let cancelled = false;
-    getVacancies()
-      .then(({ vacancies }) => {
+
+    Promise.all([
+      getPreScreeningVacancies('new'),
+      getPreOnboardingVacancies('new'),
+    ])
+      .then(([prescreeningData, preonboardingData]) => {
         if (cancelled) return;
-        const count = vacancies.filter((v) => v.status === 'new').length;
-        setNewVacanciesCount(count);
+        setPrescreeningCount(prescreeningData.total);
+        setPreonboardingCount(preonboardingData.total);
       })
       .catch(() => {
-        if (!cancelled) setNewVacanciesCount(null);
+        if (!cancelled) {
+          setPrescreeningCount(null);
+          setPreonboardingCount(null);
+        }
       });
+
     return () => { cancelled = true; };
   }, []);
 
@@ -98,8 +107,13 @@ export function AppSidebar() {
   };
 
   const getOverzichtBadge = (item: (typeof overzichtenItems)[number]): React.ReactNode => {
-    if ('badgeKey' in item && item.badgeKey === 'newVacancies' && newVacanciesCount !== null) {
-      return newVacanciesCount;
+    if (!('badgeKey' in item)) return undefined;
+
+    if (item.badgeKey === 'prescreening' && prescreeningCount !== null && prescreeningCount > 0) {
+      return prescreeningCount;
+    }
+    if (item.badgeKey === 'preonboarding' && preonboardingCount !== null && preonboardingCount > 0) {
+      return preonboardingCount;
     }
     return undefined;
   };

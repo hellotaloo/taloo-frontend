@@ -1,13 +1,9 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { ArrowUp, Square, Wrench, ChevronDown, FileText, ExternalLink } from 'lucide-react';
+import { ArrowUp, Square, Wrench, FileText } from 'lucide-react';
 import { ThinkingIndicator } from '@/components/kit/chat';
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible';
+import { CollapseBox } from '@/components/kit/collapse-box';
 import ReactMarkdown from 'react-markdown';
 import {
   PromptInput,
@@ -283,50 +279,34 @@ export function InterviewAssistant({
     <div className="flex flex-col h-full bg-white">
       {/* Fixed collapsible vacancy context card */}
       <div className="px-6 pt-6 pb-2">
-        <Collapsible open={isVacancyOpen} onOpenChange={setIsVacancyOpen}>
-          <div className="rounded-lg bg-gray-100">
-            <CollapsibleTrigger className="flex w-full items-center justify-between px-4 py-3 text-left hover:bg-gray-200/50 transition-colors rounded-lg">
-              <div className="flex items-center gap-2">
-                <FileText className="w-4 h-4 text-gray-500" />
-                <span className="text-sm font-medium text-gray-700">Vacaturetekst</span>
-              </div>
-              <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform duration-200 ${isVacancyOpen ? 'rotate-180' : ''}`} />
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <div className="px-4 pb-4">
-                <div className="relative">
-                  <div className="max-h-[400px] overflow-y-auto rounded-md bg-white p-3 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-                    <div className="text-sm text-gray-600 prose prose-sm max-w-none pb-6">
-                      <ReactMarkdown
-                        components={{
-                          h3: ({ children }) => <h3 className="text-sm font-semibold text-gray-800 mt-3 first:mt-0 mb-2">{children}</h3>,
-                          p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
-                          ul: ({ children }) => <ul className="list-disc list-inside mb-2 space-y-0.5">{children}</ul>,
-                          li: ({ children }) => <li className="text-gray-600">{children}</li>,
-                        }}
-                      >
-                        {vacancyText}
-                      </ReactMarkdown>
-                    </div>
-                  </div>
-                  {/* Gradient overlay to indicate scroll */}
-                  <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-white to-transparent pointer-events-none rounded-b-md" />
-                </div>
-                {vacancySource === 'salesforce' && vacancySourceId && (
-                  <a
-                    href={`https://taloo.lightning.force.com/lightning/r/Vacancy__c/${vacancySourceId}/view`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 mt-3 text-xs text-blue-600 hover:text-blue-700 hover:underline transition-colors"
-                  >
-                    <ExternalLink className="w-3 h-3" />
-                    Bekijk in Salesforce
-                  </a>
-                )}
-              </div>
-            </CollapsibleContent>
+        <CollapseBox
+          title="Vacaturetekst"
+          icon={FileText}
+          open={isVacancyOpen}
+          onOpenChange={setIsVacancyOpen}
+          contentMaxHeight="400px"
+          footerLink={
+            vacancySource === 'salesforce' && vacancySourceId
+              ? {
+                  href: `https://taloo.lightning.force.com/lightning/r/Vacancy__c/${vacancySourceId}/view`,
+                  label: 'Bekijk in Salesforce',
+                }
+              : undefined
+          }
+        >
+          <div className="text-sm text-gray-600 prose prose-sm max-w-none">
+            <ReactMarkdown
+              components={{
+                h3: ({ children }) => <h3 className="text-sm font-semibold text-gray-800 mt-3 first:mt-0 mb-2">{children}</h3>,
+                p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                ul: ({ children }) => <ul className="list-disc list-inside mb-2 space-y-0.5">{children}</ul>,
+                li: ({ children }) => <li className="text-gray-600">{children}</li>,
+              }}
+            >
+              {vacancyText}
+            </ReactMarkdown>
           </div>
-        </Collapsible>
+        </CollapseBox>
       </div>
 
       {/* Messages */}

@@ -72,6 +72,8 @@ import {
   DataTableBody,
   DataTableEmpty,
 } from '@/components/kit/data-table';
+import { VacancyCard } from '@/components/kit/vacancy-card';
+import { CandidateCard } from '@/components/kit/candidate-card';
 
 // Icons
 import {
@@ -140,6 +142,8 @@ const navSections: NavSection[] = [
       { id: 'timeline', title: 'Timeline System' },
       { id: 'status-badge', title: 'StatusBadge' },
       { id: 'channel-icons', title: 'ChannelIcons' },
+      { id: 'vacancy-card', title: 'VacancyCard' },
+      { id: 'candidate-card', title: 'CandidateCard' },
       { id: 'chat', title: 'Chat Components' },
       { id: 'data-table', title: 'DataTable' },
     ],
@@ -937,6 +941,91 @@ export default function DesignSystemPage() {
                 </div>
               </div>
             </ComponentExample>
+            </div>
+
+            {/* VacancyCard */}
+            <div id="vacancy-card" className="scroll-mt-20">
+              <ComponentExample
+                name="VacancyCard"
+                description="Clickable vacancy card showing title, company, application status, score, and applied date"
+                importPath="@/components/kit/vacancy-card"
+                filePath="/components/kit/vacancy-card/vacancy-card.tsx"
+              >
+                <div className="space-y-3 max-w-md">
+                  <VacancyCard
+                    title="Magazijnier"
+                    company="Logistics BV"
+                    status="placed"
+                    score={85}
+                    appliedAt="2026-02-08T10:30:00Z"
+                    href="/pre-screening/view/1"
+                  />
+                  <VacancyCard
+                    title="Orderpicker"
+                    company="Warehouse NV"
+                    status="screening"
+                    score={72}
+                    appliedAt="2026-02-05T14:00:00Z"
+                    href="/pre-screening/view/2"
+                  />
+                  <VacancyCard
+                    title="Vorkliftchauffeur"
+                    company="Transport Co"
+                    status="applied"
+                    score={null}
+                    appliedAt="2026-02-10T09:15:00Z"
+                    href="/pre-screening/view/3"
+                  />
+                  <VacancyCard
+                    title="Non-clickable Card"
+                    company="Demo Company"
+                    status="submitted"
+                    score={65}
+                    appliedAt="2026-02-01T08:00:00Z"
+                  />
+                </div>
+              </ComponentExample>
+            </div>
+
+            {/* CandidateCard */}
+            <div id="candidate-card" className="scroll-mt-20">
+              <ComponentExample
+                name="CandidateCard"
+                description="Clickable candidate card showing name, contact info, application status, score, and channel"
+                importPath="@/components/kit/candidate-card"
+                filePath="/components/kit/candidate-card/candidate-card.tsx"
+              >
+                <div className="space-y-3 max-w-md">
+                  <CandidateCard
+                    name="Jan Janssen"
+                    email="jan.janssen@email.com"
+                    phone="+32 470 12 34 56"
+                    status="placed"
+                    score={85}
+                    channel="whatsapp"
+                    appliedAt="2026-02-08T10:30:00Z"
+                    href="/overviews?tab=candidates"
+                  />
+                  <CandidateCard
+                    name="Marie Peeters"
+                    email="marie.peeters@email.com"
+                    phone="+32 471 23 45 67"
+                    status="screening"
+                    score={null}
+                    channel="voice"
+                    appliedAt="2026-02-10T14:00:00Z"
+                    href="/overviews?tab=candidates"
+                  />
+                  <CandidateCard
+                    name="Pieter De Smet"
+                    email="pieter.desmet@email.com"
+                    status="applied"
+                    score={null}
+                    channel="cv"
+                    appliedAt="2026-02-11T09:15:00Z"
+                  />
+                </div>
+              </ComponentExample>
             </div>
 
             {/* ChatAssistant */}

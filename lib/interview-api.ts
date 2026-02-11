@@ -284,13 +284,31 @@ export async function sendFeedback(
 import { Vacancy, Application, ApplicationAnswer } from './types';
 
 // Backend response types (snake_case)
+interface BackendRecruiterSummary {
+  id: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  team?: string;
+  role?: string;
+  avatar_url?: string;
+}
+
+interface BackendClientSummary {
+  id: string;
+  name: string;
+  location?: string;
+  industry?: string;
+  logo?: string;
+}
+
 interface BackendVacancy {
   id: string;
   title: string;
   company: string;
   location: string;
   description: string;
-  status: 'new' | 'draft' | 'in_progress' | 'agent_created' | 'screening_active' | 'archived';
+  status: 'new' | 'draft' | 'in_progress' | 'agent_created' | 'screening_active' | 'archived' | 'concept' | 'open' | 'on_hold' | 'filled' | 'closed';
   created_at: string;
   archived_at: string | null;
   source: 'salesforce' | 'bullhorn' | 'manual' | null;
@@ -302,6 +320,16 @@ interface BackendVacancy {
     whatsapp: boolean;
     cv: boolean;
   };
+  agents?: {
+    prescreening: { exists: boolean; status: 'online' | 'offline' | null };
+    preonboarding: { exists: boolean; status: 'online' | 'offline' | null };
+    insights: { exists: boolean; status: 'online' | 'offline' | null };
+  };
+  // Recruiter and client
+  recruiter_id?: string;
+  recruiter?: BackendRecruiterSummary;
+  client_id?: string;
+  client?: BackendClientSummary;
   // Stats fields
   candidates_count: number;
   completed_count: number;
@@ -325,6 +353,15 @@ function convertVacancy(v: BackendVacancy): Vacancy {
     hasScreening: v.has_screening ?? false,
     isOnline: v.is_online ?? null,
     channels: v.channels ?? { voice: false, whatsapp: false, cv: false },
+    agents: v.agents ?? {
+      prescreening: { exists: false, status: null },
+      preonboarding: { exists: false, status: null },
+      insights: { exists: false, status: null },
+    },
+    recruiterId: v.recruiter_id,
+    recruiter: v.recruiter,
+    clientId: v.client_id,
+    client: v.client,
     candidatesCount: v.candidates_count ?? 0,
     completedCount: v.completed_count ?? 0,
     qualifiedCount: v.qualified_count ?? 0,
@@ -440,6 +477,74 @@ export async function getVacancy(vacancyId: string): Promise<Vacancy> {
 
   const data = await response.json();
   return convertVacancy(data);
+}
+
+// =============================================================================
+// Agent Vacancy API (Pre-screening & Pre-onboarding views)
+// =============================================================================
+
+export type AgentVacancyStatus = 'new' | 'generated' | 'archived';
+
+/**
+ * Fetch vacancies by pre-screening agent status.
+ * - new: No pre-screening record OR not published yet
+ * - generated: Pre-screening published (can be online/offline)
+ * - archived: Vacancy closed or filled
+ */
+export async function getPreScreeningVacancies(
+  status: AgentVacancyStatus,
+  params?: { limit?: number; offset?: number }
+): Promise<{ vacancies: Vacancy[]; total: number }> {
+  const searchParams = new URLSearchParams();
+  searchParams.set('status', status);
+  if (params?.limit) searchParams.set('limit', params.limit.toString());
+  if (params?.offset) searchParams.set('offset', params.offset.toString());
+
+  const url = `${BACKEND_URL}/agents/prescreening/vacancies?${searchParams}`;
+  const response = await fetch(url);
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch pre-screening vacancies: ${response.status} ${response.statusText}`);
+  }
+
+  const data = await response.json();
+  const vacanciesArray = data.vacancies || data.items || (Array.isArray(data) ? data : []);
+
+  return {
+    vacancies: vacanciesArray.map(convertVacancy),
+    total: data.total ?? vacanciesArray.length,
+  };
+}
+
+/**
+ * Fetch vacancies by pre-onboarding agent status.
+ * - new: preonboarding_agent_enabled is false or NULL
+ * - generated: preonboarding_agent_enabled is true
+ * - archived: Vacancy closed or filled
+ */
+export async function getPreOnboardingVacancies(
+  status: AgentVacancyStatus,
+  params?: { limit?: number; offset?: number }
+): Promise<{ vacancies: Vacancy[]; total: number }> {
+  const searchParams = new URLSearchParams();
+  searchParams.set('status', status);
+  if (params?.limit) searchParams.set('limit', params.limit.toString());
+  if (params?.offset) searchParams.set('offset', params.offset.toString());
+
+  const url = `${BACKEND_URL}/agents/preonboarding/vacancies?${searchParams}`;
+  const response = await fetch(url);
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch pre-onboarding vacancies: ${response.status} ${response.statusText}`);
+  }
+
+  const data = await response.json();
+  const vacanciesArray = data.vacancies || data.items || (Array.isArray(data) ? data : []);
+
+  return {
+    vacancies: vacanciesArray.map(convertVacancy),
+    total: data.total ?? vacanciesArray.length,
+  };
 }
 
 // =============================================================================

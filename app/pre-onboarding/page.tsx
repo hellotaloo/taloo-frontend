@@ -1,9 +1,9 @@
 'use client';
 
 import { FileCheck, CheckCircle2, Loader2, Plus, FileText, Archive, Users } from 'lucide-react';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { Vacancy } from '@/lib/types';
-import { getVacancies } from '@/lib/interview-api';
+import { getPreOnboardingVacancies } from '@/lib/interview-api';
 import { getOnboardingStats } from '@/lib/pre-onboarding-api';
 import { MetricCard } from '@/components/kit/metric-card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -15,7 +15,9 @@ import {
 import { PageLayout, PageLayoutHeader, PageLayoutContent } from '@/components/layout/page-layout';
 
 export default function PreOnboardingPage() {
-  const [vacancies, setVacancies] = useState<Vacancy[]>([]);
+  const [newVacancies, setNewVacancies] = useState<Vacancy[]>([]);
+  const [generatedVacancies, setGeneratedVacancies] = useState<Vacancy[]>([]);
+  const [archivedVacancies, setArchivedVacancies] = useState<Vacancy[]>([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     totalRequests: 0,
@@ -27,12 +29,16 @@ export default function PreOnboardingPage() {
   useEffect(() => {
     async function loadData() {
       try {
-        const [vacanciesData, statsData] = await Promise.all([
-          getVacancies(),
+        const [newData, generatedData, archivedData, statsData] = await Promise.all([
+          getPreOnboardingVacancies('new'),
+          getPreOnboardingVacancies('generated'),
+          getPreOnboardingVacancies('archived'),
           getOnboardingStats()
         ]);
 
-        setVacancies(vacanciesData.vacancies);
+        setNewVacancies(newData.vacancies);
+        setGeneratedVacancies(generatedData.vacancies);
+        setArchivedVacancies(archivedData.vacancies);
         setStats(statsData);
       } catch (error) {
         console.error('Failed to load data:', error);
@@ -43,14 +49,6 @@ export default function PreOnboardingPage() {
 
     loadData();
   }, []);
-
-  // Filter vacancies into categories
-  const newVacancies = useMemo(() =>
-    vacancies.filter(v => !v.hasOnboarding && v.status === 'new'), [vacancies]);
-  const generatedVacancies = useMemo(() =>
-    vacancies.filter(v => v.hasOnboarding), [vacancies]);
-  const archivedVacancies = useMemo(() =>
-    vacancies.filter(v => v.status === 'archived'), [vacancies]);
 
   if (loading) {
     return (

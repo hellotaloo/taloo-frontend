@@ -66,7 +66,7 @@ export function PageLayoutHeader({
 }: PageLayoutHeaderProps) {
   return (
     <>
-      <div className={cn("px-6 py-6", className)}>
+      <div className={cn("px-6 py-4", className)}>
         {children ? (
           children
         ) : (

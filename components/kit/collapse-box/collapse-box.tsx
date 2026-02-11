@@ -67,7 +67,7 @@ export function CollapseBox({
     <Collapsible
       open={open}
       onOpenChange={handleOpenChange}
-      className={cn('rounded-lg bg-gray-100 shadow-sm', className)}
+      className={cn('rounded-lg bg-gray-100 border border-gray-100', className)}
       data-testid="collapse-box"
     >
       <CollapsibleTrigger

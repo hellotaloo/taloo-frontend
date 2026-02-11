@@ -1,48 +1,84 @@
 'use client';
 
-import { ChevronLeft, ChevronRight, Plus, HelpCircle, X, FileText } from 'lucide-react';
+import {
+  ChevronLeft,
+  ChevronRight,
+  Plus,
+  HelpCircle,
+  X,
+  FileText,
+  Inbox,
+  Phone,
+  FileCheck,
+  ScanSearch,
+  SlidersHorizontal,
+  Settings,
+  LayoutList,
+  Mic,
+  type LucideIcon,
+} from 'lucide-react';
+import { PencilSquareIcon } from '@heroicons/react/24/outline';
 import { usePathname } from 'next/navigation';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { SystemStatus } from './SystemStatus';
 
-// Map pathnames to page titles
-const pageTitles: Record<string, string> = {
-  '/': 'Nieuw gesprek',
-  '/metrics': 'Pre-screening Metrics',
-  '/inbox': 'Inbox',
-  '/pre-screening': 'Pre-screening',
-  '/knockout-interviews': 'Pre-screening',
-  '/insights': 'Insights',
-  '/finetune': 'Finetune',
-  '/admin': 'Admin',
-  '/search': 'Zoeken',
-  '/vacatures': 'Vacatures',
-  '/kandidaten': 'Kandidaten',
-  '/onboarding': 'Onboarding',
+type PageConfig = {
+  title: string;
+  icon: LucideIcon | typeof PencilSquareIcon;
 };
 
-function getPageTitle(pathname: string): string {
+// Map pathnames to page titles and icons
+const pageConfigs: Record<string, PageConfig> = {
+  '/': { title: 'Nieuw gesprek', icon: PencilSquareIcon },
+  '/inbox': { title: 'Inbox', icon: Inbox },
+  '/overviews': { title: 'Overzichten', icon: LayoutList },
+  '/pre-screening': { title: 'Pre-screening', icon: Phone },
+  '/pre-onboarding': { title: 'Pre-onboarding', icon: FileCheck },
+  '/insights': { title: 'Pattern Finder', icon: ScanSearch },
+  '/finetune': { title: 'Finetune', icon: SlidersHorizontal },
+  '/admin': { title: 'Admin', icon: Settings },
+  '/agent-settings/voice': { title: 'Voice Agent', icon: Mic },
+  // Legacy routes
+  '/metrics': { title: 'Pre-screening Metrics', icon: Phone },
+  '/knockout-interviews': { title: 'Pre-screening', icon: Phone },
+  '/search': { title: 'Zoeken', icon: ScanSearch },
+  '/vacatures': { title: 'Vacatures', icon: LayoutList },
+  '/kandidaten': { title: 'Kandidaten', icon: LayoutList },
+  '/onboarding': { title: 'Onboarding', icon: FileCheck },
+};
+
+// Dynamic route patterns with their configs
+const dynamicRoutes: Array<{ pattern: RegExp; config: PageConfig }> = [
+  { pattern: /^\/pre-screening\/edit\//, config: { title: 'Pre-screening bewerken', icon: Phone } },
+  { pattern: /^\/pre-screening\/view\//, config: { title: 'Pre-screening', icon: Phone } },
+  { pattern: /^\/pre-screening\/generate\//, config: { title: 'Pre-screening', icon: Phone } },
+  { pattern: /^\/interviews\/generate\//, config: { title: 'Interview vragen', icon: Phone } },
+  { pattern: /^\/pre-onboarding\/generate\//, config: { title: 'Pre-onboarding', icon: FileCheck } },
+];
+
+const defaultConfig: PageConfig = { title: 'Nieuw tabblad', icon: FileText };
+
+function getPageConfig(pathname: string): PageConfig {
   // Check exact match first
-  if (pageTitles[pathname]) return pageTitles[pathname];
-  
+  if (pageConfigs[pathname]) return pageConfigs[pathname];
+
   // Check for dynamic routes
-  if (pathname.startsWith('/pre-screening/edit/')) return 'Pre-screening bewerken';
-  if (pathname.startsWith('/pre-screening/view/')) return 'Pre-screening';
-  if (pathname.startsWith('/pre-screening/')) return 'Pre-screening';
-  if (pathname.startsWith('/interviews/generate/')) return 'Interview vragen';
-  
-  return 'Nieuw tabblad';
+  for (const { pattern, config } of dynamicRoutes) {
+    if (pattern.test(pathname)) return config;
+  }
+
+  return defaultConfig;
 }
 
 export function Header() {
   const pathname = usePathname();
-  const pageTitle = getPageTitle(pathname);
+  const { title: pageTitle, icon: PageIcon } = getPageConfig(pathname);
 
   return (
     <header className="h-10 bg-[#fbfbfa] border-b border-gray-200 flex items-center sticky top-0 z-10">
       {/* Mobile sidebar trigger */}
       <SidebarTrigger className="md:hidden ml-2" />
-      
+
       {/* Navigation arrows */}
       <div className="flex items-center pl-3 pr-2 gap-0.5">
         <button className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors">
@@ -57,7 +93,7 @@ export function Header() {
       <div className="flex items-stretch flex-1 min-w-0 h-full">
         {/* Active tab */}
         <div className="flex items-center gap-2 px-3 bg-white border-x border-gray-200 max-w-[200px] group mb-[-1px] pb-[1px]">
-          <FileText className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+          <PageIcon className="w-3.5 h-3.5 text-gray-400 shrink-0" />
           <span className="text-sm text-gray-700 truncate">{pageTitle}</span>
           <button className="p-0.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
             <X className="w-3 h-3" />
