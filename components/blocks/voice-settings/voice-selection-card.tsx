@@ -8,6 +8,8 @@ export interface VoiceOption {
   name: string;
   description: string;
   gender: 'female' | 'male';
+  voiceId?: string;
+  avatar?: string;
 }
 
 export interface VoiceSelectionCardProps {
@@ -29,7 +31,7 @@ export function VoiceSelectionCard({
       onClick={() => !disabled && onSelect(voice.id)}
       disabled={disabled}
       className={cn(
-        'w-full text-left rounded-xl p-5 border-2 transition-all duration-200',
+        'w-full text-left rounded-xl p-5 border transition-all duration-200',
         'focus:outline-none focus-visible:ring-2 focus-visible:ring-[#015AD9]/50',
         isSelected
           ? 'border-[#015AD9] bg-blue-50 ring-2 ring-[#015AD9]/20'

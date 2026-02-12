@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { ArrowUp, Square, Wrench, FileText } from 'lucide-react';
 import { ThinkingIndicator } from '@/components/kit/chat';
 import { CollapseBox } from '@/components/kit/collapse-box';
+import { HighlightedVacancyText } from '@/components/kit/highlighted-vacancy-text';
 import ReactMarkdown from 'react-markdown';
 import {
   PromptInput,
@@ -74,14 +75,18 @@ interface InterviewAssistantProps {
   onQuestionsUpdate: (questions: GeneratedQuestion[]) => void;
   externalPrompt?: string;
   onExternalPromptConsumed?: () => void;
+  /** Highlighted vacancy snippet (from hovering a question) */
+  highlightedSnippet?: string | null;
+  /** Question text associated with the highlighted snippet */
+  highlightedQuestionText?: string | null;
 }
 
-export function InterviewAssistant({ 
+export function InterviewAssistant({
   vacancyTitle,
   vacancyText,
   vacancySource,
   vacancySourceId,
-  isGenerated, 
+  isGenerated,
   isGenerating,
   isSaving = false,
   sessionId,
@@ -92,6 +97,8 @@ export function InterviewAssistant({
   onQuestionsUpdate,
   externalPrompt,
   onExternalPromptConsumed,
+  highlightedSnippet,
+  highlightedQuestionText,
 }: InterviewAssistantProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
@@ -282,7 +289,7 @@ export function InterviewAssistant({
         <CollapseBox
           title="Vacaturetekst"
           icon={FileText}
-          open={isVacancyOpen}
+          open={isVacancyOpen || !!highlightedSnippet}
           onOpenChange={setIsVacancyOpen}
           contentMaxHeight="400px"
           footerLink={
@@ -294,18 +301,11 @@ export function InterviewAssistant({
               : undefined
           }
         >
-          <div className="text-sm text-gray-600 prose prose-sm max-w-none">
-            <ReactMarkdown
-              components={{
-                h3: ({ children }) => <h3 className="text-sm font-semibold text-gray-800 mt-3 first:mt-0 mb-2">{children}</h3>,
-                p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
-                ul: ({ children }) => <ul className="list-disc list-inside mb-2 space-y-0.5">{children}</ul>,
-                li: ({ children }) => <li className="text-gray-600">{children}</li>,
-              }}
-            >
-              {vacancyText}
-            </ReactMarkdown>
-          </div>
+          <HighlightedVacancyText
+            text={vacancyText}
+            highlightedSnippet={highlightedSnippet}
+            highlightedQuestionText={highlightedQuestionText}
+          />
         </CollapseBox>
       </div>
 

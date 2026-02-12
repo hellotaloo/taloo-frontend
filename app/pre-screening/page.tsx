@@ -1,10 +1,11 @@
 'use client';
 
-import { Phone, CheckCircle2, Users, MapPin, Building2, ArrowRight, Archive, Loader2, Info, ExternalLink, Calendar, Plus, Zap, MessageCircle, FileText } from 'lucide-react';
+import { Phone, CheckCircle2, Users, MapPin, Building2, ArrowRight, Archive, Loader2, Info, ExternalLink, Calendar, Plus, Zap, MessageCircle, FileText, Settings } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { Button } from '@/components/ui/button';
 import Image from 'next/image';
 import { Vacancy } from '@/lib/types';
 import { getPreScreeningVacancies, getDashboardStats, DashboardStats } from '@/lib/interview-api';
@@ -155,6 +156,14 @@ function PreScreeningContent() {
       <PageLayoutHeader
         title="Pre-screening"
         description="Overzicht van je conversationele pre-screening"
+        action={
+          <Link href="/pre-screening/settings">
+            <Button variant="outline" size="sm" className="gap-2">
+              <Settings className="w-4 h-4" />
+              Instellingen
+            </Button>
+          </Link>
+        }
       />
       <PageLayoutContent>
         {/* Weekly Pre-screening Metrics - 4 cards in a row */}

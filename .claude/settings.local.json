@@ -9,7 +9,10 @@
       "Bash(npx tsc:*)",
       "Bash(wc -l:*)",
       "Bash(npm run build:*)",
-      "Bash(xargs:*)"
+      "Bash(xargs:*)",
+      "Bash(npm install:*)",
+      "Bash(npm uninstall:*)",
+      "Bash(npx next build:*)"
     ]
   }
 }

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import Image from 'next/image';
 import {
   Mic,
   MicOff,
@@ -18,15 +19,26 @@ export type CallState = 'idle' | 'ringing' | 'active' | 'ended';
 export interface VoiceCallMockupProps {
   callerName?: string;
   callerSubtitle?: string;
+  /** Avatar image URL for the caller */
+  callerAvatar?: string;
   callState?: CallState;
   onStateChange?: (state: CallState) => void;
+  onCallMe?: () => void;
+  /** Whether the agent is currently speaking */
+  isSpeaking?: boolean;
+  /** Whether the user is currently speaking */
+  isUserSpeaking?: boolean;
 }
 
 export function VoiceCallMockup({
   callerName = 'Izzy',
   callerSubtitle = 'Voice Assistant',
+  callerAvatar,
   callState = 'idle',
   onStateChange,
+  onCallMe,
+  isSpeaking = false,
+  isUserSpeaking = false,
 }: VoiceCallMockupProps) {
   const [isMuted, setIsMuted] = useState(false);
   const [isSpeaker, setIsSpeaker] = useState(false);
@@ -110,11 +122,21 @@ export function VoiceCallMockup({
       <div className="flex-1 flex flex-col items-center justify-center px-8">
         {/* Avatar */}
         <div className="relative mb-6">
-          <div className="w-32 h-32 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-2xl">
-            <span className="text-white text-5xl font-semibold">
-              {callerName.charAt(0).toUpperCase()}
-            </span>
-          </div>
+          {callerAvatar ? (
+            <Image
+              src={callerAvatar}
+              alt={callerName}
+              width={128}
+              height={128}
+              className="w-32 h-32 rounded-full object-cover shadow-2xl"
+            />
+          ) : (
+            <div className="w-32 h-32 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-2xl">
+              <span className="text-white text-5xl font-semibold">
+                {callerName.charAt(0).toUpperCase()}
+              </span>
+            </div>
+          )}
           {/* Pulse animation for ringing */}
           {callState === 'ringing' && (
             <>
@@ -143,17 +165,25 @@ export function VoiceCallMockup({
         {/* Audio waveform animation for active calls */}
         {callState === 'active' && (
           <div className="flex items-center gap-1 mt-6 h-12">
-            {[...Array(7)].map((_, i) => (
-              <div
-                key={i}
-                className="w-1 bg-green-400 rounded-full"
-                style={{
-                  animation: 'waveform 0.8s ease-in-out infinite',
-                  animationDelay: `${i * 0.1}s`,
-                  height: '20px',
-                }}
-              />
-            ))}
+            {[...Array(7)].map((_, i) => {
+              // Determine waveform state: agent speaking (green), user speaking (blue), idle (gray)
+              const isActive = isSpeaking || isUserSpeaking;
+              const colorClass = isSpeaking
+                ? 'bg-green-400'
+                : isUserSpeaking
+                  ? 'bg-blue-400'
+                  : 'bg-gray-500';
+
+              return (
+                <div
+                  key={i}
+                  className={`w-1 rounded-full ${colorClass} ${isActive ? 'waveform-active' : 'waveform-idle'}`}
+                  style={{
+                    animationDelay: `${i * 0.1}s`,
+                  }}
+                />
+              );
+            })}
           </div>
         )}
       </div>
@@ -260,17 +290,26 @@ export function VoiceCallMockup({
             </div>
           </>
         ) : (
-          /* Idle/Ended state - Just show placeholder */
+          /* Idle/Ended state - Call me button */
           <div className="flex justify-center">
-            <div className="w-16 h-16 rounded-full bg-gray-700 flex items-center justify-center opacity-50">
+            <button
+              onClick={onCallMe}
+              className="w-16 h-16 rounded-full bg-green-500 flex items-center justify-center shadow-lg active:scale-95 transition-transform hover:bg-green-600"
+            >
               <Phone className="w-8 h-8 text-white" />
-            </div>
+            </button>
           </div>
         )}
       </div>
 
       {/* Waveform animation keyframes */}
       <style jsx>{`
+        .waveform-active {
+          animation: waveform 0.8s ease-in-out infinite;
+        }
+        .waveform-idle {
+          animation: waveform-small 1.5s ease-in-out infinite;
+        }
         @keyframes waveform {
           0%,
           100% {
@@ -278,6 +317,15 @@ export function VoiceCallMockup({
           }
           50% {
             height: 32px;
+          }
+        }
+        @keyframes waveform-small {
+          0%,
+          100% {
+            height: 4px;
+          }
+          50% {
+            height: 8px;
           }
         }
       `}</style>

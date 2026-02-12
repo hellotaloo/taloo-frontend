@@ -20,6 +20,7 @@ import {
   FileCheck,
   ScanSearch,
   LayoutList,
+  Activity,
 } from 'lucide-react';
 import { PencilSquareIcon } from '@heroicons/react/24/outline';
 
@@ -61,9 +62,10 @@ const mainNavItems = [
 const primaryNavItems = [
   { name: 'Inbox', href: '/inbox', icon: Inbox },
   { name: 'Overzichten', href: '/overviews', icon: LayoutList },
+  { name: 'Activiteiten', href: '/activities', icon: Activity },
 ];
 
-const overzichtenItems = [
+const assistentenItems = [
   { name: 'Pre-screening', href: '/pre-screening', icon: Phone, badgeKey: 'prescreening' as const },
   { name: 'Pre-onboarding', href: '/pre-onboarding', icon: FileCheck, badgeKey: 'preonboarding' as const },
   { name: 'Pattern Finder', href: '/insights', icon: ScanSearch },
@@ -76,7 +78,7 @@ const footerNavItems = [
 
 export function AppSidebar() {
   const pathname = usePathname();
-  const [overzichtenOpen, setOverzichtenOpen] = React.useState(true);
+  const [assistentenOpen, setAssistentenOpen] = React.useState(true);
   const [prescreeningCount, setPrescreeningCount] = React.useState<number | null>(null);
   const [preonboardingCount, setPreonboardingCount] = React.useState<number | null>(null);
 
@@ -106,7 +108,7 @@ export function AppSidebar() {
     return pathname === href || (href !== '/' && pathname.startsWith(href));
   };
 
-  const getOverzichtBadge = (item: (typeof overzichtenItems)[number]): React.ReactNode => {
+  const getAssistentBadge = (item: (typeof assistentenItems)[number]): React.ReactNode => {
     if (!('badgeKey' in item)) return undefined;
 
     if (item.badgeKey === 'prescreening' && prescreeningCount !== null && prescreeningCount > 0) {
@@ -190,8 +192,8 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Overzichten Section */}
-        <Collapsible open={overzichtenOpen} onOpenChange={setOverzichtenOpen}>
+        {/* Assistenten Section */}
+        <Collapsible open={assistentenOpen} onOpenChange={setAssistentenOpen}>
           <SidebarGroup className="py-0 mt-6">
             <SidebarGroupLabel asChild>
               <CollapsibleTrigger className="flex items-center gap-2 w-full group/label">
@@ -202,8 +204,8 @@ export function AppSidebar() {
             <CollapsibleContent>
               <SidebarGroupContent>
                 <SidebarMenu>
-                  {overzichtenItems.map((item) => {
-                    const badge = getOverzichtBadge(item);
+                  {assistentenItems.map((item) => {
+                    const badge = getAssistentBadge(item);
                     return (
                       <SidebarMenuItem key={item.name}>
                         <SidebarMenuButton asChild isActive={isActive(item.href)}>

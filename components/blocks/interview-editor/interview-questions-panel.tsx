@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
-import { Check, ChevronDown, GripVertical, MessagesSquare, Pencil, Plus, Trash2, UserX } from 'lucide-react';
+import { Check, ChevronDown, GripVertical, Link2, MessagesSquare, Pencil, Plus, Trash2, UserX } from 'lucide-react';
 import { BoltIcon } from '@heroicons/react/24/solid';
 import { GeneratedQuestion } from './question-list-message';
 import {
@@ -31,10 +31,12 @@ interface InterviewQuestionsPanelProps {
   onReorder?: (questions: GeneratedQuestion[]) => void;
   onAddQuestion?: (text: string, type: 'knockout' | 'qualifying', idealAnswer?: string) => void;
   onDeleteQuestion?: (questionId: string) => void;
+  onQuestionHover?: (snippet: string, questionText: string) => void;
+  onQuestionHoverEnd?: () => void;
   readOnly?: boolean;
 }
 
-export function InterviewQuestionsPanel({ questions, isGenerating = false, highlightedIds = [], onQuestionClick, onReorder, onAddQuestion, onDeleteQuestion, readOnly = false }: InterviewQuestionsPanelProps) {
+export function InterviewQuestionsPanel({ questions, isGenerating = false, highlightedIds = [], onQuestionClick, onReorder, onAddQuestion, onDeleteQuestion, onQuestionHover, onQuestionHoverEnd, readOnly = false }: InterviewQuestionsPanelProps) {
   const knockoutQuestions = questions.filter(q => q.type === 'knockout');
   const qualifyingQuestions = questions.filter(q => q.type === 'qualifying');
   const hasQuestions = questions.length > 0;
@@ -181,15 +183,17 @@ export function InterviewQuestionsPanel({ questions, isGenerating = false, highl
           >
             <div className="space-y-2">
               {knockoutQuestions.map((question, index) => (
-                <SortableQuestionItem 
-                  key={question._stableKey || question.id} 
-                  question={question} 
+                <SortableQuestionItem
+                  key={question._stableKey || question.id}
+                  question={question}
                   index={index + 1}
                   variant="knockout"
                   isHighlighted={highlightedIds.includes(question.id)}
                   animationDelay={knockoutQuestionsBaseDelay + index * 80}
                   onClick={readOnly ? undefined : onQuestionClick}
                   onDelete={readOnly ? undefined : onDeleteQuestion}
+                  onHover={onQuestionHover}
+                  onHoverEnd={onQuestionHoverEnd}
                   readOnly={readOnly}
                 />
               ))}
@@ -240,15 +244,17 @@ export function InterviewQuestionsPanel({ questions, isGenerating = false, highl
           >
             <div className="space-y-2">
               {qualifyingQuestions.map((question, index) => (
-                <SortableQuestionItem 
-                  key={question._stableKey || question.id} 
-                  question={question} 
+                <SortableQuestionItem
+                  key={question._stableKey || question.id}
+                  question={question}
                   index={index + 1}
                   variant="qualifying"
                   isHighlighted={highlightedIds.includes(question.id)}
                   animationDelay={qualifyingQuestionsBaseDelay + index * 80}
                   onClick={readOnly ? undefined : onQuestionClick}
                   onDelete={readOnly ? undefined : onDeleteQuestion}
+                  onHover={onQuestionHover}
+                  onHoverEnd={onQuestionHoverEnd}
                   readOnly={readOnly}
                 />
               ))}
@@ -452,6 +458,9 @@ const NEW_QUESTION_HIGHLIGHT_CLASSES = 'bg-blue-100 animate-[slide-in-right_1.2s
 const UPDATED_QUESTION_HIGHLIGHT_CLASSES = 'bg-amber-100 animate-[soft-pulse_3s_ease-in-out_infinite]';
 const NORMAL_QUESTION_CLASSES = 'bg-gray-100 transition-all duration-500';
 
+// Standard snippet text that indicates a question is not derived from vacancy
+const STANDARD_SNIPPET_TEXT = "Standaard knockout vraag - niet afgeleid van specifieke vacaturetekst";
+
 function AddQuestionInput({ 
   type, 
   onAdd,
@@ -599,23 +608,27 @@ function AddQuestionInput({
   );
 }
 
-function SortableQuestionItem({ 
-  question, 
-  index, 
+function SortableQuestionItem({
+  question,
+  index,
   variant,
   isHighlighted = false,
   animationDelay = 0,
   onClick,
   onDelete,
+  onHover,
+  onHoverEnd,
   readOnly = false,
-}: { 
-  question: GeneratedQuestion; 
+}: {
+  question: GeneratedQuestion;
   index: number;
   variant: 'knockout' | 'qualifying';
   isHighlighted?: boolean;
   animationDelay?: number;
   onClick?: (question: GeneratedQuestion, index: number) => void;
   onDelete?: (questionId: string) => void;
+  onHover?: (snippet: string, questionText: string) => void;
+  onHoverEnd?: () => void;
   readOnly?: boolean;
 }) {
   const [hasAnimated, setHasAnimated] = useState(false);
@@ -700,11 +713,15 @@ function SortableQuestionItem({
 
   // Determine label text and styling based on change_status
   const changeStatus = question.changeStatus;
-  const labelConfig = changeStatus === 'new' 
+  const labelConfig = changeStatus === 'new'
     ? { text: 'nieuw', className: 'text-blue-600 bg-blue-200' }
     : changeStatus === 'updated'
     ? { text: 'gewijzigd', className: 'text-amber-600 bg-amber-200' }
     : null;
+
+  // Determine vacancy snippet display type
+  const isStandardQuestion = question.vacancySnippet === STANDARD_SNIPPET_TEXT;
+  const hasRealSnippet = question.vacancySnippet && !isStandardQuestion;
 
   return (
     <div
@@ -726,6 +743,23 @@ function SortableQuestionItem({
         )}
         <div className="flex-1 flex items-center gap-2 min-w-0">
           <p className="text-sm text-gray-700 flex-1">{question.text}</p>
+          {/* Vacancy snippet link indicator */}
+          {hasRealSnippet && (
+            <button
+              onClick={(e) => e.stopPropagation()}
+              onMouseEnter={() => onHover?.(question.vacancySnippet!, question.text)}
+              onMouseLeave={() => onHoverEnd?.()}
+              className="shrink-0 p-1 text-blue-400 hover:text-blue-600 transition-colors"
+              aria-label="Toon bron uit vacature"
+            >
+              <Link2 className="w-3.5 h-3.5" />
+            </button>
+          )}
+          {isStandardQuestion && (
+            <span className="shrink-0 text-[10px] font-medium px-1.5 py-0.5 rounded bg-gray-200 text-gray-500">
+              Standaard
+            </span>
+          )}
           {/* Action icons - visible on hover, hidden in readOnly mode */}
           {!readOnly && (
             <div className="shrink-0 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">

@@ -1,6 +1,6 @@
 'use client';
 
-import { FileCheck, CheckCircle2, Loader2, Plus, FileText, Archive, Users } from 'lucide-react';
+import { FileCheck, CheckCircle2, Loader2, Plus, FileText, Archive, Users, Settings } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { Vacancy } from '@/lib/types';
 import { getPreOnboardingVacancies } from '@/lib/interview-api';
@@ -13,6 +13,8 @@ import {
   ArchivedOnboardingTable,
 } from '@/components/blocks/onboarding-table';
 import { PageLayout, PageLayoutHeader, PageLayoutContent } from '@/components/layout/page-layout';
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
 
 export default function PreOnboardingPage() {
   const [newVacancies, setNewVacancies] = useState<Vacancy[]>([]);
@@ -64,6 +66,14 @@ export default function PreOnboardingPage() {
       <PageLayoutHeader
         title="Pre-onboarding"
         description="Verzamel documenten voor nieuwe medewerkers"
+        action={
+          <Link href="/pre-onboarding/settings">
+            <Button variant="outline" size="sm" className="gap-2">
+              <Settings className="w-4 h-4" />
+              Instellingen
+            </Button>
+          </Link>
+        }
       />
       <PageLayoutContent>
         {/* Metrics - 4 cards in a row */}

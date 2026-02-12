@@ -104,11 +104,14 @@ export default function GenerateInterviewPage({ params }: PageProps) {
               id: q.id,
               text: q.question_text,
               type: 'knockout' as const,
+              vacancySnippet: q.vacancy_snippet,
             })),
             ...preScreeningData.qualification_questions.map(q => ({
               id: q.id,
               text: q.question_text,
               type: 'qualifying' as const,
+              idealAnswer: q.ideal_answer,
+              vacancySnippet: q.vacancy_snippet,
             })),
           ];
           
@@ -148,6 +151,7 @@ export default function GenerateInterviewPage({ params }: PageProps) {
         id: q.id,
         text: q.question,
         type: 'knockout' as const,
+        vacancySnippet: q.vacancy_snippet,
         isModified: q.is_modified,
         changeStatus: q.change_status,
       })),
@@ -156,6 +160,7 @@ export default function GenerateInterviewPage({ params }: PageProps) {
         text: q.question,
         type: 'qualifying' as const,
         idealAnswer: q.ideal_answer,
+        vacancySnippet: q.vacancy_snippet,
         isModified: q.is_modified,
         changeStatus: q.change_status,
       })),
@@ -201,7 +206,7 @@ export default function GenerateInterviewPage({ params }: PageProps) {
     for (let attempt = 0; attempt < maxRetries; attempt++) {
       try {
         const { interview, sessionId: newSessionId, message } = await generateInterview(
-          vacancy.description,
+          vacancy.id,
           handleSSEEvent,
           existingSessionId
         );
@@ -319,11 +324,11 @@ export default function GenerateInterviewPage({ params }: PageProps) {
       // Build the pre-screening config from current questions
       const knockoutQuestions = questions
         .filter(q => q.type === 'knockout')
-        .map(q => ({ id: q.id, question: q.text }));
-      
+        .map(q => ({ id: q.id, question: q.text, vacancy_snippet: q.vacancySnippet }));
+
       const qualificationQuestions = questions
         .filter(q => q.type === 'qualifying')
-        .map(q => ({ id: q.id, question: q.text }));
+        .map(q => ({ id: q.id, question: q.text, ideal_answer: q.idealAnswer, vacancy_snippet: q.vacancySnippet }));
       
       // Get intro and actions from existing config or use defaults
       const intro = existingPreScreening?.intro || 

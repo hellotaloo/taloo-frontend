@@ -5,6 +5,7 @@ export interface GeneratedQuestion {
   text: string;
   type: 'knockout' | 'qualifying';
   idealAnswer?: string;
+  vacancySnippet?: string;  // Text from vacancy this question relates to
   isModified?: boolean;
   changeStatus?: 'new' | 'updated' | 'unchanged';
   /** Stable key for React reconciliation - prevents remount when id changes from temp to real */

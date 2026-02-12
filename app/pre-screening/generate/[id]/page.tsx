@@ -106,6 +106,8 @@ export default function GeneratePreScreeningPage({ params }: PageProps) {
   const [highlightedIds, setHighlightedIds] = useState<string[]>([]);
   const [pendingPrompt, setPendingPrompt] = useState<string>('');
   const [rightPanelView, setRightPanelView] = useState<'assistant' | 'whatsapp'>('assistant');
+  const [highlightedSnippet, setHighlightedSnippet] = useState<string | null>(null);
+  const [highlightedQuestionText, setHighlightedQuestionText] = useState<string | null>(null);
   const prevQuestionsRef = useRef<GeneratedQuestion[]>([]);
   const highlightTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -134,11 +136,14 @@ export default function GeneratePreScreeningPage({ params }: PageProps) {
               id: q.id,
               text: q.question_text,
               type: 'knockout' as const,
+              vacancySnippet: q.vacancy_snippet,
             })),
             ...preScreeningData.qualification_questions.map(q => ({
               id: q.id,
               text: q.question_text,
               type: 'qualifying' as const,
+              idealAnswer: q.ideal_answer,
+              vacancySnippet: q.vacancy_snippet,
             })),
           ];
           
@@ -198,6 +203,7 @@ export default function GeneratePreScreeningPage({ params }: PageProps) {
         id: q.id,
         text: q.question,
         type: 'knockout' as const,
+        vacancySnippet: q.vacancy_snippet,
         isModified: q.is_modified,
         changeStatus: q.change_status,
       })),
@@ -206,6 +212,7 @@ export default function GeneratePreScreeningPage({ params }: PageProps) {
         text: q.question,
         type: 'qualifying' as const,
         idealAnswer: q.ideal_answer,
+        vacancySnippet: q.vacancy_snippet,
         isModified: q.is_modified,
         changeStatus: q.change_status,
       })),
@@ -251,7 +258,7 @@ export default function GeneratePreScreeningPage({ params }: PageProps) {
     for (let attempt = 0; attempt < maxRetries; attempt++) {
       try {
         const { interview, sessionId: newSessionId, message } = await generateInterview(
-          vacancy.description,
+          vacancy.id,
           handleSSEEvent,
           existingSessionId
         );
@@ -358,11 +365,11 @@ export default function GeneratePreScreeningPage({ params }: PageProps) {
       // Build the pre-screening config from current questions
       const knockoutQuestions = questions
         .filter(q => q.type === 'knockout')
-        .map(q => ({ id: q.id, question: q.text }));
-      
+        .map(q => ({ id: q.id, question: q.text, vacancy_snippet: q.vacancySnippet }));
+
       const qualificationQuestions = questions
         .filter(q => q.type === 'qualifying')
-        .map(q => ({ id: q.id, question: q.text }));
+        .map(q => ({ id: q.id, question: q.text, ideal_answer: q.idealAnswer, vacancy_snippet: q.vacancySnippet }));
       
       // Get intro and actions from existing config or use defaults
       const intro = existingPreScreening?.intro || 
@@ -406,6 +413,16 @@ export default function GeneratePreScreeningPage({ params }: PageProps) {
   const handleQuestionClick = (question: GeneratedQuestion, index: number) => {
     const typeLabel = question.type === 'knockout' ? 'knockout vraag' : 'kwalificatie vraag';
     setPendingPrompt(`Ik heb een vraag over ${typeLabel} ${index}: `);
+  };
+
+  const handleQuestionHover = (snippet: string, questionText: string) => {
+    setHighlightedSnippet(snippet);
+    setHighlightedQuestionText(questionText);
+  };
+
+  const handleQuestionHoverEnd = () => {
+    setHighlightedSnippet(null);
+    setHighlightedQuestionText(null);
   };
 
   const handleReorder = async (reorderedQuestions: GeneratedQuestion[]) => {
@@ -633,26 +650,50 @@ export default function GeneratePreScreeningPage({ params }: PageProps) {
       </PageLayoutHeader>
       <PageLayoutContent
         sidebar={
-          <div className="flex items-center justify-center bg-gray-50 p-6 h-full">
-            <div className="transform scale-[0.85] origin-center">
-              <IPhoneMockup>
-                <WhatsAppChat />
-              </IPhoneMockup>
+          rightPanelView === 'assistant' ? (
+            <InterviewAssistant
+              vacancyTitle={vacancy.title}
+              vacancyText={vacancy.description || ''}
+              vacancySource={vacancy.source}
+              vacancySourceId={vacancy.sourceId}
+              isGenerated={isGenerated}
+              isGenerating={isGenerating}
+              isSaving={isSaving}
+              sessionId={sessionId}
+              currentStatus={currentStatus}
+              generationThinkingContent={thinkingContent}
+              initialMessage={initialMessage}
+              onRegenerate={handleRegenerate}
+              onQuestionsUpdate={handleQuestionsUpdate}
+              externalPrompt={pendingPrompt}
+              onExternalPromptConsumed={() => setPendingPrompt('')}
+              highlightedSnippet={highlightedSnippet}
+              highlightedQuestionText={highlightedQuestionText}
+            />
+          ) : (
+            <div className="flex items-center justify-center bg-gray-50 p-6 h-full">
+              <div className="transform scale-[0.85] origin-center">
+                <IPhoneMockup>
+                  <WhatsAppChat />
+                </IPhoneMockup>
+              </div>
             </div>
-          </div>
+          )
         }
         sidebarWidth="w-1/2"
         contentClassName="w-1/2"
       >
         <div className="max-w-[720px] -mt-3">
-            <InterviewQuestionsPanel 
-              questions={questions} 
-              isGenerating={isGenerating}
-              highlightedIds={highlightedIds}
-              onQuestionClick={handleQuestionClick}
-              onReorder={handleReorder}
-            />
-          </div>
+          <InterviewQuestionsPanel
+            questions={questions}
+            isGenerating={isGenerating}
+            highlightedIds={highlightedIds}
+            onQuestionClick={handleQuestionClick}
+            onReorder={handleReorder}
+            onQuestionHover={handleQuestionHover}
+            onQuestionHoverEnd={handleQuestionHoverEnd}
+          />
+        </div>
       </PageLayoutContent>
     </PageLayout>
   );

@@ -719,3 +719,69 @@ export interface APIActivityResponse {
 export interface APIVacancyDetail extends APIVacancyListItem {
   timeline: APIActivityResponse[];
 }
+
+// =============================================================================
+// Activities Types (Global Activity Feed)
+// =============================================================================
+
+// Event types from API contract
+export type ActivityEventType =
+  // Screening lifecycle
+  | 'screening_started'
+  | 'screening_completed'
+  | 'screening_abandoned'
+  // Messages
+  | 'message_sent'
+  | 'message_received'
+  // Voice calls
+  | 'call_initiated'
+  | 'call_completed'
+  | 'call_failed'
+  // Documents
+  | 'document_uploaded'
+  | 'document_verified'
+  | 'document_rejected'
+  | 'cv_uploaded'
+  | 'cv_analyzed'
+  // Application status
+  | 'status_changed'
+  | 'qualified'
+  | 'disqualified'
+  // Interview scheduling
+  | 'interview_scheduled'
+  | 'interview_confirmed'
+  | 'interview_cancelled'
+  | 'interview_rescheduled'
+  | 'interview_completed'
+  | 'interview_no_show'
+  // Recruiter actions
+  | 'note_added'
+  | 'application_viewed'
+  | 'candidate_contacted'
+  // System events
+  | 'application_synced';
+
+export type ActivityActorType = 'agent' | 'candidate' | 'recruiter' | 'system';
+export type ActivityChannel = 'whatsapp' | 'voice' | 'cv' | 'web';
+
+export interface GlobalActivity {
+  id: string;
+  candidate_id: string;
+  candidate_name?: string;
+  application_id?: string;
+  vacancy_id?: string;
+  vacancy_title?: string;
+  vacancy_company?: string;
+  event_type: string;
+  channel?: ActivityChannel;
+  actor_type: ActivityActorType;
+  actor_id?: string;
+  metadata: Record<string, unknown>;
+  summary?: string;
+  created_at: string;
+}
+
+export interface GlobalActivitiesResponse {
+  activities: GlobalActivity[];
+  total: number;
+}

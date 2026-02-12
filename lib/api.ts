@@ -11,6 +11,10 @@ import {
   APIVacancyDetail,
   VacancyStatus,
   VacancySource,
+  GlobalActivity,
+  GlobalActivitiesResponse,
+  ActivityActorType,
+  ActivityChannel,
 } from './types';
 
 const API_BASE = '/api';
@@ -252,4 +256,117 @@ export async function getVacancyDetail(vacancyId: string): Promise<APIVacancyDet
     },
     timeline: data.timeline || [],
   };
+}
+
+// Activities API
+export interface GetActivitiesParams {
+  actor_type?: ActivityActorType;
+  event_type?: string[];
+  channel?: ActivityChannel;
+  limit?: number;
+  offset?: number;
+}
+
+export async function getActivities(params: GetActivitiesParams = {}): Promise<GlobalActivitiesResponse> {
+  const searchParams = new URLSearchParams();
+
+  if (params.actor_type) searchParams.set('actor_type', params.actor_type);
+  if (params.event_type && params.event_type.length > 0) {
+    params.event_type.forEach(type => searchParams.append('event_type', type));
+  }
+  if (params.channel) searchParams.set('channel', params.channel);
+  if (params.limit) searchParams.set('limit', params.limit.toString());
+  if (params.offset) searchParams.set('offset', params.offset.toString());
+
+  const queryString = searchParams.toString();
+  const url = `${BACKEND_URL}/activities${queryString ? `?${queryString}` : ''}`;
+
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error('Failed to fetch activities');
+  }
+
+  return response.json();
+}
+
+// ElevenLabs Agent API
+export interface UpdateAgentConfigParams {
+  agentId: string;
+  voiceId: string;
+  modelId: string;
+  stability?: number;
+  similarityBoost?: number;
+}
+
+export async function updateElevenLabsAgentConfig(params: UpdateAgentConfigParams): Promise<void> {
+  const response = await fetch(`${BACKEND_URL}/elevenlabs/agent/${params.agentId}/config`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      voice_id: params.voiceId,
+      model_id: params.modelId,
+      stability: params.stability,
+      similarity_boost: params.similarityBoost,
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Failed to update agent config: ${error}`);
+  }
+}
+
+// Save voice config to database
+export interface SaveVoiceConfigParams {
+  agentId: string;
+  voiceId: string;
+  modelId: string;
+  stability?: number;
+  similarityBoost?: number;
+}
+
+export interface VoiceConfigResponse {
+  id: string;
+  agent_id: string;
+  voice_id: string;
+  model_id: string;
+  stability?: number;
+  similarity_boost?: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export async function saveElevenLabsVoiceConfig(params: SaveVoiceConfigParams): Promise<VoiceConfigResponse> {
+  const response = await fetch(`${BACKEND_URL}/elevenlabs/voice-config/${params.agentId}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      voice_id: params.voiceId,
+      model_id: params.modelId,
+      stability: params.stability,
+      similarity_boost: params.similarityBoost,
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Failed to save voice config: ${error}`);
+  }
+
+  return response.json();
+}
+
+export async function getElevenLabsVoiceConfig(agentId: string): Promise<VoiceConfigResponse | null> {
+  const response = await fetch(`${BACKEND_URL}/elevenlabs/voice-config/${agentId}`);
+
+  if (response.status === 404) {
+    return null; // No config saved yet
+  }
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Failed to get voice config: ${error}`);
+  }
+
+  return response.json();
 }

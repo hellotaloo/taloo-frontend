@@ -43,15 +43,15 @@ export default function AdminPage() {
             <h2 className="text-lg font-semibold text-gray-900">Agent Settings</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <AdminCard
-                title="Voice Agent"
-                description="Configure voice settings and test demo calls"
-                href="/agent-settings/voice"
+                title="Voice instellingen"
+                description="Configureer voice agent instellingen"
+                href="/admin/voice-settings"
                 icon={Phone}
               />
               <AdminCard
-                title="WhatsApp Agent"
-                description="Configure WhatsApp messaging settings"
-                href="/pre-screening"
+                title="WhatsApp instellingen"
+                description="Configureer WhatsApp agent instellingen"
+                href="/admin/whatsapp-settings"
                 icon={MessageSquare}
               />
             </div>

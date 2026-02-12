@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useRef, useEffect, useCallback } from 'react';
-import { 
-  ChevronLeft, 
-  Plus, 
-  Camera, 
-  Mic, 
+import { useState, useRef, useEffect, useCallback, ReactNode } from 'react';
+import {
+  ChevronLeft,
+  Plus,
+  Camera,
+  Mic,
   Send,
   Check,
   CheckCheck,
@@ -13,6 +13,17 @@ import {
 import { useScreeningChat } from '@/hooks/use-screening-chat';
 import { useSimulationChat } from '@/hooks/use-simulation-chat';
 import type { SimulationPersona } from '@/lib/types';
+
+// Parse markdown-style bold (**text**) into React elements
+function parseMarkdownBold(text: string): ReactNode[] {
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  return parts.map((part, index) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return <strong key={index}>{part.slice(2, -2)}</strong>;
+    }
+    return part;
+  });
+}
 
 interface Message {
   id: string;
@@ -439,7 +450,7 @@ export function WhatsAppChat({
               }}
             >
               <p className="text-[15px] text-black leading-[20px] whitespace-pre-wrap">
-                {message.content}
+                {parseMarkdownBold(message.content)}
               </p>
               
               <div className="flex items-center justify-end gap-1 mt-0.5">

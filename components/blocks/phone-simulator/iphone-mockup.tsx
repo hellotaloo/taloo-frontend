@@ -106,8 +106,17 @@ export function IPhoneMockup({ children, size = 'default' }: IPhoneMockupProps) 
             </div>
           </div>
 
-          {/* Screen content area */}
-          <div className="w-full h-full overflow-hidden">{children}</div>
+          {/* Screen content area - renders at base size then scales */}
+          <div
+            className="origin-top-left"
+            style={{
+              width: `${BASE_WIDTH - 24}px`,
+              height: `${BASE_HEIGHT - 24}px`,
+              transform: `scale(${s})`,
+            }}
+          >
+            {children}
+          </div>
         </div>
       </div>
     </div>

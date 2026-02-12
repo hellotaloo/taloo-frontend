@@ -33,10 +33,12 @@ const pageConfigs: Record<string, PageConfig> = {
   '/inbox': { title: 'Inbox', icon: Inbox },
   '/overviews': { title: 'Overzichten', icon: LayoutList },
   '/pre-screening': { title: 'Pre-screening', icon: Phone },
+  '/pre-screening/settings': { title: 'Pre-screening instellingen', icon: Settings },
   '/pre-onboarding': { title: 'Pre-onboarding', icon: FileCheck },
   '/insights': { title: 'Pattern Finder', icon: ScanSearch },
   '/finetune': { title: 'Finetune', icon: SlidersHorizontal },
   '/admin': { title: 'Admin', icon: Settings },
+  '/admin/voice-settings': { title: 'Voice instellingen', icon: Mic },
   '/agent-settings/voice': { title: 'Voice Agent', icon: Mic },
   // Legacy routes
   '/metrics': { title: 'Pre-screening Metrics', icon: Phone },

@@ -4,6 +4,7 @@ export interface InterviewQuestion {
   id: string;
   question: string;
   ideal_answer?: string;
+  vacancy_snippet?: string;  // Text from vacancy this question relates to
   is_modified?: boolean;
   change_status?: 'new' | 'updated' | 'unchanged';
 }
@@ -29,16 +30,16 @@ export interface SSEEvent {
 export type StatusCallback = (event: SSEEvent) => void;
 
 export async function generateInterview(
-  vacancyText: string,
+  vacancyId: string,
   onEvent: StatusCallback,
   sessionId?: string
 ): Promise<{ interview: Interview; sessionId: string; message: string }> {
   const response = await fetch(`${BACKEND_URL}/interview/generate`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ 
-      vacancy_text: vacancyText,
-      session_id: sessionId 
+    body: JSON.stringify({
+      vacancy_id: vacancyId,
+      session_id: sessionId
     }),
   });
 
@@ -667,6 +668,7 @@ export interface PreScreeningQuestionInput {
   id: string;      // Client ID for matching approved_ids
   question: string;
   ideal_answer?: string;
+  vacancy_snippet?: string;  // Text from vacancy this question relates to
 }
 
 export interface PreScreeningInput {
@@ -685,6 +687,7 @@ export interface PreScreeningQuestion {
   position: number;
   question_text: string;
   ideal_answer?: string;
+  vacancy_snippet?: string;  // Text from vacancy this question relates to
   is_approved: boolean;
 }
 
