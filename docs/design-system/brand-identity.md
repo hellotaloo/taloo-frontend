@@ -34,8 +34,8 @@
 - Usage: Success messages, positive states
 
 **Warning**
-- Light: `bg-amber-100` / `text-amber-900`
-- Standard: `bg-amber-500`
+- Light: `bg-orange-100` / `text-orange-900`
+- Standard: `bg-orange-500`
 - Usage: Warnings, concept states, pending actions
 
 **Error**
@@ -105,7 +105,7 @@
 - Secondary: `text-gray-500` (subtle icons)
 - Accent: `text-blue-500` (interactive icons)
 - Success: `text-green-600`
-- Warning: `text-amber-600`
+- Warning: `text-orange-600`
 - Error: `text-red-600`
 
 ## Imagery

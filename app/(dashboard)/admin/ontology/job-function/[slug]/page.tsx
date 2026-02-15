@@ -231,7 +231,7 @@ function InspectorPanel({ document, open, onOpenChange }: InspectorPanelProps) {
                     </SelectItem>
                     <SelectItem value="conditional">
                       <span className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-amber-500" />
+                        <div className="w-2 h-2 rounded-full bg-orange-500" />
                         Voorwaardelijk
                       </span>
                     </SelectItem>
@@ -334,7 +334,7 @@ export default function JobFunctionDetailPage() {
       case 'preferred':
         return 'bg-blue-50 text-blue-700 border-blue-200';
       case 'conditional':
-        return 'bg-amber-50 text-amber-700 border-amber-200';
+        return 'bg-orange-50 text-orange-700 border-orange-200';
       default:
         return 'bg-gray-50 text-gray-700 border-gray-200';
     }
@@ -368,7 +368,7 @@ export default function JobFunctionDetailPage() {
             <div className="flex items-center gap-2 text-lg">
               <button
                 onClick={() => router.push('/admin/ontology')}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
+                className="text-sm text-gray-400 hover:text-gray-600 transition-colors"
               >
                 Job Functions
               </button>

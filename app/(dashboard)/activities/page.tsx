@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { Loader2, AlertCircle, Inbox, RefreshCw } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { PageLayout, PageLayoutHeader, PageLayoutContent } from '@/components/layout/page-layout';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -15,45 +14,28 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { getActivityTasks, type TaskRow, type GetActivityTasksParams } from '@/lib/api';
+import { TagBadge, type TagBadgeVariant } from '@/components/kit/tag-badge';
 
-// Status badge component
-function StatusBadge({ status, isStuck }: { status: string; isStuck: boolean }) {
+// Activity status badge using TagBadge
+function ActivityStatusBadge({ status, isStuck }: { status: string; isStuck: boolean }) {
   if (isStuck || status === 'stuck') {
-    return (
-      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">
-        Vast
-      </span>
-    );
+    return <TagBadge label="Vast" variant="orange" />;
   }
-
   if (status === 'completed') {
-    return (
-      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
-        Afgerond
-      </span>
-    );
+    return <TagBadge label="Afgerond" variant="gray" />;
   }
-
-  return (
-    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
-      Actief
-    </span>
-  );
+  return <TagBadge label="Actief" variant="green" />;
 }
 
-// Workflow type badge component
+// Workflow type badge component using TagBadge
 function WorkflowTypeBadge({ type, label }: { type: string; label: string }) {
-  const colorMap: Record<string, string> = {
-    pre_screening: 'bg-blue-100 text-blue-700',
-    document_collection: 'bg-purple-100 text-purple-700',
-    scheduling: 'bg-amber-100 text-amber-700',
+  const variantMap: Record<string, TagBadgeVariant> = {
+    pre_screening: 'blue',
+    document_collection: 'purple',
+    scheduling: 'orange',
   };
 
-  return (
-    <span className={cn('inline-flex items-center px-2 py-0.5 rounded text-xs font-medium', colorMap[type] || 'bg-gray-100 text-gray-600')}>
-      {label}
-    </span>
-  );
+  return <TagBadge label={label} variant={variantMap[type] || 'gray'} />;
 }
 
 type FilterStatus = 'active' | 'completed' | 'all';
@@ -137,7 +119,7 @@ export default function ActivitiesPage() {
                   <TabsTrigger value="active" data-testid="filter-active">
                     Actief
                     {stuckCount > 0 && activeFilter === 'active' && (
-                      <span className="ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-amber-100 text-amber-700">
+                      <span className="ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-orange-100 text-orange-700">
                         {stuckCount} vast
                       </span>
                     )}
@@ -229,7 +211,7 @@ export default function ActivitiesPage() {
                         {task.current_step_label}
                       </TableCell>
                       <TableCell>
-                        <StatusBadge status={task.status} isStuck={task.is_stuck} />
+                        <ActivityStatusBadge status={task.status} isStuck={task.is_stuck} />
                       </TableCell>
                       <TableCell className="text-right text-gray-500 text-sm">
                         {task.time_ago}

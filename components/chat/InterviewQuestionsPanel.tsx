@@ -448,8 +448,8 @@ function SkeletonCard({ isAnimating = false }: { isAnimating?: boolean }) {
 
 // New question highlight styles: slide-in + blue bg + soft pulse
 const NEW_QUESTION_HIGHLIGHT_CLASSES = 'bg-blue-100 animate-[slide-in-right_1.2s_cubic-bezier(0.16,1,0.3,1)_0s_backwards]';
-// Updated question highlight styles: amber bg + soft pulse only (no slide-in)
-const UPDATED_QUESTION_HIGHLIGHT_CLASSES = 'bg-amber-100 animate-[soft-pulse_3s_ease-in-out_infinite]';
+// Updated question highlight styles: orange bg + soft pulse only (no slide-in)
+const UPDATED_QUESTION_HIGHLIGHT_CLASSES = 'bg-orange-100 animate-[soft-pulse_3s_ease-in-out_infinite]';
 const NORMAL_QUESTION_CLASSES = 'bg-gray-100 transition-all duration-500';
 
 function AddQuestionInput({ 
@@ -703,7 +703,7 @@ function SortableQuestionItem({
   const labelConfig = changeStatus === 'new' 
     ? { text: 'nieuw', className: 'text-blue-600 bg-blue-200' }
     : changeStatus === 'updated'
-    ? { text: 'gewijzigd', className: 'text-amber-600 bg-amber-200' }
+    ? { text: 'gewijzigd', className: 'text-orange-600 bg-orange-200' }
     : null;
 
   return (
@@ -788,7 +788,7 @@ function SortableQuestionItem({
             isIdealAnswerExpanded ? 'max-h-40 opacity-100 mt-2' : 'max-h-0 opacity-0'
           }`}
         >
-          <div className="ml-6 pl-2 border-l-2 border-amber-200">
+          <div className="ml-6 pl-2 border-l-2 border-orange-200">
             <p className="text-sm text-gray-500 leading-relaxed">{question.idealAnswer}</p>
           </div>
         </div>

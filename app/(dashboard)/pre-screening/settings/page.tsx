@@ -288,8 +288,8 @@ export default function PreScreeningSettingsPage() {
               {/* Open Questions - Not editable */}
               <TimelineNode animationDelay={160}>
                 <div className="rounded-lg bg-gray-100 p-3 flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center">
-                    <MessageSquare className="w-4 h-4 text-amber-600" />
+                  <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center">
+                    <MessageSquare className="w-4 h-4 text-orange-600" />
                   </div>
                   <div>
                     <p className="font-medium text-gray-900 text-sm">Open vragen</p>

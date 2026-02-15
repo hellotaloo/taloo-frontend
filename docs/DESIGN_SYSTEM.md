@@ -438,7 +438,107 @@ import {
 
 ---
 
-## 12. Tables
+## 12. Status Badges
+
+Use `StatusBadge` for consistent status indicators throughout the app.
+
+### Design Specs
+- **Shape**: Pill (rounded-full)
+- **Background**: Transparent (no fill)
+- **Border**: Solid 1px in matching -600 color
+- **Text**: Matching -600 color
+- **Indicator**: Dot (default) or icon
+
+### Usage
+```tsx
+import { StatusBadge } from '@/components/kit/status-badge';
+import { Calendar } from 'lucide-react';
+
+// With dot indicator (default)
+<StatusBadge label="Bezig" variant="blue" />
+<StatusBadge label="Review nodig" variant="orange" />
+<StatusBadge label="Niet geslaagd" variant="red" />
+<StatusBadge label="Afgebroken" variant="gray" />
+
+// With icon (replaces dot)
+<StatusBadge label="18 feb, 14u" variant="green" icon={Calendar} />
+```
+
+### Variants
+| Variant | Border | Text | Use Case |
+|---------|--------|------|----------|
+| `blue` | border-blue-600 | text-blue-600 | Active, in progress |
+| `green` | border-green-500 | text-green-500 | Success, scheduled |
+| `orange` | border-orange-600 | text-orange-600 | Warning, needs review |
+| `red` | border-red-600 | text-red-600 | Error, failed |
+| `gray` | border-gray-400 | text-gray-600 | Inactive, abandoned |
+
+### Props
+```tsx
+interface StatusBadgeProps {
+  label: string;                    // Text to display
+  variant: 'blue' | 'green' | 'orange' | 'red' | 'gray';
+  icon?: LucideIcon;                // Optional icon (replaces dot)
+  className?: string;               // Additional classes
+}
+```
+
+---
+
+## 13. Tag Badges
+
+Use `TagBadge` for category/type labels (agents, workflow types, test indicators).
+
+### Design Specs
+- **Shape**: Rounded rectangle (rounded)
+- **Background**: Filled (-500 shade)
+- **Text**: White
+- **Icon**: Optional, displayed before label
+
+### When to Use
+- **TagBadge**: Category labels (Pre-screening, Document Collection, Test)
+- **StatusBadge**: Status indicators (Online/Offline, In Progress, Failed)
+
+### Usage
+```tsx
+import { TagBadge } from '@/components/kit/tag-badge';
+import { Phone, FileCheck, FlaskConical } from 'lucide-react';
+
+// Agent types
+<TagBadge label="Pre-screening" variant="blue" icon={Phone} />
+<TagBadge label="Document Collection" variant="purple" icon={FileCheck} />
+
+// Test indicator
+<TagBadge label="Test" variant="orange" icon={FlaskConical} />
+
+// Status labels
+<TagBadge label="Vast" variant="orange" />
+<TagBadge label="Afgerond" variant="gray" />
+```
+
+### Variants
+| Variant | Background | Text | Use Case |
+|---------|------------|------|----------|
+| `blue` | bg-blue-500 | text-white | Pre-screening, primary features |
+| `green` | bg-green-500 | text-white | Success, active |
+| `orange` | bg-orange-500 | text-white | Test, warning, stuck |
+| `red` | bg-red-500 | text-white | Error, urgent |
+| `purple` | bg-purple-500 | text-white | Document Collection |
+| `gray` | bg-gray-500 | text-white | Inactive, completed |
+
+### Props
+```tsx
+interface TagBadgeProps {
+  label: string;                    // Text to display
+  variant: 'blue' | 'green' | 'orange' | 'red' | 'purple' | 'gray';
+  icon?: LucideIcon;                // Optional icon (before label)
+  className?: string;               // Additional classes
+}
+```
+
+---
+
+## 14. Tables
 
 Use the DataTable component for consistent table styling:
 
@@ -466,7 +566,7 @@ import {
 
 ---
 
-## 13. Best Practices
+## 15. Best Practices
 
 ### Do
 - Use the 3-tier component architecture

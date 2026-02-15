@@ -25,6 +25,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Loader2, ArrowLeft, CheckCircle, Pencil, Smartphone, RotateCcw, LayoutDashboard } from 'lucide-react';
+import { formatDateTime } from '@/lib/utils';
 import { ChatBubbleLeftRightIcon } from '@heroicons/react/24/outline';
 import { 
   generateInterview, 
@@ -1086,7 +1087,7 @@ export default function EditPreScreeningPage({ params }: PageProps) {
     <div className="flex flex-col h-[calc(100vh-40px)] -m-6">
       {/* Production mode warning banner */}
       {!isTestMode && (
-        <div className="h-10 bg-red-600 text-white flex items-center justify-center gap-2 text-sm font-medium shrink-0">
+        <div className="h-6 bg-orange-600 text-white flex items-center justify-center gap-2 text-xs font-medium shrink-0">
           <span className="inline-block w-2 h-2 bg-white rounded-full animate-pulse" />
           PRODUCTIE MODUS — Sollicitaties zijn echt en worden niet als test gemarkeerd
         </div>
@@ -1184,7 +1185,7 @@ export default function EditPreScreeningPage({ params }: PageProps) {
               className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                 questions.length === 0 || isGenerating || isSaving
                   ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                  : 'bg-green-500 hover:bg-green-600 text-white shadow-sm'
+                  : 'bg-green-500 hover:bg-green-600 text-white'
               }`}
             >
               <CheckCircle className="w-4 h-4" />
@@ -1349,13 +1350,7 @@ export default function EditPreScreeningPage({ params }: PageProps) {
                 </div>
                 {publishedAt && (
                   <p className="mt-4 text-xs text-gray-400">
-                    Gepubliceerd: {new Date(publishedAt).toLocaleDateString('nl-NL', { 
-                      day: 'numeric', 
-                      month: 'short',
-                      year: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    })}
+                    Gepubliceerd: {formatDateTime(publishedAt)}
                   </p>
                 )}
               </>

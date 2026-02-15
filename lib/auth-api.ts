@@ -4,7 +4,7 @@
 
 import { AuthResponse, AuthMeResponse, TokenResponse } from './auth-types';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8080';
 
 /**
  * Development-only login endpoint. Creates a dev user and returns a valid JWT token.

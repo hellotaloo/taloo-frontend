@@ -71,6 +71,8 @@ export interface Vacancy {
   completedCount: number;       // Applications with status='completed'
   qualifiedCount: number;       // Applications with qualified=true
   lastActivityAt?: string | null; // Most recent application activity timestamp
+  // Publishing
+  publishedAt?: string | null;  // When pre-screening was first published (null = never published)
 }
 
 // Question types
@@ -164,7 +166,7 @@ export interface CVApplicationResponse {
   synced: boolean;
   knockout_passed: number;
   knockout_total: number;
-  qualification_count: number;
+  open_questions_total: number;
   summary: string;
   meeting_slots?: string[];  // Available meeting slots for qualified candidates
 }
@@ -193,8 +195,8 @@ export interface Interview {
 }
 
 // Application types (pre-screening results)
-export type AnswerRating = 'excellent' | 'good' | 'average' | 'poor';
-export type ApplicationStatus = 'active' | 'processing' | 'completed';
+export type AnswerRating = 'excellent' | 'good' | 'average' | 'below_average' | 'weak';
+export type ApplicationStatus = 'active' | 'processing' | 'completed' | 'abandoned';
 
 export interface ApplicationAnswer {
   questionId: string;
@@ -214,10 +216,10 @@ export interface Application {
   channel: 'voice' | 'whatsapp' | 'cv';
   status: ApplicationStatus;
   qualified: boolean;
-  overallScore?: number;
+  openQuestionsScore?: number;
   knockoutPassed?: number;
   knockoutTotal?: number;
-  qualificationCount?: number;
+  openQuestionsTotal?: number;
   summary?: string;
   startedAt: string;
   completedAt?: string | null;

@@ -1,8 +1,10 @@
 'use client';
 
-import { Building2, MapPin, Archive } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Building2, MapPin, Archive, ArrowUp, ArrowDown, ChevronsUpDown } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Vacancy } from '@/lib/types';
+import { cn } from '@/lib/utils';
 import {
   Table,
   TableBody,
@@ -12,6 +14,48 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { ChannelIcons } from '@/components/kit/status';
+
+type SortKey = 'title' | 'candidatesCount' | 'completedCount' | 'qualifiedCount' | 'archivedAt';
+type SortDirection = 'asc' | 'desc' | null;
+
+interface SortableHeaderProps {
+  label: string;
+  sortKey: SortKey;
+  currentSortKey: SortKey | null;
+  sortDirection: SortDirection;
+  onSort: (key: SortKey) => void;
+  className?: string;
+}
+
+function SortableHeader({ label, sortKey, currentSortKey, sortDirection, onSort, className }: SortableHeaderProps) {
+  const isSorted = currentSortKey === sortKey;
+
+  return (
+    <TableHead
+      className={cn(
+        'cursor-pointer select-none hover:bg-gray-50 transition-colors',
+        isSorted && 'bg-gray-50',
+        className
+      )}
+      onClick={() => onSort(sortKey)}
+    >
+      <div className="flex items-center gap-2">
+        <span>{label}</span>
+        <span className="inline-flex items-center">
+          {isSorted ? (
+            sortDirection === 'asc' ? (
+              <ArrowUp className="w-4 h-4 text-gray-700" />
+            ) : (
+              <ArrowDown className="w-4 h-4 text-gray-700" />
+            )
+          ) : (
+            <ChevronsUpDown className="w-4 h-4 text-gray-400" />
+          )}
+        </span>
+      </div>
+    </TableHead>
+  );
+}
 
 export interface ArchivedVacanciesTableProps {
   vacancies: Vacancy[];
@@ -25,6 +69,66 @@ function formatDate(dateString: string | null | undefined) {
 
 export function ArchivedVacanciesTable({ vacancies }: ArchivedVacanciesTableProps) {
   const router = useRouter();
+  const [sortKey, setSortKey] = useState<SortKey | null>(null);
+  const [sortDirection, setSortDirection] = useState<SortDirection>(null);
+
+  const handleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      if (sortDirection === 'asc') {
+        setSortDirection('desc');
+      } else if (sortDirection === 'desc') {
+        setSortKey(null);
+        setSortDirection(null);
+      } else {
+        setSortDirection('asc');
+      }
+    } else {
+      setSortKey(key);
+      setSortDirection('asc');
+    }
+  };
+
+  const sortedVacancies = useMemo(() => {
+    if (!sortKey || !sortDirection) return vacancies;
+
+    return [...vacancies].sort((a, b) => {
+      let aValue: string | number | null | undefined;
+      let bValue: string | number | null | undefined;
+
+      switch (sortKey) {
+        case 'title':
+          aValue = a.title;
+          bValue = b.title;
+          break;
+        case 'candidatesCount':
+          aValue = a.candidatesCount;
+          bValue = b.candidatesCount;
+          break;
+        case 'completedCount':
+          aValue = a.completedCount;
+          bValue = b.completedCount;
+          break;
+        case 'qualifiedCount':
+          aValue = a.qualifiedCount;
+          bValue = b.qualifiedCount;
+          break;
+        case 'archivedAt':
+          aValue = a.archivedAt;
+          bValue = b.archivedAt;
+          break;
+      }
+
+      if (aValue == null) return sortDirection === 'asc' ? 1 : -1;
+      if (bValue == null) return sortDirection === 'asc' ? -1 : 1;
+
+      if (typeof aValue === 'number' && typeof bValue === 'number') {
+        return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
+      }
+
+      const comparison = String(aValue).localeCompare(String(bValue));
+      return sortDirection === 'asc' ? comparison : -comparison;
+    });
+  }, [vacancies, sortKey, sortDirection]);
 
   if (vacancies.length === 0) {
     return (
@@ -41,16 +145,50 @@ export function ArchivedVacanciesTable({ vacancies }: ArchivedVacanciesTableProp
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead className="w-full">Vacature</TableHead>
-          <TableHead className="text-center">Kanalen</TableHead>
-          <TableHead className="text-center">Kandidaten</TableHead>
-          <TableHead className="text-center">Afgerond</TableHead>
-          <TableHead className="text-center">Gekwalificeerd</TableHead>
-          <TableHead>Gearchiveerd</TableHead>
+          <SortableHeader
+            label="Vacature"
+            sortKey="title"
+            currentSortKey={sortKey}
+            sortDirection={sortDirection}
+            onSort={handleSort}
+            className="w-full"
+          />
+          <TableHead>Kanalen</TableHead>
+          <SortableHeader
+            label="Kandidaten"
+            sortKey="candidatesCount"
+            currentSortKey={sortKey}
+            sortDirection={sortDirection}
+            onSort={handleSort}
+            className="text-center"
+          />
+          <SortableHeader
+            label="Afgerond"
+            sortKey="completedCount"
+            currentSortKey={sortKey}
+            sortDirection={sortDirection}
+            onSort={handleSort}
+            className="text-center"
+          />
+          <SortableHeader
+            label="Gekwalificeerd"
+            sortKey="qualifiedCount"
+            currentSortKey={sortKey}
+            sortDirection={sortDirection}
+            onSort={handleSort}
+            className="text-center"
+          />
+          <SortableHeader
+            label="Gearchiveerd"
+            sortKey="archivedAt"
+            currentSortKey={sortKey}
+            sortDirection={sortDirection}
+            onSort={handleSort}
+          />
         </TableRow>
       </TableHeader>
       <TableBody>
-        {vacancies.map((vacancy) => {
+        {sortedVacancies.map((vacancy) => {
           const hasActivity = vacancy.candidatesCount > 0;
           return (
             <TableRow

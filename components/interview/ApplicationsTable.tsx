@@ -11,6 +11,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Application } from './InterviewDashboard';
+import { TagBadge } from '@/components/kit/tag-badge';
 
 interface ApplicationsTableProps {
   applications: Application[];
@@ -100,7 +101,7 @@ export function ApplicationsTable({
                 selectedId === application.id 
                   ? 'bg-blue-50 hover:bg-blue-100' 
                   : application.isTest
-                    ? 'bg-amber-50/50 hover:bg-amber-100/50'
+                    ? 'bg-orange-50/50 hover:bg-orange-100/50'
                     : ''
               }`}
             >
@@ -111,17 +112,14 @@ export function ApplicationsTable({
                     {application.candidateName}
                   </span>
                   {application.isTest && (
-                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-100 text-amber-700">
-                      <FlaskConical className="w-3 h-3" />
-                      Test
-                    </span>
+                    <TagBadge label="Test" variant="gray" icon={FlaskConical} iconVariant="orange" />
                   )}
                 </div>
                 <div className="flex items-center gap-3 mt-0.5">
                   <ScoreDisplayInline 
                     knockoutPassed={application.knockoutPassed ?? knockoutPassed}
                     knockoutTotal={application.knockoutTotal ?? knockoutAnswers.length}
-                    qualifyingAnswered={application.qualificationCount ?? qualifyingAnswers.length}
+                    qualifyingAnswered={application.openQuestionsTotal ?? qualifyingAnswers.length}
                     pending={application.status !== 'completed'}
                   />
                   <StatusLabel 
@@ -132,7 +130,7 @@ export function ApplicationsTable({
               </div>
             </TableCell>
             <TableCell className="px-4 text-center">
-              <OverallScoreBadge score={application.overallScore} completed={application.status === 'completed'} />
+              <OverallScoreBadge score={application.openQuestionsScore} completed={application.status === 'completed'} />
             </TableCell>
             <TableCell className="px-4 text-gray-500 text-sm">
               {formatInterviewSlot(application.interviewSlot) || '-'}
@@ -179,11 +177,7 @@ function StatusLabel({ status, qualified }: { status: 'active' | 'processing' | 
   }
   
   if (status === 'processing') {
-    return (
-      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-100 text-amber-700">
-        Verwerken...
-      </span>
-    );
+    return <TagBadge label="Verwerken..." variant="orange" />;
   }
   
   // status === 'completed' - only show qualification status when completed
@@ -318,7 +312,7 @@ function OverallScoreBadge({ score, completed }: { score?: number; completed: bo
   } else if (score >= 60) {
     colorClasses = 'bg-lime-100 text-lime-700';
   } else if (score >= 40) {
-    colorClasses = 'bg-amber-100 text-amber-700';
+    colorClasses = 'bg-orange-100 text-orange-700';
   } else {
     colorClasses = 'bg-red-100 text-red-700';
   }

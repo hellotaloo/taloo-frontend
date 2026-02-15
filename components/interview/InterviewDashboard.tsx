@@ -14,10 +14,10 @@ export interface Application {
   interactionSeconds: number;
   status: ApplicationStatus;
   qualified: boolean;
-  overallScore?: number;
+  openQuestionsScore?: number;
   knockoutPassed?: number;
   knockoutTotal?: number;
-  qualificationCount?: number;
+  openQuestionsTotal?: number;
   summary?: string;
   timestamp: string;
   synced?: boolean;

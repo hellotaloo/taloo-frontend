@@ -444,10 +444,10 @@ export default function CategoryDetailPage() {
                   </div>
 
                   {/* Documents */}
-                  <div className="px-4 py-3 rounded-xl border-2 border-amber-300 bg-amber-50">
+                  <div className="px-4 py-3 rounded-xl border-2 border-orange-300 bg-orange-50">
                     <div className="flex items-center gap-2">
-                      <FileText className="w-5 h-5 text-amber-600" />
-                      <span className="font-semibold text-amber-700">Documents</span>
+                      <FileText className="w-5 h-5 text-orange-600" />
+                      <span className="font-semibold text-orange-700">Documents</span>
                     </div>
                     <div className="text-xs mt-1 text-gray-500">{category.stats.totalDocuments} types</div>
                   </div>

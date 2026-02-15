@@ -4,8 +4,8 @@ import { Users, CheckCircle, Award, BarChart3 } from 'lucide-react';
 import { MetricCard } from '@/components/kit/metric-card';
 import { cn } from '@/lib/utils';
 
-export type AnswerRating = 'excellent' | 'good' | 'average' | 'poor';
-export type ApplicationStatus = 'active' | 'processing' | 'completed';
+export type AnswerRating = 'excellent' | 'good' | 'average' | 'below_average' | 'weak';
+export type ApplicationStatus = 'active' | 'processing' | 'completed' | 'abandoned';
 
 export interface Application {
   id: string;
@@ -14,10 +14,10 @@ export interface Application {
   interactionSeconds: number;
   status: ApplicationStatus;
   qualified: boolean;
-  overallScore?: number;
+  openQuestionsScore?: number;
   knockoutPassed?: number;
   knockoutTotal?: number;
-  qualificationCount?: number;
+  openQuestionsTotal?: number;
   summary?: string;
   timestamp: string;
   synced?: boolean;

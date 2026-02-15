@@ -54,14 +54,14 @@ const eventTypeConfig: Record<string, { icon: React.ElementType; color: string; 
   cv_uploaded: { icon: FileText, color: 'text-purple-500', dotColor: 'bg-purple-500' },
   cv_analyzed: { icon: FileCheck, color: 'text-purple-500', dotColor: 'bg-purple-500' },
   // Application status
-  status_changed: { icon: RefreshCw, color: 'text-amber-500', dotColor: 'bg-amber-500' },
+  status_changed: { icon: RefreshCw, color: 'text-orange-500', dotColor: 'bg-orange-500' },
   qualified: { icon: CheckCircle2, color: 'text-green-500', dotColor: 'bg-green-500' },
   disqualified: { icon: XCircle, color: 'text-red-500', dotColor: 'bg-red-500' },
   // Interview scheduling
   interview_scheduled: { icon: Calendar, color: 'text-blue-500', dotColor: 'bg-blue-500' },
   interview_confirmed: { icon: CheckCircle2, color: 'text-green-500', dotColor: 'bg-green-500' },
   interview_cancelled: { icon: XCircle, color: 'text-red-500', dotColor: 'bg-red-500' },
-  interview_rescheduled: { icon: Calendar, color: 'text-amber-500', dotColor: 'bg-amber-500' },
+  interview_rescheduled: { icon: Calendar, color: 'text-orange-500', dotColor: 'bg-orange-500' },
   interview_completed: { icon: CheckCircle2, color: 'text-green-500', dotColor: 'bg-green-500' },
   interview_no_show: { icon: XCircle, color: 'text-red-500', dotColor: 'bg-red-500' },
   // Recruiter actions
@@ -79,7 +79,7 @@ const defaultEventConfig = { icon: Bell, color: 'text-gray-500', dotColor: 'bg-g
 const actorTypeConfig: Record<ActivityActorType, { label: string; color: string; bgColor: string }> = {
   agent: { label: 'Agent', color: 'text-brand-dark-blue', bgColor: 'bg-brand-light-blue/30' },
   candidate: { label: 'Kandidaat', color: 'text-gray-700', bgColor: 'bg-gray-100' },
-  recruiter: { label: 'Recruiter', color: 'text-amber-700', bgColor: 'bg-amber-50' },
+  recruiter: { label: 'Recruiter', color: 'text-orange-700', bgColor: 'bg-orange-50' },
   system: { label: 'Systeem', color: 'text-gray-500', bgColor: 'bg-gray-50' },
 };
 
@@ -185,13 +185,13 @@ function getMetadataPreview(metadata: Record<string, unknown>, eventType: string
   if ('score' in metadata && typeof metadata.score === 'number') {
     const score = metadata.score;
     const displayScore = score > 1 ? score : Math.round(score * 100);
-    const color = displayScore >= 70 ? 'bg-green-100 text-green-700' : displayScore >= 40 ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700';
+    const color = displayScore >= 70 ? 'bg-green-100 text-green-700' : displayScore >= 40 ? 'bg-orange-100 text-orange-700' : 'bg-red-100 text-red-700';
     badges.push({ label: 'Score', value: `${displayScore}%`, color });
   }
 
   if ('match_score' in metadata && typeof metadata.match_score === 'number') {
     const score = metadata.match_score;
-    const color = score >= 70 ? 'bg-green-100 text-green-700' : score >= 40 ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700';
+    const color = score >= 70 ? 'bg-green-100 text-green-700' : score >= 40 ? 'bg-orange-100 text-orange-700' : 'bg-red-100 text-red-700';
     badges.push({ label: 'Match', value: `${score}%`, color });
   }
 

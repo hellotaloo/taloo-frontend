@@ -28,7 +28,8 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
-import { StatusBadge, AgentIcons } from '@/components/kit/status';
+import { AgentIcons } from '@/components/kit/status';
+import { StatusBadge } from '@/components/kit/status-badge';
 import { CollapseBox } from '@/components/kit/collapse-box';
 import { MarkdownContent } from '@/components/kit/markdown-content';
 import { APIVacancyDetail, APIActivityResponse } from '@/lib/types';
@@ -48,7 +49,7 @@ const eventTypeConfig: Record<string, { icon: typeof FileText; color: string; bg
   unpublished: { icon: EyeOff, color: 'text-gray-500', bgColor: 'bg-gray-50' },
   archived: { icon: Archive, color: 'text-gray-500', bgColor: 'bg-gray-50' },
   // Candidate/Application events
-  screening_started: { icon: Clock, color: 'text-amber-500', bgColor: 'bg-amber-50' },
+  screening_started: { icon: Clock, color: 'text-orange-500', bgColor: 'bg-orange-50' },
   screening_completed: { icon: CheckCircle, color: 'text-green-500', bgColor: 'bg-green-50' },
   qualified: { icon: Award, color: 'text-lime-600', bgColor: 'bg-lime-50' },
   disqualified: { icon: XCircle, color: 'text-red-500', bgColor: 'bg-red-50' },
@@ -174,7 +175,10 @@ export function VacancyDetailPane({ vacancy, isLoading, onClose }: VacancyDetail
           <div className="flex-1">
             <div className="flex items-center gap-3">
               <h2 className="text-lg font-semibold text-gray-900">{vacancy.title}</h2>
-              <StatusBadge isOnline={vacancy.is_online} />
+              <StatusBadge
+                      label={vacancy.is_online === true ? 'Online' : vacancy.is_online === false ? 'Offline' : 'Concept'}
+                      variant={vacancy.is_online === true ? 'green' : vacancy.is_online === false ? 'gray' : 'orange'}
+                    />
             </div>
             <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
               <span className="flex items-center gap-1">
@@ -333,7 +337,6 @@ export function VacancyDetailPane({ vacancy, isLoading, onClose }: VacancyDetail
                 alt="Salesforce"
                 width={14}
                 height={10}
-                className="opacity-70"
               />
               <span>Bekijk in Salesforce</span>
               <ExternalLink className="w-3 h-3" />

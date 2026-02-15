@@ -403,6 +403,7 @@ interface VacancyResponse {
   source?: VacancySource;
   source_id?: string;
   has_screening: boolean;
+  published_at?: string;  // ISO timestamp when pre-screening was published (null = draft)
   is_online?: boolean;
   channels: ChannelsResponse;
   agents: AgentsResponse;
@@ -499,13 +500,13 @@ interface ApplicationResponse {
   started_at: string;
   completed_at?: string;
   interaction_seconds: number;
-  answers: QuestionAnswerResponse[];
+  answers: QuestionAnswerResponse[];  // Always includes ALL questions, even if not answered yet
   synced: boolean;
   synced_at?: string;
-  overall_score?: number;
+  open_questions_score?: number;
   knockout_passed: number;
   knockout_total: number;
-  qualification_count: number;
+  open_questions_total: number;
   summary?: string;
   interview_slot?: string;
   meeting_slots?: string[];
@@ -2885,7 +2886,7 @@ Reset all data and optionally reseed.
 |------|------|----------|---------|-------------|
 | `reseed` | boolean | No | `true` | Reseed with demo data after reset |
 | `activities` | boolean | No | `true` | Include agent activities in reseed |
-| `workflow_activities` | boolean | No | `false` | Include activities dashboard demo data (workflow tasks) |
+| `workflow_activities` | boolean | No | `true` | Include activities dashboard demo data (workflow tasks) |
 
 **Response:**
 

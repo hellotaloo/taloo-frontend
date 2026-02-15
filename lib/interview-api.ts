@@ -336,6 +336,8 @@ interface BackendVacancy {
   completed_count: number;
   qualified_count: number;
   last_activity_at: string | null;
+  // Publishing
+  published_at: string | null;
 }
 
 // Conversion helper
@@ -367,6 +369,7 @@ function convertVacancy(v: BackendVacancy): Vacancy {
     completedCount: v.completed_count ?? 0,
     qualifiedCount: v.qualified_count ?? 0,
     lastActivityAt: v.last_activity_at,
+    publishedAt: v.published_at,
   };
 }
 
@@ -484,12 +487,14 @@ export async function getVacancy(vacancyId: string): Promise<Vacancy> {
 // Agent Vacancy API (Pre-screening & Pre-onboarding views)
 // =============================================================================
 
-export type AgentVacancyStatus = 'new' | 'generated' | 'archived';
+export type AgentVacancyStatus = 'new' | 'generated' | 'published' | 'archived';
 
 /**
  * Fetch vacancies by pre-screening agent status.
- * - new: No pre-screening record OR not published yet
- * - generated: Pre-screening published (can be online/offline)
+ * - new: has_screening = false (no pre-screening yet)
+ * - generated: has_screening = true AND published_at IS NULL (draft)
+ * - published: published_at IS NOT NULL (published, online or offline)
+ * - archived: status = 'archived'
  * - archived: Vacancy closed or filled
  */
 export async function getPreScreeningVacancies(
@@ -600,12 +605,12 @@ interface BackendApplication {
   vacancy_id: string;
   candidate_name: string;
   channel: 'voice' | 'whatsapp';
-  status: 'active' | 'processing' | 'completed';
+  status: 'active' | 'processing' | 'completed' | 'abandoned';
   qualified: boolean;
-  overall_score?: number;
+  open_questions_score?: number;
   knockout_passed?: number;
   knockout_total?: number;
-  qualification_count?: number;
+  open_questions_total?: number;
   summary?: string;
   started_at: string;
   completed_at: string | null;
@@ -625,10 +630,10 @@ function convertApplication(a: BackendApplication): Application {
     channel: a.channel,
     status: a.status,
     qualified: a.qualified,
-    overallScore: a.overall_score,
+    openQuestionsScore: a.open_questions_score,
     knockoutPassed: a.knockout_passed,
     knockoutTotal: a.knockout_total,
-    qualificationCount: a.qualification_count,
+    openQuestionsTotal: a.open_questions_total,
     summary: a.summary,
     startedAt: a.started_at,
     completedAt: a.completed_at,
@@ -657,7 +662,7 @@ export async function getApplications(
   vacancyId: string,
   params?: {
     qualified?: boolean;
-    status?: 'active' | 'processing' | 'completed';
+    status?: 'active' | 'processing' | 'completed' | 'abandoned';
     synced?: boolean;
     limit?: number;
     offset?: number;

@@ -187,7 +187,7 @@ export default function VoiceAgentSettingsPage() {
                   <Label htmlFor={engine.id} className="flex-1 cursor-pointer">
                     <span className="font-medium text-gray-900">{engine.name}</span>
                     {engine.id === 'expression' && (
-                      <span className="ml-2 text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">
+                      <span className="ml-2 text-xs bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded">
                         Experimental
                       </span>
                     )}

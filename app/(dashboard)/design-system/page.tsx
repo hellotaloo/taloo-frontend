@@ -63,8 +63,8 @@ import {
   TimelineNode,
   SortableCard,
 } from '@/components/kit/timeline';
-import { StatusBadge } from '@/components/kit/status';
 import { ChannelIcons } from '@/components/kit/status';
+import { StatusBadge } from '@/components/kit/status-badge';
 import { ChatAssistant } from '@/components/kit/chat';
 import {
   DataTable,
@@ -891,22 +891,30 @@ export default function DesignSystemPage() {
             <div id="status-badge" className="scroll-mt-20">
               <ComponentExample
                 name="StatusBadge"
-                description="Three-state status indicator (online/offline/concept)"
-                importPath="@/components/kit/status"
-                filePath="/components/kit/status/status-badge.tsx"
+                description="Pill badge with transparent background, colored border and text"
+                importPath="@/components/kit/status-badge"
+                filePath="/components/kit/status-badge/status-badge.tsx"
               >
               <div className="flex flex-wrap gap-4">
                 <div className="flex flex-col items-center gap-2">
-                  <StatusBadge isOnline={true} />
-                  <div className="text-xs text-gray-500">isOnline = true</div>
+                  <StatusBadge label="Online" variant="green" />
+                  <div className="text-xs text-gray-500">variant=&quot;green&quot;</div>
                 </div>
                 <div className="flex flex-col items-center gap-2">
-                  <StatusBadge isOnline={false} />
-                  <div className="text-xs text-gray-500">isOnline = false</div>
+                  <StatusBadge label="Offline" variant="gray" />
+                  <div className="text-xs text-gray-500">variant=&quot;gray&quot;</div>
                 </div>
                 <div className="flex flex-col items-center gap-2">
-                  <StatusBadge isOnline={null} />
-                  <div className="text-xs text-gray-500">isOnline = null</div>
+                  <StatusBadge label="Concept" variant="orange" />
+                  <div className="text-xs text-gray-500">variant=&quot;orange&quot;</div>
+                </div>
+                <div className="flex flex-col items-center gap-2">
+                  <StatusBadge label="Bezig" variant="blue" />
+                  <div className="text-xs text-gray-500">variant=&quot;blue&quot;</div>
+                </div>
+                <div className="flex flex-col items-center gap-2">
+                  <StatusBadge label="Niet geslaagd" variant="red" />
+                  <div className="text-xs text-gray-500">variant=&quot;red&quot;</div>
                 </div>
               </div>
             </ComponentExample>

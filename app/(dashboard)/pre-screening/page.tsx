@@ -1,6 +1,6 @@
 'use client';
 
-import { Phone, CheckCircle2, Users, MapPin, Building2, ArrowRight, Archive, Loader2, Info, ExternalLink, Calendar, Plus, Zap, MessageCircle, FileText, Settings } from 'lucide-react';
+import { Phone, CheckCircle2, Users, MapPin, Building2, ArrowRight, Archive, Loader2, Info, ExternalLink, Calendar, FileEdit, Send, MessageCircle, FileText, Settings } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -12,8 +12,8 @@ import { getPreScreeningVacancies, getDashboardStats, DashboardStats } from '@/l
 import { MetricCard, ChannelCard } from '@/components/kit/metric-card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
-  PendingVacanciesTable,
-  GeneratedVacanciesTable,
+  ConceptVacanciesTable,
+  PublishedVacanciesTable,
   ArchivedVacanciesTable,
 } from '@/components/blocks/vacancy-table';
 import { PageLayout, PageLayoutHeader, PageLayoutContent } from '@/components/layout/page-layout';
@@ -55,8 +55,8 @@ function PreScreeningContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const [newVacancies, setNewVacancies] = useState<Vacancy[]>([]);
-  const [generatedVacancies, setGeneratedVacancies] = useState<Vacancy[]>([]);
+  const [conceptVacancies, setConceptVacancies] = useState<Vacancy[]>([]);
+  const [publishedVacancies, setPublishedVacancies] = useState<Vacancy[]>([]);
   const [archivedVacancies, setArchivedVacancies] = useState<Vacancy[]>([]);
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -81,8 +81,8 @@ function PreScreeningContent() {
     setShowAutoGenerateConfirm(false);
   };
 
-  // Get active tab from URL, default to 'new'
-  const activeTab = searchParams.get('tab') || 'new';
+  // Get active tab from URL, default to 'concept'
+  const activeTab = searchParams.get('tab') || 'concept';
 
   const handleTabChange = (value: string) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -96,14 +96,23 @@ function PreScreeningContent() {
       try {
         setIsLoading(true);
         setError(null);
-        const [newData, generatedData, archivedData, statsData] = await Promise.all([
+        // Fetch vacancies by status:
+        // - new: no pre-screening yet
+        // - generated: has pre-screening but not published (draft)
+        // - published: published_at IS NOT NULL
+        // - archived: closed/filled
+        const [newData, generatedData, publishedData, archivedData, statsData] = await Promise.all([
           getPreScreeningVacancies('new'),
           getPreScreeningVacancies('generated'),
+          getPreScreeningVacancies('published'),
           getPreScreeningVacancies('archived'),
           getDashboardStats(),
         ]);
-        setNewVacancies(newData.vacancies);
-        setGeneratedVacancies(generatedData.vacancies);
+
+        // Concept tab = new + generated (all unpublished)
+        // Published tab = published
+        setConceptVacancies([...newData.vacancies, ...generatedData.vacancies]);
+        setPublishedVacancies(publishedData.vacancies);
         setArchivedVacancies(archivedData.vacancies);
         setStats(statsData);
       } catch (err) {
@@ -205,18 +214,18 @@ function PreScreeningContent() {
         <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-2">
         <div className="flex items-center justify-between">
           <TabsList variant="line">
-            <TabsTrigger value="new" data-testid="tab-new-vacancies">
-              <Plus className="w-3.5 h-3.5" />
-              Nieuw
+            <TabsTrigger value="concept" data-testid="tab-concept-vacancies">
+              <FileEdit className="w-3.5 h-3.5" />
+              Concept
               <span className="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-600">
-                {newVacancies.length}
+                {conceptVacancies.length}
               </span>
             </TabsTrigger>
-            <TabsTrigger value="generated" data-testid="tab-generated-vacancies">
-              <Zap className="w-3.5 h-3.5" />
-              Gegenereerd
+            <TabsTrigger value="published" data-testid="tab-published-vacancies">
+              <Send className="w-3.5 h-3.5" />
+              Gepubliceerd
               <span className="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-600">
-                {generatedVacancies.length}
+                {publishedVacancies.length}
               </span>
             </TabsTrigger>
             <TabsTrigger value="archived" data-testid="tab-archived-vacancies">
@@ -250,12 +259,12 @@ function PreScreeningContent() {
           </div>
         </div>
         
-        <TabsContent value="new" className="">
-          <PendingVacanciesTable vacancies={newVacancies} />
+        <TabsContent value="concept" className="">
+          <ConceptVacanciesTable vacancies={conceptVacancies} />
         </TabsContent>
 
-        <TabsContent value="generated" className="">
-          <GeneratedVacanciesTable vacancies={generatedVacancies} />
+        <TabsContent value="published" className="">
+          <PublishedVacanciesTable vacancies={publishedVacancies} />
         </TabsContent>
 
         <TabsContent value="archived" className="">
@@ -373,10 +382,10 @@ function PreScreeningContent() {
             <AlertDialogTitle>Automatisch genereren inschakelen?</AlertDialogTitle>
             <AlertDialogDescription asChild>
               <div className="space-y-2 text-sm text-gray-600">
-                {newVacancies.length > 0 ? (
+                {conceptVacancies.length > 0 ? (
                   <p>
                     Dit maakt pre-screening interviews aan voor je{' '}
-                    <span className="font-medium text-gray-900">{newVacancies.length} nieuwe</span> en alle toekomstige vacatures.
+                    <span className="font-medium text-gray-900">{conceptVacancies.length} concept</span> en alle toekomstige vacatures.
                   </p>
                 ) : (
                   <p>

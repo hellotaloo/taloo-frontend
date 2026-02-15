@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { Building2, MapPin, ExternalLink } from 'lucide-react';
+import { Building2, MapPin } from 'lucide-react';
 import { APIClient } from '@/lib/types';
 import {
   DataTable,
@@ -72,24 +72,17 @@ export function CustomersTable({ customers }: CustomersTableProps) {
       key: 'source',
       header: 'Bron',
       sortable: false,
-      className: 'w-[140px]',
+      className: 'w-[60px] text-center',
       accessor: () => 'salesforce',
       render: () => (
-        <button
-          onClick={(e) => e.stopPropagation()}
-          className="inline-flex items-center gap-1.5 text-gray-500 hover:text-gray-700 transition-colors cursor-pointer"
-          title="Brongegevens bekijken"
-        >
+        <span className="inline-flex items-center justify-center">
           <Image
             src="/salesforc-logo-cloud.png"
             alt="Salesforce"
             width={16}
             height={11}
-            className="opacity-70"
           />
-          <span className="text-sm">Salesforce</span>
-          <ExternalLink className="w-3 h-3" />
-        </button>
+        </span>
       ),
     },
     {

@@ -1074,11 +1074,11 @@ function DesignVariantH() {
                           </div>
                         </div>
                         <div className="flex items-start gap-2">
-                          <div className="w-4 h-4 rounded-full bg-amber-100 flex items-center justify-center shrink-0 mt-0.5">
-                            <XCircle className="w-2.5 h-2.5 text-amber-600" />
+                          <div className="w-4 h-4 rounded-full bg-orange-100 flex items-center justify-center shrink-0 mt-0.5">
+                            <XCircle className="w-2.5 h-2.5 text-orange-600" />
                           </div>
                           <div className="flex-1">
-                            <p className="text-xs text-amber-600 font-medium">NEE</p>
+                            <p className="text-xs text-orange-600 font-medium">NEE</p>
                             <p className="text-xs text-gray-500 mt-0.5">Vraag over hoogseizoen (zomermaanden)</p>
                           </div>
                         </div>
@@ -1202,12 +1202,12 @@ function DesignVariantI() {
                   {/* NO to weekend */}
                   <div className="flex flex-col items-center">
                     <div className="w-px h-6 bg-gray-300" />
-                    <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 text-xs font-medium">
+                    <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 text-xs font-medium">
                       NEE
                     </div>
                     <div className="w-px h-6 bg-gray-300" />
-                    <div className="bg-amber-50 rounded-lg p-3 border border-amber-200 max-w-[180px]">
-                      <p className="text-xs text-amber-700">Hoogseizoen vraag</p>
+                    <div className="bg-orange-50 rounded-lg p-3 border border-orange-200 max-w-[180px]">
+                      <p className="text-xs text-orange-700">Hoogseizoen vraag</p>
                     </div>
                   </div>
 
@@ -1237,7 +1237,7 @@ function DesignVariantI() {
               <span className="text-xs text-gray-500">Doorgaan</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded bg-amber-100 border border-amber-300" />
+              <div className="w-4 h-4 rounded bg-orange-100 border border-orange-300" />
               <span className="text-xs text-gray-500">Alternatief pad</span>
             </div>
             <div className="flex items-center gap-2">
@@ -1341,7 +1341,7 @@ function DesignVariantJ() {
                           <CheckCircle className="w-3 h-3 text-green-500" /> Vraag over vervoer
                         </span>
                         <span className="flex items-center gap-1">
-                          <XCircle className="w-3 h-3 text-amber-500" /> Vraag over hoogseizoen
+                          <XCircle className="w-3 h-3 text-orange-500" /> Vraag over hoogseizoen
                         </span>
                       </div>
                     </div>
@@ -1702,7 +1702,7 @@ function DesignVariantL() {
                   <p className="text-xs text-gray-600">Weekend beschikbaarheid?</p>
                   <div className="flex justify-between mt-2 text-xs">
                     <span className="text-green-500">JA: Vervoer vraag</span>
-                    <span className="text-amber-500">NEE: Hoogseizoen</span>
+                    <span className="text-orange-500">NEE: Hoogseizoen</span>
                   </div>
                 </div>
               </div>
@@ -1807,7 +1807,7 @@ function DesignVariantM() {
                   </div>
                   <div className="flex items-center gap-2 text-sm">
                     <span className="w-12 text-right">
-                      <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 text-xs font-medium">NEE</span>
+                      <span className="px-1.5 py-0.5 rounded bg-orange-100 text-orange-700 text-xs font-medium">NEE</span>
                     </span>
                     <ArrowRight className="w-3 h-3 text-gray-400" />
                     <span className="text-gray-600">Vraag over hoogseizoen mogelijkheid</span>

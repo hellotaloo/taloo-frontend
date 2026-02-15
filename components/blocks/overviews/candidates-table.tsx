@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { Users, ExternalLink, FlaskConical } from 'lucide-react';
+import { Users } from 'lucide-react';
 import { APICandidateListItem } from '@/lib/types';
 import {
   DataTable,
@@ -43,15 +43,7 @@ export function CandidatesTable({ candidates, selectedId, onRowClick }: Candidat
       accessor: (item) => item.full_name,
       render: (item) => (
         <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <span className="font-medium text-gray-900">{item.full_name}</span>
-            {item.is_test && (
-              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-100 text-amber-700">
-                <FlaskConical className="w-3 h-3" />
-                Test
-              </span>
-            )}
-          </div>
+          <span className="font-medium text-gray-900">{item.full_name}</span>
           {item.phone && <div className="text-xs text-gray-400 mt-0.5">{item.phone}</div>}
         </div>
       ),
@@ -60,24 +52,17 @@ export function CandidatesTable({ candidates, selectedId, onRowClick }: Candidat
       key: 'source',
       header: 'Bron',
       sortable: false,
-      className: 'w-[140px]',
+      className: 'w-[60px] text-center',
       accessor: () => 'salesforce',
       render: () => (
-        <button
-          onClick={(e) => e.stopPropagation()}
-          className="inline-flex items-center gap-1.5 text-gray-500 hover:text-gray-700 transition-colors cursor-pointer"
-          title="Brongegevens bekijken"
-        >
+        <span className="inline-flex items-center justify-center">
           <Image
             src="/salesforc-logo-cloud.png"
             alt="Salesforce"
             width={16}
             height={11}
-            className="opacity-70"
           />
-          <span className="text-sm">Salesforce</span>
-          <ExternalLink className="w-3 h-3" />
-        </button>
+        </span>
       ),
     },
     {
@@ -111,9 +96,6 @@ export function CandidatesTable({ candidates, selectedId, onRowClick }: Candidat
     >
       <DataTableHeader />
       <DataTableBody
-        rowClassName={(item: APICandidateListItem) =>
-          item.is_test ? 'bg-amber-50/50 hover:bg-amber-100/50' : ''
-        }
         emptyState={
           <DataTableEmpty
             icon={Users}

@@ -89,8 +89,8 @@ export function ApplicationDetailPane({ application, onClose }: ApplicationDetai
               icon={application.status === 'completed' ? (application.qualified ? Award : UserX) : Award}
               variant={application.status === 'completed' ? (application.qualified ? 'success' : 'error') : 'neutral'}
             />
-            {application.overallScore !== undefined && (
-              <CompactScoreCard score={application.overallScore} pending={application.status !== 'completed'} />
+            {application.openQuestionsScore !== undefined && (
+              <CompactScoreCard score={application.openQuestionsScore} pending={application.status !== 'completed'} />
             )}
           </div>
           {/* Secondary stats row */}
@@ -212,7 +212,7 @@ function CompactScoreCard({ score, pending = false }: { score: number; pending?:
   } else if (score >= 60) {
     colorClasses = { bg: 'bg-lime-50', border: 'border-lime-200', text: 'text-lime-700', icon: 'text-lime-500' };
   } else if (score >= 40) {
-    colorClasses = { bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-700', icon: 'text-amber-500' };
+    colorClasses = { bg: 'bg-orange-50', border: 'border-orange-200', text: 'text-orange-700', icon: 'text-orange-500' };
   } else {
     colorClasses = { bg: 'bg-red-50', border: 'border-red-200', text: 'text-red-700', icon: 'text-red-500' };
   }
@@ -256,7 +256,7 @@ function getRatingColor(rating: AnswerRating): string {
   switch (rating) {
     case 'excellent': return 'bg-green-100 text-green-700';
     case 'good': return 'bg-lime-100 text-lime-700';
-    case 'average': return 'bg-amber-100 text-amber-700';
+    case 'average': return 'bg-orange-100 text-orange-700';
     case 'poor': return 'bg-red-100 text-red-700';
   }
 }

@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils';
 import { Phone, FileCheck, ScanSearch } from 'lucide-react';
 import { VacancyAgents, AgentStatusInfo } from '@/lib/types';
 import Link from 'next/link';
+import { TagBadge, type TagBadgeVariant } from '@/components/kit/tag-badge';
 
 export interface AgentIconsProps {
   agents: VacancyAgents;
@@ -12,24 +13,19 @@ export interface AgentIconsProps {
 }
 
 /**
- * Get styling classes based on agent status
+ * Get variant based on agent status
  * - Online (green): exists: true + status: "online"
  * - Offline (gray): exists: true + status: "offline"
  * - No display: exists: false
  */
-function getAgentStyles(agent: AgentStatusInfo): { bg: string; text: string } | null {
+function getAgentVariant(agent: AgentStatusInfo): TagBadgeVariant | null {
   if (!agent.exists) return null;
-
-  if (agent.status === 'online') {
-    return { bg: 'bg-green-500', text: 'text-white' };
-  }
-  // offline or null status
-  return { bg: 'bg-gray-100', text: 'text-gray-400' };
+  return agent.status === 'online' ? 'green' : 'gray';
 }
 
 /**
  * Agent status badges showing which AI agents are active for a vacancy.
- * Uses the same icons as the navigation sidebar.
+ * Uses TagBadge component for consistent styling.
  * When vacancyId is provided, badges become clickable links to the agent detail pages.
  *
  * Colors:
@@ -45,61 +41,37 @@ export function AgentIcons({ agents, vacancyId, className }: AgentIconsProps) {
     return <span className="text-gray-400 text-xs">-</span>;
   }
 
-  const prescreeningStyles = getAgentStyles(agents.prescreening);
-  const preonboardingStyles = getAgentStyles(agents.preonboarding);
-  const insightsStyles = getAgentStyles(agents.insights);
-
-  const badgeBaseClass = 'inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium';
-  const linkClass = 'hover:brightness-90 transition-all';
+  const prescreeningVariant = getAgentVariant(agents.prescreening);
+  const preonboardingVariant = getAgentVariant(agents.preonboarding);
+  const insightsVariant = getAgentVariant(agents.insights);
 
   return (
     <div className={cn('flex items-center gap-1.5', className)}>
-      {prescreeningStyles && (
+      {prescreeningVariant && (
         vacancyId ? (
-          <Link
-            href={`/pre-screening/edit/${vacancyId}`}
-            className={cn(badgeBaseClass, linkClass, prescreeningStyles.bg, prescreeningStyles.text)}
-          >
-            <Phone className="w-3 h-3" />
-            Pre-screening
+          <Link href={`/pre-screening/edit/${vacancyId}`} className="hover:brightness-90 transition-all">
+            <TagBadge label="Pre-screening" variant={prescreeningVariant} icon={Phone} />
           </Link>
         ) : (
-          <span className={cn(badgeBaseClass, prescreeningStyles.bg, prescreeningStyles.text)}>
-            <Phone className="w-3 h-3" />
-            Pre-screening
-          </span>
+          <TagBadge label="Pre-screening" variant={prescreeningVariant} icon={Phone} />
         )
       )}
-      {preonboardingStyles && (
+      {preonboardingVariant && (
         vacancyId ? (
-          <Link
-            href={`/pre-onboarding/edit/${vacancyId}`}
-            className={cn(badgeBaseClass, linkClass, preonboardingStyles.bg, preonboardingStyles.text)}
-          >
-            <FileCheck className="w-3 h-3" />
-            Pre-onboarding
+          <Link href={`/pre-onboarding/edit/${vacancyId}`} className="hover:brightness-90 transition-all">
+            <TagBadge label="Pre-onboarding" variant={preonboardingVariant} icon={FileCheck} />
           </Link>
         ) : (
-          <span className={cn(badgeBaseClass, preonboardingStyles.bg, preonboardingStyles.text)}>
-            <FileCheck className="w-3 h-3" />
-            Pre-onboarding
-          </span>
+          <TagBadge label="Pre-onboarding" variant={preonboardingVariant} icon={FileCheck} />
         )
       )}
-      {insightsStyles && (
+      {insightsVariant && (
         vacancyId ? (
-          <Link
-            href={`/insights?vacancy=${vacancyId}`}
-            className={cn(badgeBaseClass, linkClass, insightsStyles.bg, insightsStyles.text)}
-          >
-            <ScanSearch className="w-3 h-3" />
-            Insights
+          <Link href={`/insights?vacancy=${vacancyId}`} className="hover:brightness-90 transition-all">
+            <TagBadge label="Insights" variant={insightsVariant} icon={ScanSearch} />
           </Link>
         ) : (
-          <span className={cn(badgeBaseClass, insightsStyles.bg, insightsStyles.text)}>
-            <ScanSearch className="w-3 h-3" />
-            Insights
-          </span>
+          <TagBadge label="Insights" variant={insightsVariant} icon={ScanSearch} />
         )
       )}
     </div>

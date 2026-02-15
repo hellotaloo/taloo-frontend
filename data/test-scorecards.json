@@ -33,5 +33,93 @@
     "couldBeBetter": "qsdqs",
     "score": "5",
     "submittedAt": "2026-02-15T10:36:20.606Z"
+  },
+  {
+    "id": "sc_1771162204104",
+    "name": "Yala Deschepper",
+    "date": "2026-02-15",
+    "completionStatus": "yes",
+    "questionsUnderstanding": {
+      "rating": "5",
+      "remarks": ""
+    },
+    "agentResponse": {
+      "rating": "5",
+      "remarks": ""
+    },
+    "stuckOrConfused": {
+      "rating": "5",
+      "remarks": ""
+    },
+    "liked": "the job",
+    "couldBeBetter": "more options",
+    "score": "5",
+    "submittedAt": "2026-02-15T13:30:03.852Z"
+  },
+  {
+    "id": "sc_1771162728186",
+    "name": "Bauke",
+    "date": "2026-02-15",
+    "completionStatus": "yes",
+    "questionsUnderstanding": {
+      "rating": "5",
+      "remarks": ""
+    },
+    "agentResponse": {
+      "rating": "5",
+      "remarks": ""
+    },
+    "stuckOrConfused": {
+      "rating": "5",
+      "remarks": ""
+    },
+    "liked": "",
+    "couldBeBetter": "",
+    "score": "4",
+    "submittedAt": "2026-02-15T13:38:48.056Z"
+  },
+  {
+    "id": "sc_1771163635986",
+    "name": "mama",
+    "date": "2026-02-15",
+    "completionStatus": "yes",
+    "questionsUnderstanding": {
+      "rating": "5",
+      "remarks": ""
+    },
+    "agentResponse": {
+      "rating": "5",
+      "remarks": ""
+    },
+    "stuckOrConfused": {
+      "rating": "5",
+      "remarks": ""
+    },
+    "liked": "",
+    "couldBeBetter": "",
+    "score": "4",
+    "submittedAt": "2026-02-15T13:53:55.941Z"
+  },
+  {
+    "id": "sc_1771165382004",
+    "name": "Papa",
+    "date": "2026-02-15",
+    "completionStatus": "yes",
+    "questionsUnderstanding": {
+      "rating": "5",
+      "remarks": ""
+    },
+    "agentResponse": {
+      "rating": "4",
+      "remarks": "ik vroeg nog eens hoe laat het interview was en hij zei dan 'ok dan plannen we het ...\""
+    },
+    "stuckOrConfused": {
+      "rating": "1",
+      "remarks": "was duidelijk en ging goed."
+    },
+    "liked": "ja maar was ik met een mens of AI aan het praten?",
+    "couldBeBetter": "het is ok als ik weet dat er nadien een interview volgt met mens",
+    "score": "4",
+    "submittedAt": "2026-02-15T14:23:01.943Z"
   }
 ]

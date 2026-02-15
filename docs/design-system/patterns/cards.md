@@ -275,12 +275,12 @@ import { FileText } from 'lucide-react';
 ### Alert Card
 
 ```tsx
-<Card className="p-4 border-amber-200 bg-amber-50">
+<Card className="p-4 border-orange-200 bg-orange-50">
   <div className="flex gap-3">
-    <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0" />
+    <AlertTriangle className="w-5 h-5 text-orange-600 flex-shrink-0" />
     <div>
-      <h4 className="font-semibold text-amber-900">Let op</h4>
-      <p className="text-sm text-amber-800 mt-1">
+      <h4 className="font-semibold text-orange-900">Let op</h4>
+      <p className="text-sm text-orange-800 mt-1">
         Er zijn nog 3 vacatures die aandacht nodig hebben
       </p>
     </div>

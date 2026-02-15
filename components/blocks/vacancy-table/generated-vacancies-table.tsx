@@ -1,8 +1,10 @@
 'use client';
 
-import { Building2, MapPin, Zap } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Building2, MapPin, Send, ArrowUp, ArrowDown, ChevronsUpDown } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Vacancy } from '@/lib/types';
+import { cn } from '@/lib/utils';
 import {
   Table,
   TableBody,
@@ -11,12 +13,57 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { StatusBadge } from '@/components/kit/status';
 import { ChannelIcons } from '@/components/kit/status';
+import { StatusBadge } from '@/components/kit/status-badge';
 
-export interface GeneratedVacanciesTableProps {
+type SortKey = 'title' | 'candidatesCount' | 'completedCount' | 'qualifiedCount' | 'lastActivityAt';
+type SortDirection = 'asc' | 'desc' | null;
+
+interface SortableHeaderProps {
+  label: string;
+  sortKey: SortKey;
+  currentSortKey: SortKey | null;
+  sortDirection: SortDirection;
+  onSort: (key: SortKey) => void;
+  className?: string;
+}
+
+function SortableHeader({ label, sortKey, currentSortKey, sortDirection, onSort, className }: SortableHeaderProps) {
+  const isSorted = currentSortKey === sortKey;
+
+  return (
+    <TableHead
+      className={cn(
+        'cursor-pointer select-none hover:bg-gray-50 transition-colors',
+        isSorted && 'bg-gray-50',
+        className
+      )}
+      onClick={() => onSort(sortKey)}
+    >
+      <div className="flex items-center gap-2">
+        <span>{label}</span>
+        <span className="inline-flex items-center">
+          {isSorted ? (
+            sortDirection === 'asc' ? (
+              <ArrowUp className="w-4 h-4 text-gray-700" />
+            ) : (
+              <ArrowDown className="w-4 h-4 text-gray-700" />
+            )
+          ) : (
+            <ChevronsUpDown className="w-4 h-4 text-gray-400" />
+          )}
+        </span>
+      </div>
+    </TableHead>
+  );
+}
+
+export interface PublishedVacanciesTableProps {
   vacancies: Vacancy[];
 }
+
+// Keep old name as alias for backwards compatibility
+export type GeneratedVacanciesTableProps = PublishedVacanciesTableProps;
 
 function formatRelativeDate(dateString: string | null | undefined) {
   if (!dateString) return '-';
@@ -34,16 +81,76 @@ function formatRelativeDate(dateString: string | null | undefined) {
   return date.toLocaleDateString('nl-BE', { day: 'numeric', month: 'short' });
 }
 
-export function GeneratedVacanciesTable({ vacancies }: GeneratedVacanciesTableProps) {
+export function PublishedVacanciesTable({ vacancies }: PublishedVacanciesTableProps) {
   const router = useRouter();
+  const [sortKey, setSortKey] = useState<SortKey | null>(null);
+  const [sortDirection, setSortDirection] = useState<SortDirection>(null);
+
+  const handleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      if (sortDirection === 'asc') {
+        setSortDirection('desc');
+      } else if (sortDirection === 'desc') {
+        setSortKey(null);
+        setSortDirection(null);
+      } else {
+        setSortDirection('asc');
+      }
+    } else {
+      setSortKey(key);
+      setSortDirection('asc');
+    }
+  };
+
+  const sortedVacancies = useMemo(() => {
+    if (!sortKey || !sortDirection) return vacancies;
+
+    return [...vacancies].sort((a, b) => {
+      let aValue: string | number | null | undefined;
+      let bValue: string | number | null | undefined;
+
+      switch (sortKey) {
+        case 'title':
+          aValue = a.title;
+          bValue = b.title;
+          break;
+        case 'candidatesCount':
+          aValue = a.candidatesCount;
+          bValue = b.candidatesCount;
+          break;
+        case 'completedCount':
+          aValue = a.completedCount;
+          bValue = b.completedCount;
+          break;
+        case 'qualifiedCount':
+          aValue = a.qualifiedCount;
+          bValue = b.qualifiedCount;
+          break;
+        case 'lastActivityAt':
+          aValue = a.lastActivityAt;
+          bValue = b.lastActivityAt;
+          break;
+      }
+
+      if (aValue == null) return sortDirection === 'asc' ? 1 : -1;
+      if (bValue == null) return sortDirection === 'asc' ? -1 : 1;
+
+      if (typeof aValue === 'number' && typeof bValue === 'number') {
+        return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
+      }
+
+      const comparison = String(aValue).localeCompare(String(bValue));
+      return sortDirection === 'asc' ? comparison : -comparison;
+    });
+  }, [vacancies, sortKey, sortDirection]);
 
   if (vacancies.length === 0) {
     return (
       <div className="text-center py-12">
         <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-3">
-          <Zap className="w-6 h-6 text-gray-400" />
+          <Send className="w-6 h-6 text-gray-400" />
         </div>
-        <p className="text-sm text-gray-500">Nog geen pre-screenings gegenereerd.</p>
+        <p className="text-sm text-gray-500">Nog geen pre-screenings gepubliceerd.</p>
       </div>
     );
   }
@@ -52,21 +159,55 @@ export function GeneratedVacanciesTable({ vacancies }: GeneratedVacanciesTablePr
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead className="w-full">Vacature</TableHead>
-          <TableHead className="text-center">Kanalen</TableHead>
-          <TableHead className="text-center">Kandidaten</TableHead>
-          <TableHead className="text-center">Afgerond</TableHead>
-          <TableHead className="text-center">Gekwalificeerd</TableHead>
-          <TableHead>Laatste activiteit</TableHead>
+          <SortableHeader
+            label="Vacature"
+            sortKey="title"
+            currentSortKey={sortKey}
+            sortDirection={sortDirection}
+            onSort={handleSort}
+            className="w-full"
+          />
+          <TableHead>Kanalen</TableHead>
+          <SortableHeader
+            label="Kandidaten"
+            sortKey="candidatesCount"
+            currentSortKey={sortKey}
+            sortDirection={sortDirection}
+            onSort={handleSort}
+            className="text-center"
+          />
+          <SortableHeader
+            label="Afgerond"
+            sortKey="completedCount"
+            currentSortKey={sortKey}
+            sortDirection={sortDirection}
+            onSort={handleSort}
+            className="text-center"
+          />
+          <SortableHeader
+            label="Gekwalificeerd"
+            sortKey="qualifiedCount"
+            currentSortKey={sortKey}
+            sortDirection={sortDirection}
+            onSort={handleSort}
+            className="text-center"
+          />
+          <SortableHeader
+            label="Laatste activiteit"
+            sortKey="lastActivityAt"
+            currentSortKey={sortKey}
+            sortDirection={sortDirection}
+            onSort={handleSort}
+          />
         </TableRow>
       </TableHeader>
       <TableBody>
-        {vacancies.map((vacancy) => {
+        {sortedVacancies.map((vacancy) => {
           const hasActivity = vacancy.candidatesCount > 0;
           return (
             <TableRow
               key={vacancy.id}
-              data-testid={`generated-vacancy-row-${vacancy.id}`}
+              data-testid={`published-vacancy-row-${vacancy.id}`}
               className="cursor-pointer"
               onClick={() => router.push(`/pre-screening/view/${vacancy.id}`)}
             >
@@ -76,7 +217,10 @@ export function GeneratedVacanciesTable({ vacancies }: GeneratedVacanciesTablePr
                     <span className="font-medium text-gray-900 truncate">
                       {vacancy.title}
                     </span>
-                    <StatusBadge isOnline={vacancy.isOnline} />
+                    <StatusBadge
+                      label={vacancy.isOnline === true ? 'Online' : vacancy.isOnline === false ? 'Offline' : 'Concept'}
+                      variant={vacancy.isOnline === true ? 'green' : vacancy.isOnline === false ? 'gray' : 'orange'}
+                    />
                   </div>
                   <div className="flex items-center gap-2 text-xs text-gray-500 mt-0.5">
                     <span className="flex items-center gap-1">
@@ -118,3 +262,6 @@ export function GeneratedVacanciesTable({ vacancies }: GeneratedVacanciesTablePr
     </Table>
   );
 }
+
+// Keep old name as alias for backwards compatibility
+export const GeneratedVacanciesTable = PublishedVacanciesTable;

@@ -1,6 +1,6 @@
 'use client';
 
-import { Users, ArrowRight, Phone, X, FlaskConical, FileText } from 'lucide-react';
+import { Users, ArrowRight, Phone, X, FlaskConical, FileText, Calendar, Check } from 'lucide-react';
 import Image from 'next/image';
 import {
   Table,
@@ -10,7 +10,10 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { StatusBadge } from '@/components/kit/status-badge';
+import { TagBadge } from '@/components/kit/tag-badge';
 import { Application } from './dashboard-metrics';
+import { formatTimestamp as formatTimestampUtil } from '@/lib/utils';
 
 interface ApplicationsTableProps {
   applications: Application[];
@@ -20,21 +23,9 @@ interface ApplicationsTableProps {
   onPublishClick?: () => void;
 }
 
-function formatDate(dateString: string) {
-  const date = new Date(dateString);
-  return date.toLocaleDateString('nl-BE', { day: 'numeric', month: 'short', year: 'numeric' });
-}
-
-function formatInterviewSlot(dateString: string | null | undefined) {
-  if (!dateString) return null;
-  const date = new Date(dateString);
-  return date.toLocaleDateString('nl-BE', { 
-    day: 'numeric', 
-    month: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
+// Use centralized formatting utilities from lib/utils.ts
+const formatTimestamp = formatTimestampUtil;
+const formatInterviewSlot = formatTimestampUtil;
 
 export function ApplicationsTable({ 
   applications, 
@@ -77,11 +68,10 @@ export function ApplicationsTable({
       <TableHeader>
         <TableRow>
           <TableHead className="w-full">Kandidaat</TableHead>
-          <TableHead className="px-4 text-center">Score</TableHead>
-          <TableHead className="px-4">Interview moment</TableHead>
-          <TableHead className="px-4">Interactietijd</TableHead>
           <TableHead className="px-4 text-center">Kanaal</TableHead>
-          <TableHead className="px-4">Datum</TableHead>
+          <TableHead className="px-4">Gestart</TableHead>
+          <TableHead className="px-4">Afgerond</TableHead>
+          <TableHead className="px-4">Resultaat</TableHead>
           <TableHead className="px-4 text-center">Synced</TableHead>
           <TableHead className="text-right pl-4"></TableHead>
         </TableRow>
@@ -91,17 +81,19 @@ export function ApplicationsTable({
           const knockoutAnswers = application.answers.filter(a => a.questionType === 'knockout');
           const qualifyingAnswers = application.answers.filter(a => a.questionType === 'qualification');
           const knockoutPassed = knockoutAnswers.filter(a => a.passed === true).length;
+          // Check if any qualifying questions were actually answered
+          const hasOpenQuestionAnswers = qualifyingAnswers.some(a =>
+            a.answer && a.answer.trim() !== '' && !a.answer.includes('[Vraag niet beantwoord]')
+          );
           
           return (
             <TableRow
               key={application.id}
               onClick={() => onSelectApplication(application.id)}
               className={`cursor-pointer transition-colors ${
-                selectedId === application.id 
-                  ? 'bg-blue-50 hover:bg-blue-100' 
-                  : application.isTest
-                    ? 'bg-amber-50/50 hover:bg-amber-100/50'
-                    : ''
+                selectedId === application.id
+                  ? 'bg-blue-50 hover:bg-blue-100'
+                  : ''
               }`}
             >
             <TableCell>
@@ -111,40 +103,42 @@ export function ApplicationsTable({
                     {application.candidateName}
                   </span>
                   {application.isTest && (
-                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-100 text-amber-700">
-                      <FlaskConical className="w-3 h-3" />
-                      Test
-                    </span>
+                    <TagBadge label="Test" variant="gray" icon={FlaskConical} iconVariant="orange" />
                   )}
                 </div>
                 <div className="flex items-center gap-3 mt-0.5">
-                  <ScoreDisplayInline 
+                  <ScoreDisplayInline
                     knockoutPassed={application.knockoutPassed ?? knockoutPassed}
                     knockoutTotal={application.knockoutTotal ?? knockoutAnswers.length}
-                    qualifyingAnswered={application.qualificationCount ?? qualifyingAnswers.length}
+                    openQuestionsScore={application.openQuestionsScore}
+                    hasOpenQuestionAnswers={hasOpenQuestionAnswers}
                     pending={application.status !== 'completed'}
-                  />
-                  <StatusLabel 
-                    status={application.status} 
-                    qualified={application.qualified} 
                   />
                 </div>
               </div>
             </TableCell>
             <TableCell className="px-4 text-center">
-              <OverallScoreBadge score={application.overallScore} completed={application.status === 'completed'} />
-            </TableCell>
-            <TableCell className="px-4 text-gray-500 text-sm">
-              {formatInterviewSlot(application.interviewSlot) || '-'}
-            </TableCell>
-            <TableCell className="px-4 text-gray-500 text-sm">
-              {application.interactionTime}
-            </TableCell>
-            <TableCell className="px-4 text-center">
               <ChannelIcon channel={application.channel} />
             </TableCell>
-            <TableCell className="px-4 text-gray-500 text-sm">
-              {formatDate(application.timestamp)}
+            <TableCell className="px-4 text-gray-500 text-sm whitespace-nowrap">
+              {formatTimestamp(application.timestamp)}
+            </TableCell>
+            <TableCell className="px-4 text-gray-500 text-sm whitespace-nowrap">
+              {application.status === 'completed' ? (
+                <span className="inline-flex items-center gap-1.5">
+                  <Check className="w-3.5 h-3.5 text-green-500" />
+                  {application.interactionTime}
+                </span>
+              ) : (
+                <span className="text-gray-400">Bezig</span>
+              )}
+            </TableCell>
+            <TableCell className="px-4">
+              <StatusLabel
+                status={application.status}
+                qualified={application.qualified}
+                interviewSlot={application.interviewSlot}
+              />
             </TableCell>
             <TableCell className="px-4 text-center">
               <SyncedStatus synced={application.synced} isTest={application.isTest} />
@@ -169,48 +163,43 @@ export function ApplicationsTable({
   );
 }
 
-function StatusLabel({ status, qualified }: { status: 'active' | 'processing' | 'completed'; qualified: boolean }) {
+function StatusLabel({ status, qualified, interviewSlot }: { status: 'active' | 'processing' | 'completed' | 'abandoned'; qualified: boolean; interviewSlot?: string | null }) {
   if (status === 'active') {
-    return (
-      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-100 text-blue-600">
-        Bezig
-      </span>
-    );
+    return <StatusBadge label="Bezig" variant="blue" />;
   }
-  
+
   if (status === 'processing') {
-    return (
-      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-100 text-amber-700">
-        Verwerken...
-      </span>
-    );
+    return <StatusBadge label="Verwerken..." variant="orange" />;
   }
-  
-  // status === 'completed' - only show qualification status when completed
-  if (qualified) {
-    return (
-      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-green-100 text-green-700">
-        Gekwalificeerd
-      </span>
-    );
+
+  if (status === 'abandoned') {
+    return <StatusBadge label="Afgebroken" variant="gray" />;
   }
-  
-  return (
-    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-orange-100 text-orange-700">
-      Niet gekwalificeerd
-    </span>
-  );
+
+  // status === 'completed'
+  if (!qualified) {
+    return <StatusBadge label="Niet geslaagd" variant="red" />;
+  }
+
+  // Qualified with interview slot
+  if (interviewSlot) {
+    return <StatusBadge label={formatInterviewSlot(interviewSlot) || ''} variant="green" icon={Calendar} />;
+  }
+
+  return <StatusBadge label="Review nodig" variant="orange" />;
 }
 
-function ScoreDisplayInline({ 
-  knockoutPassed, 
-  knockoutTotal, 
-  qualifyingAnswered,
+function ScoreDisplayInline({
+  knockoutPassed,
+  knockoutTotal,
+  openQuestionsScore,
+  hasOpenQuestionAnswers = true,
   pending = false,
-}: { 
-  knockoutPassed: number; 
-  knockoutTotal: number; 
-  qualifyingAnswered: number;
+}: {
+  knockoutPassed: number;
+  knockoutTotal: number;
+  openQuestionsScore?: number;
+  hasOpenQuestionAnswers?: boolean;
   pending?: boolean;
 }) {
   if (knockoutTotal === 0) {
@@ -226,7 +215,7 @@ function ScoreDisplayInline({
           <span className="font-medium text-gray-400">-</span>
         </div>
         <div className="flex items-center gap-1">
-          <span className="text-gray-400">Kwalificerend:</span>
+          <span className="text-gray-400">Open vragen:</span>
           <span className="font-medium text-gray-400">-</span>
         </div>
       </div>
@@ -234,7 +223,19 @@ function ScoreDisplayInline({
   }
 
   const allKnockoutPassed = knockoutPassed === knockoutTotal;
-  
+
+  // Determine score color
+  let scoreColorClass = 'text-gray-600';
+  if (openQuestionsScore !== undefined) {
+    if (openQuestionsScore >= 60) {
+      scoreColorClass = 'text-green-600';
+    } else if (openQuestionsScore >= 40) {
+      scoreColorClass = 'text-orange-600';
+    } else {
+      scoreColorClass = 'text-red-600';
+    }
+  }
+
   return (
     <div className="flex items-center gap-3 text-xs">
       <div className="flex items-center gap-1">
@@ -243,12 +244,12 @@ function ScoreDisplayInline({
           {knockoutPassed}/{knockoutTotal}
         </span>
       </div>
-      {qualifyingAnswered > 0 && (
-        <div className="flex items-center gap-1">
-          <span className="text-gray-400">Kwalificerend:</span>
-          <span className="font-medium text-gray-600">{qualifyingAnswered}</span>
-        </div>
-      )}
+      <div className="flex items-center gap-1">
+        <span className="text-gray-400">Open vragen:</span>
+        <span className={hasOpenQuestionAnswers ? scoreColorClass : 'text-gray-400'}>
+          {hasOpenQuestionAnswers && openQuestionsScore !== undefined ? `${openQuestionsScore}/100` : '—'}
+        </span>
+      </div>
     </div>
   );
 }
@@ -306,26 +307,3 @@ function ChannelIcon({ channel }: { channel: 'voice' | 'whatsapp' | 'cv' }) {
   );
 }
 
-function OverallScoreBadge({ score, completed }: { score?: number; completed: boolean }) {
-  if (!completed || score === undefined) {
-    return <span className="text-gray-400">-</span>;
-  }
-  
-  // Determine color based on score thresholds
-  let colorClasses: string;
-  if (score >= 80) {
-    colorClasses = 'bg-green-100 text-green-700';
-  } else if (score >= 60) {
-    colorClasses = 'bg-lime-100 text-lime-700';
-  } else if (score >= 40) {
-    colorClasses = 'bg-amber-100 text-amber-700';
-  } else {
-    colorClasses = 'bg-red-100 text-red-700';
-  }
-  
-  return (
-    <span className={`inline-flex items-center justify-center px-2 py-0.5 rounded text-xs font-semibold ${colorClasses}`}>
-      {score}
-    </span>
-  );
-}

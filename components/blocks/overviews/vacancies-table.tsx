@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { Briefcase, Building2, MapPin, ExternalLink } from 'lucide-react';
+import { Briefcase, Building2, MapPin } from 'lucide-react';
 import { APIVacancyListItem, VacancyStatus } from '@/lib/types';
 import {
   DataTable,
@@ -18,7 +18,7 @@ const avatarColors = [
   { bg: 'bg-blue-100', text: 'text-blue-700' },
   { bg: 'bg-purple-100', text: 'text-purple-700' },
   { bg: 'bg-pink-100', text: 'text-pink-700' },
-  { bg: 'bg-amber-100', text: 'text-amber-700' },
+  { bg: 'bg-orange-100', text: 'text-orange-700' },
   { bg: 'bg-emerald-100', text: 'text-emerald-700' },
   { bg: 'bg-cyan-100', text: 'text-cyan-700' },
   { bg: 'bg-rose-100', text: 'text-rose-700' },
@@ -69,7 +69,7 @@ const statusStyles: Partial<Record<VacancyStatus, { bg: string; text: string; do
   // New API statuses
   concept: { bg: 'bg-gray-100', text: 'text-gray-700', dot: 'bg-gray-400' },
   open: { bg: 'bg-white border border-green-200', text: 'text-green-700', dot: 'bg-green-500' },
-  on_hold: { bg: 'bg-white border border-amber-200', text: 'text-amber-700', dot: 'bg-amber-500' },
+  on_hold: { bg: 'bg-white border border-orange-200', text: 'text-orange-700', dot: 'bg-orange-500' },
   filled: { bg: 'bg-white border border-blue-200', text: 'text-blue-700', dot: 'bg-blue-500' },
   closed: { bg: 'bg-gray-100', text: 'text-gray-500', dot: 'bg-gray-400' },
   // Legacy statuses (mapped to appropriate styles)
@@ -161,24 +161,17 @@ export function VacanciesTable({ vacancies, selectedId, onRowClick }: VacanciesT
       key: 'source',
       header: 'Bron',
       sortable: false,
-      className: 'w-[140px]',
+      className: 'w-[60px] text-center',
       accessor: () => 'salesforce',
       render: () => (
-        <button
-          onClick={(e) => e.stopPropagation()}
-          className="inline-flex items-center gap-1.5 text-gray-500 hover:text-gray-700 transition-colors cursor-pointer"
-          title="Brongegevens bekijken"
-        >
+        <span className="inline-flex items-center justify-center">
           <Image
             src="/salesforc-logo-cloud.png"
             alt="Salesforce"
             width={16}
             height={11}
-            className="opacity-70"
           />
-          <span className="text-sm">Salesforce</span>
-          <ExternalLink className="w-3 h-3" />
-        </button>
+        </span>
       ),
     },
     {

@@ -77,7 +77,7 @@ function getStatusBadge(vacancy: Vacancy): BadgeConfig {
     return {
       label: 'Draft',
       variant: 'draft',
-      color: 'amber'  // or your design system equivalent
+      color: 'orange'  // or your design system equivalent
     };
   }
   

@@ -47,7 +47,7 @@ const availabilityLabels: Record<APIAvailabilityStatus, string> = {
 // Application status styles
 const applicationStatusStyles: Record<string, { bg: string; text: string; label: string }> = {
   active: { bg: 'bg-blue-100', text: 'text-blue-700', label: 'Actief' },
-  processing: { bg: 'bg-amber-100', text: 'text-amber-700', label: 'Verwerken' },
+  processing: { bg: 'bg-orange-100', text: 'text-orange-700', label: 'Verwerken' },
   completed: { bg: 'bg-green-100', text: 'text-green-700', label: 'Afgerond' },
   abandoned: { bg: 'bg-gray-100', text: 'text-gray-500', label: 'Verlaten' },
 };
@@ -94,7 +94,7 @@ function RatingDisplay({ rating }: { rating: number | undefined }) {
   if (rating === undefined || rating === null) return null;
   return (
     <span className="inline-flex items-center gap-1 text-sm text-gray-700">
-      <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
+      <Star className="w-4 h-4 text-orange-400 fill-orange-400" />
       {rating.toFixed(1)}
     </span>
   );
@@ -226,7 +226,7 @@ export function CandidateDetailPane({ candidate, isLoading, onClose }: Candidate
             </p>
             {candidate.rating !== undefined && candidate.rating !== null ? (
               <p className="text-sm font-medium text-gray-900 flex items-center gap-1">
-                <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
+                <Star className="w-4 h-4 text-orange-400 fill-orange-400" />
                 {candidate.rating.toFixed(1)}
               </p>
             ) : (

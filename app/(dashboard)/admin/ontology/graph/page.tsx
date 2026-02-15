@@ -127,7 +127,7 @@ function DocumentNode({ data }: { data: DocumentNodeData }) {
   const typeColors = {
     mandatory: 'border-red-300 bg-red-50',
     preferred: 'border-blue-300 bg-blue-50',
-    conditional: 'border-amber-300 bg-amber-50',
+    conditional: 'border-orange-300 bg-orange-50',
   };
   const opacityClass = data.isDimmed ? 'opacity-20' : data.isHighlighted ? 'opacity-100 ring-2 ring-offset-2 ring-gray-400' : 'opacity-100';
 
@@ -461,7 +461,7 @@ export default function OntologyGraphPage() {
                 <span>Verplicht</span>
               </div>
               <div className="flex items-center gap-1">
-                <div className="w-3 h-3 rounded bg-amber-100 border border-amber-300" />
+                <div className="w-3 h-3 rounded bg-orange-100 border border-orange-300" />
                 <span>Voorwaardelijk</span>
               </div>
               <div className="flex items-center gap-1">

@@ -1,9 +1,10 @@
 'use client';
 
-import { X, CheckCircle, XCircle, Clock, MessageSquare, Award, UserX, ExternalLink, TrendingUp, FileText, Info } from 'lucide-react';
+import { X, CheckCircle, Clock, MessageSquare, Award, UserX, ExternalLink, TrendingUp, FileText, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Application } from './dashboard-metrics';
+import { formatDateTime } from '@/lib/utils';
 
 interface ApplicationDetailPaneProps {
   application: Application | null;
@@ -15,7 +16,10 @@ export function ApplicationDetailPane({ application, onClose }: ApplicationDetai
 
   const knockoutAnswers = application.answers.filter(a => a.questionType === 'knockout');
   const qualifyingAnswers = application.answers.filter(a => a.questionType === 'qualification');
-  const failedKnockout = knockoutAnswers.find(a => a.passed === false);
+  // Check if any qualifying questions were actually answered
+  const hasOpenQuestionAnswers = qualifyingAnswers.some(a =>
+    a.answer && a.answer.trim() !== '' && !a.answer.includes('[Vraag niet beantwoord]')
+  );
 
   return (
     <div className="flex flex-col h-full bg-white animate-in slide-in-from-right duration-300">
@@ -26,13 +30,7 @@ export function ApplicationDetailPane({ application, onClose }: ApplicationDetai
             {application.candidateName}
           </h2>
           <p className="text-xs text-gray-500 mt-0.5">
-            {new Date(application.timestamp).toLocaleDateString('nl-BE', {
-              day: 'numeric',
-              month: 'short',
-              year: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit',
-            })}
+            {formatDateTime(application.timestamp)}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -79,9 +77,18 @@ export function ApplicationDetailPane({ application, onClose }: ApplicationDetai
           <div className="grid grid-cols-3 gap-2">
             <CompactStatusCard
               label="Status"
-              value={application.status === 'completed' ? 'Afgerond' : application.status === 'processing' ? 'Verwerken...' : 'Bezig'}
+              value={
+                application.status === 'completed' ? 'Afgerond' :
+                application.status === 'processing' ? 'Verwerken...' :
+                application.status === 'abandoned' ? 'Afgebroken' :
+                'Bezig'
+              }
               icon={application.status === 'completed' ? CheckCircle : Clock}
-              variant={application.status === 'completed' ? 'success' : 'info'}
+              variant={
+                application.status === 'completed' ? 'success' :
+                application.status === 'abandoned' ? 'neutral' :
+                'info'
+              }
             />
             <CompactStatusCard
               label="Kwalificatie"
@@ -89,8 +96,12 @@ export function ApplicationDetailPane({ application, onClose }: ApplicationDetai
               icon={application.status === 'completed' ? (application.qualified ? Award : UserX) : Award}
               variant={application.status === 'completed' ? (application.qualified ? 'success' : 'error') : 'neutral'}
             />
-            {application.overallScore !== undefined && (
-              <CompactScoreCard score={application.overallScore} pending={application.status !== 'completed'} />
+            {application.openQuestionsScore !== undefined && (
+              <CompactScoreCard
+                score={application.openQuestionsScore}
+                hasAnswers={hasOpenQuestionAnswers}
+                pending={application.status !== 'completed'}
+              />
             )}
           </div>
           {/* Secondary stats row */}
@@ -105,20 +116,6 @@ export function ApplicationDetailPane({ application, onClose }: ApplicationDetai
             </span>
           </div>
         </div>
-
-        {/* Failed Knockout Reason */}
-        {failedKnockout && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-            <div className="flex items-start gap-2">
-              <XCircle className="w-4 h-4 text-red-500 mt-0.5 shrink-0" />
-              <div>
-                <p className="text-sm font-medium text-red-700">Knock-out vraag niet gehaald</p>
-                <p className="text-xs text-red-600 mt-1">{failedKnockout.questionText}</p>
-                <p className="text-xs text-red-500 mt-1 italic">"{failedKnockout.answer}"</p>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Knockout Questions */}
         {knockoutAnswers.length > 0 && (
@@ -192,16 +189,16 @@ function CompactStatusCard({ label, value, icon: Icon, variant }: CompactStatusC
   );
 }
 
-function CompactScoreCard({ score, pending = false }: { score: number; pending?: boolean }) {
-  // When pending, show greyed out state
-  if (pending) {
+function CompactScoreCard({ score, hasAnswers = true, pending = false }: { score: number; hasAnswers?: boolean; pending?: boolean }) {
+  // When pending or no answers, show greyed out state
+  if (pending || !hasAnswers) {
     return (
       <div className="border rounded-lg px-2.5 py-2 bg-gray-50 border-gray-200 text-gray-700">
         <div className="flex items-center gap-1.5 mb-0.5">
           <TrendingUp className="w-3 h-3 text-gray-400" />
-          <span className="text-[10px] font-medium opacity-75">Score</span>
+          <span className="text-[10px] font-medium opacity-75">Open vragen</span>
         </div>
-        <p className="text-xs font-semibold">-</p>
+        <p className="text-xs font-semibold">—</p>
       </div>
     );
   }
@@ -212,7 +209,7 @@ function CompactScoreCard({ score, pending = false }: { score: number; pending?:
   } else if (score >= 60) {
     colorClasses = { bg: 'bg-lime-50', border: 'border-lime-200', text: 'text-lime-700', icon: 'text-lime-500' };
   } else if (score >= 40) {
-    colorClasses = { bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-700', icon: 'text-amber-500' };
+    colorClasses = { bg: 'bg-orange-50', border: 'border-orange-200', text: 'text-orange-700', icon: 'text-orange-500' };
   } else {
     colorClasses = { bg: 'bg-red-50', border: 'border-red-200', text: 'text-red-700', icon: 'text-red-500' };
   }
@@ -221,14 +218,14 @@ function CompactScoreCard({ score, pending = false }: { score: number; pending?:
     <div className={`border rounded-lg px-2.5 py-2 ${colorClasses.bg} ${colorClasses.border} ${colorClasses.text}`}>
       <div className="flex items-center gap-1.5 mb-0.5">
         <TrendingUp className={`w-3 h-3 ${colorClasses.icon}`} />
-        <span className="text-[10px] font-medium opacity-75">Score</span>
+        <span className="text-[10px] font-medium opacity-75">Open vragen</span>
       </div>
       <p className="text-xs font-semibold">{score}/100</p>
     </div>
   );
 }
 
-type AnswerRating = 'excellent' | 'good' | 'average' | 'poor';
+type AnswerRating = 'excellent' | 'good' | 'average' | 'below_average' | 'weak';
 
 interface AnswerCardProps {
   answer: {
@@ -248,7 +245,8 @@ function getRatingLabel(rating: AnswerRating): string {
     case 'excellent': return 'Uitstekend';
     case 'good': return 'Goed';
     case 'average': return 'Gemiddeld';
-    case 'poor': return 'Onvoldoende';
+    case 'below_average': return 'Ondergemiddeld';
+    case 'weak': return 'Zwak';
   }
 }
 
@@ -256,59 +254,64 @@ function getRatingColor(rating: AnswerRating): string {
   switch (rating) {
     case 'excellent': return 'bg-green-100 text-green-700';
     case 'good': return 'bg-lime-100 text-lime-700';
-    case 'average': return 'bg-amber-100 text-amber-700';
-    case 'poor': return 'bg-red-100 text-red-700';
+    case 'average': return 'bg-orange-100 text-orange-700';
+    case 'below_average': return 'bg-orange-100 text-orange-700';
+    case 'weak': return 'bg-red-100 text-red-700';
   }
 }
 
 function AnswerCard({ answer, showStatus = false }: AnswerCardProps) {
   const isKnockout = answer.questionType === 'knockout';
+  // Check for actual answer - exclude empty strings and placeholder text
+  const hasAnswer = answer.answer &&
+    answer.answer.trim() !== '' &&
+    !answer.answer.includes('[Vraag niet beantwoord]');
+
+  // For qualifying questions: only show score/rating/motivation when answered
   const hasScore = answer.score !== undefined && answer.score !== null;
   const hasRating = !!answer.rating;
   const hasMotivation = !!answer.motivation;
-
-  const hasAnswer = answer.answer && answer.answer.trim() !== '';
-  const showAnswerContent = answer.passed != null;
+  const showQualifyingMetrics = !isKnockout && hasAnswer;
 
   return (
-    <div className="bg-gray-50 rounded-lg p-3">
+    <div className={`bg-gray-50 rounded-lg p-3 ${!hasAnswer ? 'opacity-50' : ''}`}>
       <p className="text-sm text-gray-700 font-medium">{answer.questionText}</p>
-      {showAnswerContent && (
-        hasAnswer ? (
-          <p className="text-sm text-gray-600 mt-2 italic">"{answer.answer}"</p>
-        ) : (
-          <p className="text-sm text-gray-400 mt-2 italic">Wacht op antwoord</p>
-        )
+      {hasAnswer ? (
+        <p className="text-sm text-gray-600 mt-2 italic">"{answer.answer}"</p>
+      ) : (
+        <p className="text-sm text-gray-400 mt-2">—</p>
       )}
-      
+
       {/* Status and score row */}
-      {(showStatus || hasScore || hasRating) && (
+      {/* For knockout: show when answered */}
+      {/* For qualifying: only show score/rating/motivation when answered */}
+      {((showStatus && hasAnswer && answer.passed !== undefined) || (showQualifyingMetrics && (hasScore || hasRating || hasMotivation))) && (
         <div className="flex items-center gap-2 mt-2 flex-wrap">
-          {/* Show passed/failed badge for knockout questions */}
-          {showStatus && answer.passed !== undefined && (
+          {/* Show passed/failed badge for knockout questions only when answered */}
+          {showStatus && hasAnswer && answer.passed !== undefined && (
             <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${
-              answer.passed 
-                ? 'bg-green-100 text-green-700' 
+              answer.passed
+                ? 'bg-green-100 text-green-700'
                 : 'bg-red-100 text-red-700'
             }`}>
               {answer.passed ? 'Geslaagd' : 'Niet geslaagd'}
             </span>
           )}
-          
-          {/* Show score for qualifying questions only */}
-          {hasScore && !isKnockout && (
+
+          {/* Show score for qualifying questions only when answered */}
+          {showQualifyingMetrics && hasScore && (
             <span className="text-xs text-gray-500">Score: <span className="font-medium text-gray-700">{answer.score}</span></span>
           )}
-          
-          {/* Show rating badge for qualification questions only (not for knockout) */}
-          {hasRating && !isKnockout && (
+
+          {/* Show rating badge for qualification questions only when answered */}
+          {showQualifyingMetrics && hasRating && (
             <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${getRatingColor(answer.rating!)}`}>
               {getRatingLabel(answer.rating!)}
             </span>
           )}
-          
-          {/* Show motivation tooltip for all questions that have it */}
-          {hasMotivation && (
+
+          {/* Show motivation tooltip only when question was answered */}
+          {showQualifyingMetrics && hasMotivation && (
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
