@@ -26,22 +26,19 @@ export function ChannelIcons({ channels, className }: ChannelIconsProps) {
   return (
     <div className={cn("flex items-center gap-2", className)}>
       {channels.whatsapp && (
-        <MessageCircle
-          className="w-4 h-4 text-gray-600"
-          title="WhatsApp-kanaal actief"
-        />
+        <span title="WhatsApp-kanaal actief">
+          <MessageCircle className="w-4 h-4 text-gray-600" />
+        </span>
       )}
       {channels.voice && (
-        <Phone
-          className="w-4 h-4 text-gray-600"
-          title="Telefoon-kanaal actief"
-        />
+        <span title="Telefoon-kanaal actief">
+          <Phone className="w-4 h-4 text-gray-600" />
+        </span>
       )}
       {channels.cv && (
-        <FileText
-          className="w-4 h-4 text-gray-600"
-          title="Smart CV-kanaal actief"
-        />
+        <span title="Smart CV-kanaal actief">
+          <FileText className="w-4 h-4 text-gray-600" />
+        </span>
       )}
     </div>
   );
