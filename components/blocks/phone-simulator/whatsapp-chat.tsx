@@ -47,7 +47,7 @@ interface WhatsAppChatProps {
 // Pass scenario - candidate qualifies
 const passScript: Omit<Message, 'id' | 'isNew'>[] = [
   {
-    content: 'Hoi Laurijn! Leuk dat je hebt gesolliciteerd! Ik ben Izzy, de digitale recruiter van Taloo. Ik help je graag verder met een paar korte vragen. Ben je klaar?',
+    content: 'Hoi Laurijn! Leuk dat je hebt gesolliciteerd! Ik ben Bob, de digitale recruiter van Taloo. Ik help je graag verder met een paar korte vragen. Ben je klaar?',
     timestamp: '21:20',
     isOutgoing: false,
   },
@@ -100,7 +100,7 @@ const passScript: Omit<Message, 'id' | 'isNew'>[] = [
 // Fail scenario - candidate gets knocked out
 const failScript: Omit<Message, 'id' | 'isNew'>[] = [
   {
-    content: 'Hoi Laurijn! Leuk dat je hebt gesolliciteerd! Ik ben Izzy, de digitale recruiter van Taloo. Ik help je graag verder met een paar korte vragen. Ben je klaar?',
+    content: 'Hoi Laurijn! Leuk dat je hebt gesolliciteerd! Ik ben Bob, de digitale recruiter van Taloo. Ik help je graag verder met een paar korte vragen. Ben je klaar?',
     timestamp: '21:20',
     isOutgoing: false,
   },
@@ -413,8 +413,8 @@ export function WhatsAppChat({
         
         {/* Contact info */}
         <div className="flex-1 min-w-0">
-          <p className="text-black font-semibold text-sm truncate">Izzy</p>
-          <p className="text-gray-500 text-[10px]">ITZY</p>
+          <p className="text-black font-semibold text-sm truncate">Bob</p>
+          <p className="text-gray-500 text-[10px]">Taloo</p>
         </div>
       </div>
 

@@ -24,6 +24,8 @@ export interface BreadcrumbProps {
    * Can also pass a custom href string.
    */
   showBackArrow?: boolean | string;
+  /** Size variant — 'default' uses text-lg for the title, 'sm' uses text-sm */
+  size?: 'default' | 'sm';
   /** Additional CSS classes for the container */
   className?: string;
 }
@@ -59,6 +61,7 @@ export interface BreadcrumbProps {
 export function Breadcrumb({
   items,
   showBackArrow,
+  size = 'default',
   className,
 }: BreadcrumbProps) {
   const router = useRouter();
@@ -88,7 +91,7 @@ export function Breadcrumb({
       )}
 
       {/* Breadcrumb Trail */}
-      <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-lg">
+      <nav aria-label="Breadcrumb" className={cn('flex items-center gap-2', size === 'sm' ? 'text-sm' : 'text-lg')}>
         {items.map((item, index) => {
           const isLast = index === items.length - 1;
           const isClickable = !isLast && item.href;

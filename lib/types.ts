@@ -806,3 +806,209 @@ export interface GlobalActivitiesResponse {
   activities: GlobalActivity[];
   total: number;
 }
+
+// =============================================================================
+// Generic Paginated Response
+// =============================================================================
+
+export interface PaginatedResponse<T> {
+  items: T[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+// =============================================================================
+// Ontology Types
+// =============================================================================
+
+// Entity Types (the "kinds" of entities)
+
+export interface OntologyType {
+  id: string;
+  workspace_id: string;
+  slug: string;
+  name: string;
+  name_plural: string | null;
+  description: string | null;
+  icon: string | null;
+  color: string | null;
+  sort_order: number;
+  is_system: boolean;
+  entity_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface OntologyTypeCreate {
+  slug: string;
+  name: string;
+  name_plural?: string;
+  description?: string;
+  icon?: string;
+  color?: string;
+  sort_order?: number;
+}
+
+export interface OntologyTypeUpdate {
+  name?: string;
+  name_plural?: string;
+  description?: string;
+  icon?: string;
+  color?: string;
+  sort_order?: number;
+}
+
+// Entities (the actual items: "Chauffeur CE", "Rijbewijs CE")
+
+export interface OntologyEntity {
+  id: string;
+  workspace_id: string;
+  type_id: string;
+  type_slug: string;
+  type_name: string;
+  name: string;
+  description: string | null;
+  icon: string | null;
+  color: string | null;
+  external_id: string | null;
+  metadata: Record<string, unknown>;
+  sort_order: number;
+  is_active: boolean;
+  relation_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface OntologyEntityDetail extends OntologyEntity {
+  relations: OntologyRelation[];
+}
+
+/** Entry in the ontology entity navigation stack (breadcrumb trail) */
+export interface OntologyNavigationEntry {
+  id: string;
+  name: string;
+  typeSlug: string;
+}
+
+export interface OntologyEntityCreate {
+  type_slug: string;
+  name: string;
+  description?: string;
+  icon?: string;
+  color?: string;
+  external_id?: string;
+  metadata?: Record<string, unknown>;
+  sort_order?: number;
+}
+
+export interface OntologyEntityUpdate {
+  name?: string;
+  description?: string;
+  icon?: string;
+  color?: string;
+  external_id?: string;
+  metadata?: Record<string, unknown>;
+  sort_order?: number;
+  is_active?: boolean;
+}
+
+// Relation Types
+
+export interface OntologyRelationType {
+  id: string;
+  workspace_id: string;
+  slug: string;
+  name: string;
+  source_type_id: string | null;
+  source_type_slug: string | null;
+  target_type_id: string | null;
+  target_type_slug: string | null;
+  is_system: boolean;
+  created_at: string;
+}
+
+export interface OntologyRelationTypeCreate {
+  slug: string;
+  name: string;
+  source_type_slug?: string;
+  target_type_slug?: string;
+}
+
+// Relations (connections between entities)
+
+export interface OntologyRelation {
+  id: string;
+  workspace_id: string;
+  source_entity_id: string;
+  source_entity_name: string;
+  source_type_slug: string;
+  target_entity_id: string;
+  target_entity_name: string;
+  target_type_slug: string;
+  relation_type_id: string;
+  relation_type_slug: string;
+  relation_type_name: string;
+  metadata: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface OntologyRelationCreate {
+  source_entity_id: string;
+  target_entity_id: string;
+  relation_type_slug: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface OntologyRelationUpdate {
+  metadata: Record<string, unknown>;
+}
+
+// Graph (for visualization)
+
+export interface OntologyGraphNode {
+  id: string;
+  name: string;
+  type_slug: string;
+  type_name: string;
+  icon: string | null;
+  color: string | null;
+  description: string | null;
+  metadata: Record<string, unknown>;
+  external_id: string | null;
+}
+
+export interface OntologyGraphEdge {
+  id: string;
+  source: string;
+  target: string;
+  relation_type: string;
+  relation_label: string;
+  metadata: Record<string, unknown>;
+}
+
+export interface OntologyGraph {
+  nodes: OntologyGraphNode[];
+  edges: OntologyGraphEdge[];
+  types: OntologyType[];
+  stats: Record<string, number>;
+}
+
+// Overview
+
+export interface OntologyOverview {
+  types: OntologyType[];
+  total_entities: number;
+  total_relations: number;
+}
+
+// Requirement metadata
+
+export type RequirementType = 'verplicht' | 'voorwaardelijk' | 'gewenst';
+
+export interface RequiresMetadata {
+  requirement_type: RequirementType;
+  priority: number;
+  condition?: string;
+}

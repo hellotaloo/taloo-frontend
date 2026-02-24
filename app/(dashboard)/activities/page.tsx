@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { Loader2, AlertCircle, Inbox, Play, CheckCircle2, List, ArrowUp, ArrowDown, ChevronsUpDown, Eye, Check, Circle, AlertTriangle, PauseCircle, Clock, Trash2 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, formatRelativeDate } from '@/lib/utils';
 import { PageLayout, PageLayoutHeader, PageLayoutContent } from '@/components/layout/page-layout';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -65,6 +65,22 @@ function WorkflowTypeBadge({ type, label }: { type: string; label: string }) {
   };
 
   return <TagBadge label={label} variant={variantMap[type] || 'gray'} />;
+}
+
+// Translate English step labels from API to Dutch
+const stepLabelNl: Record<string, string> = {
+  'Waiting': 'Wachtend',
+  'In Progress': 'Bezig',
+  'Completed': 'Afgerond',
+  'Failed': 'Mislukt',
+  'Pending': 'In afwachting',
+  'Scheduled': 'Ingepland',
+  'Sent': 'Verstuurd',
+  'Cancelled': 'Geannuleerd',
+};
+
+function translateStepLabel(label: string): string {
+  return stepLabelNl[label] || label;
 }
 
 type FilterStatus = 'active' | 'stuck' | 'completed' | 'all';
@@ -149,7 +165,7 @@ function SLABadge({ status, isStuck, timeRemainingSeconds: initialSeconds, durat
     return (
       <span className="inline-flex items-center gap-1.5 text-sm font-medium tabular-nums text-red-600">
         <Clock className="w-3.5 h-3.5" />
-        {formatDuration(absSeconds)} overdue
+        {formatDuration(absSeconds)} te laat
       </span>
     );
   }
@@ -509,8 +525,8 @@ export default function ActivitiesPage() {
                           <span className="text-gray-900">
                             {task.current_step === 'marked_as_complete'
                               ? // Show last completed step for manually completed tasks
-                                task.workflow_steps?.filter(s => s.status === 'completed').pop()?.label || task.current_step_label
-                              : task.current_step_label
+                                translateStepLabel(task.workflow_steps?.filter(s => s.status === 'completed').pop()?.label || task.current_step_label)
+                              : translateStepLabel(task.current_step_label)
                             }
                           </span>
                           {task.step_detail && (
@@ -530,10 +546,10 @@ export default function ActivitiesPage() {
                         />
                       </TableCell>
                       <TableCell className="text-gray-500 text-sm">
-                        {task.time_ago}
+                        {formatRelativeDate(task.updated_at)}
                       </TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center justify-end gap-1">
                           {task.is_stuck && (
                             <>
                               <Button
@@ -605,7 +621,7 @@ export default function ActivitiesPage() {
                   {selectedTask.step_detail && (
                     <p className="text-sm text-gray-600">{selectedTask.step_detail}</p>
                   )}
-                  <p className="text-xs text-gray-400">Laatste update: {selectedTask.time_ago}</p>
+                  <p className="text-xs text-gray-400">Laatste update: {formatRelativeDate(selectedTask.updated_at)}</p>
                 </div>
 
                 {/* Workflow steps timeline */}
@@ -649,7 +665,7 @@ export default function ActivitiesPage() {
                                 step.status === 'pending' && 'text-gray-500',
                                 step.status === 'failed' && 'text-red-600',
                               )}>
-                                {step.label}
+                                {translateStepLabel(step.label)}
                               </span>
                               {step.status === 'current' && (
                                 <span className="ml-2 text-xs text-blue-600 animate-pulse">Actief</span>

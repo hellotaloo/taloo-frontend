@@ -7,7 +7,7 @@ import {
   InterviewAssistant,
   GeneratedQuestion,
 } from '@/components/blocks/interview-editor';
-import { IPhoneMockup, WhatsAppChat, ChatScenario } from '@/components/blocks/phone-simulator';
+import { IPhoneMockup, WhatsAppChat, ChatScenario, VoiceCallMockup, CallState } from '@/components/blocks/phone-simulator';
 import {
   InterviewDashboard,
   ApplicationsTable,
@@ -24,8 +24,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Loader2, ArrowLeft, Send, Pencil, Smartphone, RotateCcw, LayoutDashboard, CheckCircle } from 'lucide-react';
-import { formatDateTime } from '@/lib/utils';
+import { Loader2, ArrowLeft, Send, Pencil, Smartphone, RotateCcw, LayoutDashboard, CheckCircle, Phone, MessageCircle } from 'lucide-react';
+import { formatDateTime, cn } from '@/lib/utils';
 import { ChatBubbleLeftRightIcon } from '@heroicons/react/24/outline';
 import { 
   generateInterview, 
@@ -53,6 +53,7 @@ import {
 import { toast } from 'sonner';
 import { Vacancy } from '@/lib/types';
 import { convertToComponentApplication } from '@/lib/pre-screening-utils';
+import { useVoiceSimulation } from '@/hooks/use-voice-simulation';
 import Link from 'next/link';
 
 interface PageProps {
@@ -96,6 +97,23 @@ export default function EditPreScreeningPage({ params }: PageProps) {
   const [chatScenario, setChatScenario] = useState<ChatScenario>('manual');
   const [chatResetKey, setChatResetKey] = useState(0);
   const [viewMode, setViewMode] = useState<'dashboard' | 'edit' | 'preview'>('edit');
+
+  // Simulator channel state (WhatsApp vs Voice)
+  const [simulatorChannel, setSimulatorChannel] = useState<'whatsapp' | 'voice'>('whatsapp');
+
+  // VAPI Voice Simulation hook
+  const {
+    startCall,
+    endCall,
+    isCallActive,
+    isConnecting,
+    isSpeaking,
+    isUserSpeaking,
+    error: voiceError,
+  } = useVoiceSimulation(id);
+
+  // Derive callState from hook state
+  const callState: CallState = isConnecting ? 'ringing' : isCallActive ? 'active' : 'idle';
   
   // Dashboard state
   const [applications, setApplications] = useState<Application[]>([]);
@@ -268,6 +286,13 @@ export default function EditPreScreeningPage({ params }: PageProps) {
       document.title = `${vacancy.title} - Bewerken - Taloo`;
     }
   }, [vacancy?.title]);
+
+  // Show voice call errors as toast
+  useEffect(() => {
+    if (voiceError) {
+      toast.error(voiceError);
+    }
+  }, [voiceError]);
 
   // Check for preloaded prompt from URL params (e.g., from Smart Insights)
   useEffect(() => {
@@ -909,6 +934,20 @@ export default function EditPreScreeningPage({ params }: PageProps) {
     }
   };
 
+  // VAPI voice call handler
+  const handleVoiceCall = async () => {
+    // Play beep sound
+    try {
+      const audio = new Audio('/phone-beep.mp3');
+      await audio.play();
+    } catch (error) {
+      console.warn('Could not play beep sound:', error);
+    }
+
+    // Start real VAPI call
+    await startCall('Laurijn');
+  };
+
   const handleQuestionClick = (question: GeneratedQuestion, index: number) => {
     const typeLabel = question.type === 'knockout' ? 'knockout vraag' : 'kwalificatie vraag';
     setPendingPrompt(`Ik heb een vraag over ${typeLabel} ${index}: `);
@@ -1281,56 +1320,106 @@ export default function EditPreScreeningPage({ params }: PageProps) {
           </div>
 
           {/* Phone mockup - fills remaining space */}
-          <div className="flex-1 flex flex-col items-center justify-center bg-gray-50 border-l border-gray-200 min-h-0">
+          <div className="flex-1 flex flex-col items-center justify-center bg-gray-50 border-l border-gray-200 min-h-0 relative">
+            {/* Floating channel toggle - fixed right middle */}
+            <div className="absolute right-4 top-1/2 -translate-y-1/2 z-50 flex flex-col items-center justify-between h-[110px] bg-white rounded-full shadow-lg border py-2 px-1.5">
+              <button
+                onClick={() => setSimulatorChannel('whatsapp')}
+                className={cn(
+                  "p-2 rounded-full transition-colors",
+                  simulatorChannel === 'whatsapp'
+                    ? "bg-green-600 text-white"
+                    : "text-gray-400 hover:text-gray-600"
+                )}
+                title="WhatsApp simulatie"
+              >
+                <MessageCircle className="h-4 w-4" />
+              </button>
+              <div className="w-5 h-px bg-gray-200" />
+              <button
+                onClick={() => {
+                  setSimulatorChannel('voice');
+                  endCall(); // Reset any active call when switching
+                }}
+                className={cn(
+                  "p-2 rounded-full transition-colors",
+                  simulatorChannel === 'voice'
+                    ? "bg-green-600 text-white"
+                    : "text-gray-400 hover:text-gray-600"
+                )}
+                title="Voice simulatie"
+              >
+                <Phone className="h-4 w-4" />
+              </button>
+            </div>
+
             <div className="flex flex-col items-center" style={{ transform: 'scale(0.75)', transformOrigin: 'center center' }}>
               <IPhoneMockup>
-                <WhatsAppChat 
-                  scenario={chatScenario} 
-                  resetKey={chatResetKey} 
-                  vacancyId={vacancy.id}
-                  candidateName="Laurijn"
-                  isActive={viewMode === 'preview'}
-                />
+                {simulatorChannel === 'whatsapp' ? (
+                  <WhatsAppChat
+                    scenario={chatScenario}
+                    resetKey={chatResetKey}
+                    vacancyId={vacancy.id}
+                    candidateName="Laurijn"
+                    isActive={viewMode === 'preview'}
+                  />
+                ) : (
+                  <VoiceCallMockup
+                    callerName="Bob"
+                    callerSubtitle="Taloo Voice Agent"
+                    callState={callState}
+                    onStateChange={(state) => {
+                      if (state === 'ended') {
+                        endCall();
+                      }
+                    }}
+                    onCallMe={handleVoiceCall}
+                    isSpeaking={isSpeaking}
+                    isUserSpeaking={isUserSpeaking}
+                  />
+                )}
               </IPhoneMockup>
-              
-              {/* Scenario control buttons */}
-              <div className="flex items-center justify-center gap-2 mt-6">
-                <button
-                  onClick={() => {
-                    setChatScenario('manual');
-                    setChatResetKey(prev => prev + 1);
-                  }}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                    chatScenario === 'manual'
-                      ? 'bg-gray-200 text-gray-800 border border-gray-300'
-                      : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
-                  }`}
-                >
-                  <ChatBubbleLeftRightIcon className="w-4 h-4" />
-                  Handmatig
-                </button>
-                <button
-                  onClick={() => {
-                    setChatScenario('pass');
-                    setChatResetKey(prev => prev + 1);
-                  }}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                    chatScenario === 'pass'
-                      ? 'bg-green-100 text-green-700 border border-green-200'
-                      : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
-                  }`}
-                >
-                  <CheckCircle className="w-4 h-4" />
-                  Auto-antwoord
-                </button>
-                <button
-                  onClick={() => setChatResetKey(prev => prev + 1)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"
-                >
-                  <RotateCcw className="w-4 h-4" />
-                  Herstarten
-                </button>
-              </div>
+
+              {/* Scenario control buttons - only visible for WhatsApp */}
+              {simulatorChannel === 'whatsapp' && (
+                <div className="flex items-center justify-center gap-2 mt-6">
+                  <button
+                    onClick={() => {
+                      setChatScenario('manual');
+                      setChatResetKey(prev => prev + 1);
+                    }}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                      chatScenario === 'manual'
+                        ? 'bg-gray-200 text-gray-800 border border-gray-300'
+                        : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+                    }`}
+                  >
+                    <ChatBubbleLeftRightIcon className="w-4 h-4" />
+                    Handmatig
+                  </button>
+                  <button
+                    onClick={() => {
+                      setChatScenario('pass');
+                      setChatResetKey(prev => prev + 1);
+                    }}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                      chatScenario === 'pass'
+                        ? 'bg-green-100 text-green-700 border border-green-200'
+                        : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+                    }`}
+                  >
+                    <CheckCircle className="w-4 h-4" />
+                    Auto-antwoord
+                  </button>
+                  <button
+                    onClick={() => setChatResetKey(prev => prev + 1)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                    Herstarten
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>

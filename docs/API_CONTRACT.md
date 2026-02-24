@@ -4,6 +4,9 @@ Complete API reference for the Taloo recruitment screening platform.
 
 ## Changelog
 
+- **2026-02-17** — Added `POST /screening/web-call` endpoint for browser-based VAPI voice simulation (no database records created, for testing/demo only)
+- **2026-02-16** — Enhanced `AgentStatusResponse` with stats: `total_screenings`, `qualified_count`, `qualification_rate`, `last_activity_at` (populated for prescreening agent)
+- **2026-02-16** — Added `candidate_name` field to ActivityResponse in vacancy timelines (`GET /vacancies/{vacancy_id}`)
 - **2026-02-16** — Added `applicants` array to VacancyResponse (lightweight ApplicantSummary for candidates who did pre-screening)
 - **2026-02-16** — Removed redundant `recruiter_id` and `client_id` fields from VacancyResponse (use `recruiter.id` and `client.id` instead)
 - **2026-02-16** — Added `GET /architecture` endpoint for backend architecture visualization (returns JSON for frontend graph rendering)
@@ -373,6 +376,11 @@ interface ChannelsResponse {
 interface AgentStatusResponse {
   exists: boolean;         // True if agent is generated/configured
   status: "online" | "offline" | null;  // Agent status (null if not applicable)
+  // Stats (populated for prescreening agent when exists=true)
+  total_screenings?: number;    // Total number of screenings
+  qualified_count?: number;     // Number of qualified candidates
+  qualification_rate?: number;  // Percentage (0-100)
+  last_activity_at?: string;    // ISO timestamp of last screening activity
 }
 
 interface AgentsResponse {
@@ -796,6 +804,7 @@ interface CandidateApplicationSummary {
 interface ActivityResponse {
   id: string;
   candidate_id: string;
+  candidate_name?: string;  // Included in vacancy timelines (GET /vacancies/{vacancy_id})
   application_id?: string;
   vacancy_id?: string;
   event_type: string;  // screening_started, qualified, disqualified, interview_scheduled, etc.
@@ -1948,6 +1957,92 @@ interface OutboundScreeningResponse {
 | 404 | Vacancy not found |
 | 500 | ELEVENLABS_API_KEY required |
 | 500 | TWILIO_WHATSAPP_NUMBER not configured |
+
+---
+
+### POST /screening/web-call
+
+Create a VAPI web call session for browser-based voice simulation.
+
+This is for testing/demo purposes only - no database records are created. Returns configuration for the frontend to use with VAPI Web SDK to start a voice call directly in the browser.
+
+**Auth:** None
+
+**Request Body:**
+
+```typescript
+interface VapiWebCallRequest {
+  vacancy_id: string;
+  candidate_name?: string;  // Default: "Test Kandidaat"
+  first_name?: string;      // Extracted from candidate_name if not provided
+}
+```
+
+**Response:**
+
+```typescript
+interface VapiWebCallResponse {
+  success: boolean;
+  squad_id: string;              // VAPI squad ID for the call
+  vapi_public_key: string;       // Public key for VAPI Web SDK initialization
+  assistant_overrides: {
+    variableValues: {
+      greeting: string;          // Dutch time-based greeting
+      first_name: string;
+      vacancy_id: string;
+      vacancy_title: string;
+      knockout_questions: string;      // Formatted list of knockout questions
+      qualification_questions: string; // Formatted list of qualification questions
+      first_knockout_question: string;
+      first_qualification_question: string;
+      pre_screening_id: string;
+    };
+    server?: {
+      url: string;
+      timeoutSeconds: number;
+    };
+  };
+}
+```
+
+**Frontend Usage:**
+
+```typescript
+import Vapi from '@vapi-ai/web';
+
+// 1. Get config from backend
+const response = await fetch('/api/screening/web-call', {
+  method: 'POST',
+  body: JSON.stringify({ vacancy_id: '...', candidate_name: 'Test' })
+});
+const config = await response.json();
+
+// 2. Initialize VAPI with public key
+const vapi = new Vapi(config.vapi_public_key);
+
+// 3. Start call with squad (pass null for first two params when using squad)
+vapi.start(null, config.assistant_overrides, config.squad_id);
+
+// 4. Handle events
+vapi.on('call-start', () => console.log('Call started'));
+vapi.on('call-end', () => console.log('Call ended'));
+vapi.on('message', (msg) => {
+  if (msg.type === 'transcript') {
+    console.log(`${msg.role}: ${msg.transcript}`);
+  }
+});
+```
+
+**Error Responses:**
+
+| Status | Error |
+|--------|-------|
+| 400 | Invalid vacancy ID format |
+| 400 | No pre-screening configured for this vacancy |
+| 400 | Pre-screening is not published yet |
+| 400 | Pre-screening is offline |
+| 404 | Vacancy not found |
+| 500 | VAPI_PUBLIC_KEY not configured |
 
 ---
 

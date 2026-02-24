@@ -103,9 +103,6 @@ export const dynamicRoutes: Array<{ pattern: RegExp; config: PageConfig }> = [
   { pattern: /^\/pre-onboarding\/detail\//, config: { title: 'Pre-onboarding', icon: FileCheck } },
   { pattern: /^\/pre-onboarding\/generate\//, config: { title: 'Pre-onboarding', icon: FileCheck } },
 
-  // Admin/Ontology dynamic routes
-  { pattern: /^\/admin\/ontology\/job-function\//, config: { title: 'Job Function', icon: Briefcase } },
-  { pattern: /^\/admin\/ontology\/category\//, config: { title: 'Category', icon: Boxes } },
 ];
 
 /**

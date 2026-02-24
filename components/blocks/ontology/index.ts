@@ -1,2 +1,12 @@
 export { JobFunctionCard } from './job-function-card';
 export type { JobFunctionCardProps } from './job-function-card';
+export { InspectorPanel } from './inspector-panel';
+export type { InspectorPanelProps } from './inspector-panel';
+export { AddRelationDialog } from './add-relation-dialog';
+export type { AddRelationDialogProps } from './add-relation-dialog';
+export { CreateEntityDialog } from './create-entity-dialog';
+export type { CreateEntityDialogProps } from './create-entity-dialog';
+export { EntityDetailView } from './entity-detail-view';
+export type { EntityDetailViewProps } from './entity-detail-view';
+export { RelationGraph } from './relation-graph';
+export type { RelationGraphProps } from './relation-graph';
