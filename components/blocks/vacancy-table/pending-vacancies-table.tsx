@@ -1,11 +1,14 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { Building2, MapPin, ArrowRight, Zap, FileEdit, Send, ArrowUp, ArrowDown, ChevronsUpDown } from 'lucide-react';
+import { Building2, MapPin, ArrowRight, FileEdit, Send, ArrowUp, ArrowDown, ChevronsUpDown, RefreshCw, CheckCircle2, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { Button } from '@/components/ui/button';
 import { Vacancy } from '@/lib/types';
 import { formatDateTime, cn } from '@/lib/utils';
+import type { ImportVacancy } from '@/hooks/use-ats-import';
+import { StatusBadge } from '@/components/kit/status-badge';
 import {
   Table,
   TableBody,
@@ -59,18 +62,20 @@ function SortableHeader({ label, sortKey, currentSortKey, sortDirection, onSort,
 
 export interface ConceptVacanciesTableProps {
   vacancies: Vacancy[];
+  generationStatus?: Map<string, ImportVacancy>;
+  isImporting?: boolean;
+  onSync?: () => void;
 }
 
 // Keep old name as alias for backwards compatibility
 export type PendingVacanciesTableProps = ConceptVacanciesTableProps;
 
-export function ConceptVacanciesTable({ vacancies }: ConceptVacanciesTableProps) {
+export function ConceptVacanciesTable({ vacancies, generationStatus, isImporting, onSync }: ConceptVacanciesTableProps) {
   const [sortKey, setSortKey] = useState<SortKey | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) {
-      // Toggle direction or clear sort
       if (sortDirection === 'asc') {
         setSortDirection('desc');
       } else if (sortDirection === 'desc') {
@@ -80,16 +85,16 @@ export function ConceptVacanciesTable({ vacancies }: ConceptVacanciesTableProps)
         setSortDirection('asc');
       }
     } else {
-      // New sort key, default to ascending
       setSortKey(key);
       setSortDirection('asc');
     }
   };
 
   const sortedVacancies = useMemo(() => {
-    if (!sortKey || !sortDirection) return vacancies;
+    const base = generationStatus ? [...vacancies].reverse() : vacancies;
+    if (!sortKey || !sortDirection) return base;
 
-    return [...vacancies].sort((a, b) => {
+    return [...base].sort((a, b) => {
       let aValue: string | undefined;
       let bValue: string | undefined;
 
@@ -107,16 +112,67 @@ export function ConceptVacanciesTable({ vacancies }: ConceptVacanciesTableProps)
       const comparison = aValue.localeCompare(bValue);
       return sortDirection === 'asc' ? comparison : -comparison;
     });
-  }, [vacancies, sortKey, sortDirection]);
+  }, [vacancies, sortKey, sortDirection, generationStatus]);
 
-  if (vacancies.length === 0) {
+  if (vacancies.length === 0 && !isImporting) {
     return (
       <div className="text-center py-12">
         <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-3">
           <FileEdit className="w-6 h-6 text-gray-400" />
         </div>
         <p className="text-sm text-gray-500">Geen concepten. Alle vacatures zijn gepubliceerd.</p>
+        <Button
+          variant="outline"
+          size="sm"
+          className="mt-4 gap-2"
+          onClick={() => onSync?.()}
+        >
+          <RefreshCw className="w-4 h-4" />
+          Sync ATS
+        </Button>
       </div>
+    );
+  }
+
+  if (vacancies.length === 0 && isImporting) {
+    return (
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead className="w-full">Vacature</TableHead>
+            <TableHead>Bron</TableHead>
+            <TableHead>Geïmporteerd</TableHead>
+            <TableHead className="w-[280px] text-right">Acties</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {Array.from({ length: 5 }).map((_, i) => (
+            <TableRow key={i}>
+              <TableCell>
+                <div className="space-y-1.5 animate-pulse">
+                  <div className="h-4 bg-gray-200 rounded w-3/4" />
+                  <div className="h-3 bg-gray-100 rounded w-1/2" />
+                </div>
+              </TableCell>
+              <TableCell>
+                <div className="animate-pulse">
+                  <div className="h-3 w-4 bg-gray-200 rounded mx-auto" />
+                </div>
+              </TableCell>
+              <TableCell>
+                <div className="animate-pulse">
+                  <div className="h-3 bg-gray-200 rounded w-28" />
+                </div>
+              </TableCell>
+              <TableCell className="text-right">
+                <div className="animate-pulse">
+                  <div className="h-8 bg-gray-100 rounded-lg w-24 ml-auto" />
+                </div>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
     );
   }
 
@@ -146,19 +202,31 @@ export function ConceptVacanciesTable({ vacancies }: ConceptVacanciesTableProps)
       <TableBody>
         {sortedVacancies.map((vacancy) => {
           const isGenerated = vacancy.hasScreening;
+          const genStatus = generationStatus?.get(vacancy.id);
 
           return (
-            <TableRow key={vacancy.id} data-testid={`concept-vacancy-row-${vacancy.id}`}>
+            <TableRow
+              key={vacancy.id}
+              data-testid={`concept-vacancy-row-${vacancy.id}`}
+              className={cn(
+                genStatus?.status === 'generating' && 'bg-brand-dark-blue/[0.03] animate-pulse-subtle',
+              )}
+            >
               <TableCell>
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="font-medium text-gray-900 truncate">
                       {vacancy.title}
                     </span>
-                    {isGenerated && (
-                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
-                        <Zap className="w-2.5 h-2.5" />
-                        Gegenereerd
+                    {genStatus?.status === 'queued' && (
+                      <StatusBadge label="Wachtrij" variant="blue" />
+                    )}
+                    {genStatus?.status === 'generating' && (
+                      <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-medium bg-brand-dark-blue text-white">
+                        <span className="thinking-dots inline-flex items-center gap-[3px]">
+                          <span /><span /><span />
+                        </span>
+                        {(genStatus.activity || 'Genereren').replace(/\.{2,}$/, '')}
                       </span>
                     )}
                   </div>
@@ -187,7 +255,29 @@ export function ConceptVacanciesTable({ vacancies }: ConceptVacanciesTableProps)
                 {formatDateTime(vacancy.createdAt)}
               </TableCell>
               <TableCell className="text-right">
-                {isGenerated ? (
+                {genStatus?.status === 'queued' && (
+                  <Link
+                    href={`/pre-screening/detail/${vacancy.id}`}
+                    data-testid={`generate-prescreening-btn-${vacancy.id}`}
+                    className="inline-flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                  >
+                    Genereren
+                    <ArrowRight className="w-4 h-4" />
+                  </Link>
+                )}
+                {genStatus?.status === 'generating' && (
+                  <span className="inline-flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-medium text-gray-400 bg-gray-100 rounded-lg cursor-not-allowed">
+                    Genereren
+                    <ArrowRight className="w-4 h-4" />
+                  </span>
+                )}
+                {genStatus?.status === 'published' && (
+                  <StatusBadge label={`${genStatus.questionsCount} vragen`} variant="green" icon={CheckCircle2} />
+                )}
+                {genStatus?.status === 'failed' && (
+                  <StatusBadge label="Mislukt" variant="orange" icon={AlertTriangle} />
+                )}
+                {!genStatus && isGenerated && (
                   <Link
                     href={`/pre-screening/detail/${vacancy.id}?mode=edit`}
                     data-testid={`publish-prescreening-btn-${vacancy.id}`}
@@ -196,7 +286,8 @@ export function ConceptVacanciesTable({ vacancies }: ConceptVacanciesTableProps)
                     <Send className="w-4 h-4" />
                     Publiceren
                   </Link>
-                ) : (
+                )}
+                {!genStatus && !isGenerated && (
                   <Link
                     href={`/pre-screening/detail/${vacancy.id}`}
                     data-testid={`generate-prescreening-btn-${vacancy.id}`}

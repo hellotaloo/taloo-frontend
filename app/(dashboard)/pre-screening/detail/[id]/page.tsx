@@ -24,7 +24,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Loader2, ArrowLeft, Send, Pencil, Smartphone, RotateCcw, LayoutDashboard, CheckCircle, Phone, MessageCircle } from 'lucide-react';
+import { Loader2, ArrowLeft, Send, Pencil, FlaskConical, RotateCcw, LayoutDashboard, CheckCircle, Phone, MessageCircle, BarChart3 } from 'lucide-react';
 import { formatDateTime, cn } from '@/lib/utils';
 import { ChatBubbleLeftRightIcon } from '@heroicons/react/24/outline';
 import { 
@@ -50,6 +50,7 @@ import {
   TriggerInterviewDialog,
   ChannelStatusPopover,
 } from '@/components/blocks/channel-management';
+import { InterviewAnalyticsPanel } from '@/components/blocks/interview-analytics';
 import { toast } from 'sonner';
 import { Vacancy } from '@/lib/types';
 import { convertToComponentApplication } from '@/lib/pre-screening-utils';
@@ -99,7 +100,7 @@ export default function EditPreScreeningPage({ params }: PageProps) {
   const [viewMode, setViewMode] = useState<'dashboard' | 'edit' | 'preview'>('edit');
 
   // Simulator channel state (WhatsApp vs Voice)
-  const [simulatorChannel, setSimulatorChannel] = useState<'whatsapp' | 'voice'>('whatsapp');
+  const [simulatorChannel, setSimulatorChannel] = useState<'whatsapp' | 'voice' | 'analytics'>('whatsapp');
 
   // VAPI Voice Simulation hook
   const {
@@ -1068,6 +1069,18 @@ export default function EditPreScreeningPage({ params }: PageProps) {
     }
   };
 
+  const handleEditQuestion = (questionId: string, newText: string, newIdealAnswer?: string) => {
+    const updatedQuestions = questions.map(q =>
+      q.id === questionId
+        ? { ...q, text: newText, idealAnswer: newIdealAnswer !== undefined ? newIdealAnswer : q.idealAnswer }
+        : q
+    );
+    setQuestions(updatedQuestions);
+    prevQuestionsRef.current = updatedQuestions;
+    setChatResetKey(prev => prev + 1);
+    autoSaveQuestions(updatedQuestions);
+  };
+
   const handleDeleteQuestion = async (questionId: string) => {
     if (!sessionId) {
       toast.error('Sessie niet beschikbaar. Probeer de pagina te vernieuwen.');
@@ -1167,7 +1180,7 @@ export default function EditPreScreeningPage({ params }: PageProps) {
                 alt=""
                 className="w-5 h-5 rounded-sm object-contain"
               />
-              Sollicitatie testen
+              Solliciteer
             </button>
           )}
           {/* Three-way Toggle */}
@@ -1211,8 +1224,8 @@ export default function EditPreScreeningPage({ params }: PageProps) {
                     : 'text-gray-500 hover:text-gray-700'
               }`}
             >
-              <Smartphone className="w-4 h-4" />
-              Simulatie
+              <FlaskConical className="w-4 h-4" />
+              Test suite
             </button>
           </div>
           
@@ -1270,6 +1283,7 @@ export default function EditPreScreeningPage({ params }: PageProps) {
                   onReorder={handleReorder}
                   onAddQuestion={handleAddQuestion}
                   onDeleteQuestion={handleDeleteQuestion}
+                  onEditQuestion={handleEditQuestion}
                 />
               </div>
             </div>
@@ -1322,7 +1336,7 @@ export default function EditPreScreeningPage({ params }: PageProps) {
           {/* Phone mockup - fills remaining space */}
           <div className="flex-1 flex flex-col items-center justify-center bg-gray-50 border-l border-gray-200 min-h-0 relative">
             {/* Floating channel toggle - fixed right middle */}
-            <div className="absolute right-4 top-1/2 -translate-y-1/2 z-50 flex flex-col items-center justify-between h-[110px] bg-white rounded-full shadow-lg border py-2 px-1.5">
+            <div className="absolute right-4 top-1/2 -translate-y-1/2 z-50 flex flex-col items-center justify-between h-[164px] bg-white rounded-full shadow-lg border py-2 px-1.5">
               <button
                 onClick={() => setSimulatorChannel('whatsapp')}
                 className={cn(
@@ -1351,8 +1365,28 @@ export default function EditPreScreeningPage({ params }: PageProps) {
               >
                 <Phone className="h-4 w-4" />
               </button>
+              <div className="w-5 h-px bg-gray-200" />
+              <button
+                onClick={() => setSimulatorChannel('analytics')}
+                className={cn(
+                  "p-2 rounded-full transition-colors",
+                  simulatorChannel === 'analytics'
+                    ? "bg-gray-900 text-white"
+                    : "text-gray-400 hover:text-gray-600"
+                )}
+                title="Analytics"
+              >
+                <BarChart3 className="h-4 w-4" />
+              </button>
             </div>
 
+            {simulatorChannel === 'analytics' ? (
+              <div className="w-full h-full overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] px-8 py-6">
+                <div className="max-w-[720px] mx-auto">
+                  <InterviewAnalyticsPanel questions={questions} vacancyId={vacancy!.id} />
+                </div>
+              </div>
+            ) : (
             <div className="flex flex-col items-center" style={{ transform: 'scale(0.75)', transformOrigin: 'center center' }}>
               <IPhoneMockup>
                 {simulatorChannel === 'whatsapp' ? (
@@ -1421,6 +1455,7 @@ export default function EditPreScreeningPage({ params }: PageProps) {
                 </div>
               )}
             </div>
+            )}
           </div>
         </div>
 
@@ -1515,7 +1550,7 @@ export default function EditPreScreeningPage({ params }: PageProps) {
         hasWhatsApp={whatsappEnabled}
         hasVoice={voiceEnabled}
         hasCv={cvEnabled}
-        isTest={isTestMode}
+        source={isTestMode ? 'test' : 'widget'}
       />
 
       {/* Unsaved Changes Confirmation Dialog */}

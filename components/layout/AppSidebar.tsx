@@ -16,8 +16,9 @@ import {
   Check,
   Phone,
   AlertCircle,
+  Workflow,
 } from 'lucide-react';
-import { PencilSquareIcon, BoltIcon } from '@heroicons/react/24/outline';
+import { PencilSquareIcon } from '@heroicons/react/24/outline';
 
 import {
   Sidebar,
@@ -52,7 +53,7 @@ import { useAuth } from '@/contexts/auth-context';
 const primaryNavItems = [
   { name: 'Nieuwe chat', href: '/', icon: PencilSquareIcon },
   { name: 'Overzichten', href: '/overviews', icon: LayoutList },
-  { name: 'Agent activiteiten', href: '/activities', icon: BoltIcon },
+  { name: 'Activiteiten', href: '/activities', icon: Workflow },
 ];
 
 const agentItems = [
@@ -95,26 +96,34 @@ export function AppSidebar() {
   React.useEffect(() => {
     let cancelled = false;
 
-    getNavigationCounts()
-      .then((counts) => {
-        if (cancelled) return;
-        setPrescreeningCount(counts.prescreening.new);
-        setPreonboardingCount(counts.preonboarding.new);
-        if (counts.activities) {
-          setActivitiesCount(counts.activities.active);
-          setHasStuckActivities(counts.activities.stuck > 0);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setPrescreeningCount(null);
-          setPreonboardingCount(null);
-          setActivitiesCount(null);
-          setHasStuckActivities(false);
-        }
-      });
+    const fetchCounts = () => {
+      getNavigationCounts()
+        .then((counts) => {
+          if (cancelled) return;
+          setPrescreeningCount(counts.prescreening.new);
+          setPreonboardingCount(counts.preonboarding.new);
+          if (counts.activities) {
+            setActivitiesCount(counts.activities.active);
+            setHasStuckActivities(counts.activities.stuck > 0);
+          }
+        })
+        .catch(() => {
+          if (!cancelled) {
+            setPrescreeningCount(null);
+            setPreonboardingCount(null);
+            setActivitiesCount(null);
+            setHasStuckActivities(false);
+          }
+        });
+    };
 
-    return () => { cancelled = true; };
+    fetchCounts();
+    const interval = setInterval(fetchCounts, 10_000);
+
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
   }, []);
 
   const isActive = (href: string) => {

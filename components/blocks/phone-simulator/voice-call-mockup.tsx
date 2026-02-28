@@ -82,7 +82,7 @@ export function VoiceCallMockup({
   const getStatusText = () => {
     switch (callState) {
       case 'idle':
-        return 'Tap to start demo';
+        return 'Simulate outbound call';
       case 'ringing':
         return 'Incoming call...';
       case 'active':

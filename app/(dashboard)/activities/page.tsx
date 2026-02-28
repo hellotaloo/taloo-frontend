@@ -197,6 +197,7 @@ export default function ActivitiesPage() {
   const [total, setTotal] = useState(0);
   const [activeCount, setActiveCount] = useState(0);
   const [stuckCount, setStuckCount] = useState(0);
+  const [completedCount, setCompletedCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeFilter, setActiveFilter] = useState<FilterStatus>('active');
@@ -214,9 +215,13 @@ export default function ActivitiesPage() {
   // Fetch counts separately (always from active tasks)
   const fetchCounts = useCallback(async () => {
     try {
-      const response = await getActivityTasks({ status: 'active', limit: 1 });
-      setActiveCount(response.total);
-      setStuckCount(response.stuck_count);
+      const [activeResponse, completedResponse] = await Promise.all([
+        getActivityTasks({ status: 'active', limit: 1 }),
+        getActivityTasks({ status: 'completed', limit: 1 }),
+      ]);
+      setActiveCount(activeResponse.total);
+      setStuckCount(activeResponse.stuck_count);
+      setCompletedCount(completedResponse.total);
     } catch {
       // Silently fail - counts are not critical
     }
@@ -235,12 +240,14 @@ export default function ActivitiesPage() {
       const response = await getActivityTasks(params);
       setTasks(response.tasks);
       setTotal(response.total);
-      // Only update counts from active tab responses
+      // Update counts from tab responses
       if (activeFilter === 'active') {
         setActiveCount(response.total);
         setStuckCount(response.stuck_count);
       } else if (activeFilter === 'stuck') {
         setStuckCount(response.stuck_count);
+      } else if (activeFilter === 'completed') {
+        setCompletedCount(response.total);
       }
     } catch (err) {
       console.error('Failed to fetch tasks:', err);
@@ -292,21 +299,16 @@ export default function ActivitiesPage() {
     fetchTasks();
   }, [fetchTasks]);
 
-  // Fetch stuck count when on completed/all tabs (to keep badge updated)
+  // Fetch all tab counts on mount and when filter changes
   useEffect(() => {
-    if (activeFilter === 'completed' || activeFilter === 'all') {
-      fetchCounts();
-    }
+    fetchCounts();
   }, [activeFilter, fetchCounts]);
 
   // Polling every 5 seconds
   useEffect(() => {
     const interval = setInterval(() => {
       fetchTasks();
-      // Also refresh stuck count if not on active/stuck tab
-      if (activeFilter === 'completed' || activeFilter === 'all') {
-        fetchCounts();
-      }
+      fetchCounts();
     }, 5000);
 
     return () => clearInterval(interval);
@@ -343,7 +345,7 @@ export default function ActivitiesPage() {
   };
 
   // Sort tasks
-  const sortedTasks = [...tasks].sort((a, b) => {
+  const sortedTasks = [...tasks].reverse().sort((a, b) => {
     if (!sortKey || !sortDirection) return 0;
 
     let aValue: string | boolean = '';
@@ -435,24 +437,23 @@ export default function ActivitiesPage() {
             <TabsTrigger value="active" data-testid="filter-active">
               <Play className="w-3.5 h-3.5" />
               Actief
-              {activeCount > 0 && (
-                <span className="ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-gray-50 text-gray-600">
-                  {activeCount}
-                </span>
-              )}
+              <span className="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-600">
+                {isLoading && activeCount === 0 ? '...' : activeCount}
+              </span>
             </TabsTrigger>
             <TabsTrigger value="stuck" data-testid="filter-stuck">
               <PauseCircle className="w-3.5 h-3.5" />
               Vast
-              {stuckCount > 0 && (
-                <span className="ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-orange-100 text-orange-700">
-                  {stuckCount}
-                </span>
-              )}
+              <span className="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-600">
+                {isLoading && stuckCount === 0 ? '...' : stuckCount}
+              </span>
             </TabsTrigger>
             <TabsTrigger value="completed" data-testid="filter-completed">
               <CheckCircle2 className="w-3.5 h-3.5" />
               Afgerond
+              <span className="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-600">
+                {isLoading && completedCount === 0 ? '...' : completedCount}
+              </span>
             </TabsTrigger>
             <TabsTrigger value="all" data-testid="filter-all">
               <List className="w-3.5 h-3.5" />

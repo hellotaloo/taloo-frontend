@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Save, Calendar, MessageCircle, CheckCircle2, ShieldQuestion, MessageSquare, Pencil, Check, X } from 'lucide-react';
+import { ArrowLeft, Save, Calendar, MessageCircle, CheckCircle2, ShieldQuestion, MessageSquare, Pencil, Check, X, Phone, Info } from 'lucide-react';
 import Link from 'next/link';
 import {
   PageLayout,
@@ -11,6 +11,8 @@ import {
 } from '@/components/layout/page-layout';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { Timeline, TimelineNode } from '@/components/kit/timeline';
 
 export default function PreScreeningSettingsPage() {
@@ -23,6 +25,22 @@ export default function PreScreeningSettingsPage() {
   // Scheduling
   const [scheduleDaysAhead, setScheduleDaysAhead] = useState(3);
   const [scheduleStartOffset, setScheduleStartOffset] = useState(1);
+
+  // Escalation to human
+  const [escalationEnabled, setEscalationEnabled] = useState(false);
+  const [escalationDays, setEscalationDays] = useState<string[]>(['ma', 'di', 'wo', 'do', 'vr']);
+  const [escalationStartTime, setEscalationStartTime] = useState('09:00');
+  const [escalationEndTime, setEscalationEndTime] = useState('17:00');
+  const [escalationPhoneMode, setEscalationPhoneMode] = useState<'auto' | 'custom'>('auto');
+  const [escalationCustomPhone, setEscalationCustomPhone] = useState('');
+
+  const allDays = ['ma', 'di', 'wo', 'do', 'vr', 'za', 'zo'] as const;
+
+  const toggleEscalationDay = (day: string) => {
+    setEscalationDays(prev =>
+      prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day]
+    );
+  };
 
   // Interview outline
   const [introMessage, setIntroMessage] = useState(
@@ -194,6 +212,156 @@ export default function PreScreeningSettingsPage() {
                   >
                     +
                   </button>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* Escalation to Human Section */}
+          <section className="space-y-4">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">Escalatie naar mens</h2>
+              <p className="text-sm text-gray-500 mt-1">
+                Sta kandidaten toe om doorverbonden te worden met een medewerker
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              {/* Master toggle */}
+              <div className="flex items-center justify-between p-4 rounded-lg border border-gray-200 bg-white">
+                <div className="flex-1">
+                  <Label className="font-medium text-gray-900">Escalatie toestaan</Label>
+                  <p className="text-sm text-gray-500 mt-0.5">
+                    Kandidaat kan tijdens het gesprek vragen om een mens
+                  </p>
+                </div>
+                <Switch
+                  checked={escalationEnabled}
+                  onCheckedChange={setEscalationEnabled}
+                />
+              </div>
+
+              {/* Sub-settings (shown when enabled) */}
+              <div
+                className={`space-y-3 overflow-hidden transition-all duration-300 ${
+                  escalationEnabled ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'
+                }`}
+              >
+                {/* Availability window */}
+                <div className="p-4 rounded-lg border border-gray-200 bg-white space-y-4">
+                  <div>
+                    <Label className="font-medium text-gray-900">Beschikbaarheid</Label>
+                    <p className="text-sm text-gray-500 mt-0.5">
+                      Op welke dagen en tijden kan er geëscaleerd worden
+                    </p>
+                  </div>
+
+                  {/* Day picker */}
+                  <div className="flex gap-1.5">
+                    {allDays.map(day => (
+                      <button
+                        key={day}
+                        onClick={() => toggleEscalationDay(day)}
+                        className={`w-10 h-10 rounded-lg text-sm font-medium capitalize transition-colors ${
+                          escalationDays.includes(day)
+                            ? 'bg-amber-100 text-amber-800 border border-amber-300'
+                            : 'bg-gray-50 text-gray-400 border border-gray-200 hover:bg-gray-100'
+                        }`}
+                      >
+                        {day}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Time range */}
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
+                      <label className="text-sm text-gray-500">Van</label>
+                      <input
+                        type="time"
+                        value={escalationStartTime}
+                        onChange={(e) => setEscalationStartTime(e.target.value)}
+                        className="px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
+                      />
+                    </div>
+                    <span className="text-gray-300">—</span>
+                    <div className="flex items-center gap-2">
+                      <label className="text-sm text-gray-500">Tot</label>
+                      <input
+                        type="time"
+                        value={escalationEndTime}
+                        onChange={(e) => setEscalationEndTime(e.target.value)}
+                        className="px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Phone number mode */}
+                <div className="p-4 rounded-lg border border-gray-200 bg-white space-y-3">
+                  <div>
+                    <Label className="font-medium text-gray-900">Telefoonnummer</Label>
+                    <p className="text-sm text-gray-500 mt-0.5">
+                      Naar welk nummer wordt doorverbonden
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <button
+                      onClick={() => setEscalationPhoneMode('auto')}
+                      className={`w-full p-3 rounded-lg border text-left transition-colors ${
+                        escalationPhoneMode === 'auto'
+                          ? 'border-amber-500 bg-amber-50'
+                          : 'border-gray-200 bg-white hover:bg-gray-50'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <p className={`text-sm font-medium ${escalationPhoneMode === 'auto' ? 'text-amber-700' : 'text-gray-900'}`}>
+                          Automatisch
+                        </p>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="w-3.5 h-3.5 text-gray-400 cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent side="top" className="max-w-[240px]">
+                            Het telefoonnummer van de contactpersoon gekoppeld aan de vacature wordt gebruikt
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+                      <p className="text-xs text-gray-500">
+                        Gebruik het nummer van de contactpersoon op de vacature
+                      </p>
+                    </button>
+
+                    <button
+                      onClick={() => setEscalationPhoneMode('custom')}
+                      className={`w-full p-3 rounded-lg border text-left transition-colors ${
+                        escalationPhoneMode === 'custom'
+                          ? 'border-amber-500 bg-amber-50'
+                          : 'border-gray-200 bg-white hover:bg-gray-50'
+                      }`}
+                    >
+                      <p className={`text-sm font-medium ${escalationPhoneMode === 'custom' ? 'text-amber-700' : 'text-gray-900'}`}>
+                        Handmatig
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        Vul een specifiek telefoonnummer in
+                      </p>
+                    </button>
+
+                    {/* Custom phone input */}
+                    {escalationPhoneMode === 'custom' && (
+                      <div className="pt-1">
+                        <input
+                          type="tel"
+                          value={escalationCustomPhone}
+                          onChange={(e) => setEscalationCustomPhone(e.target.value)}
+                          placeholder="+31 6 12345678"
+                          className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
+                        />
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>

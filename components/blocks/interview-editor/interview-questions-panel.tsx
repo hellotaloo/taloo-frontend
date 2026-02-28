@@ -32,10 +32,11 @@ interface InterviewQuestionsPanelProps {
   onReorder?: (questions: GeneratedQuestion[]) => void;
   onAddQuestion?: (text: string, type: 'knockout' | 'qualifying', idealAnswer?: string) => void;
   onDeleteQuestion?: (questionId: string) => void;
+  onEditQuestion?: (questionId: string, newText: string, newIdealAnswer?: string) => void;
   readOnly?: boolean;
 }
 
-export function InterviewQuestionsPanel({ questions, isGenerating = false, highlightedIds = [], onQuestionClick, onReorder, onAddQuestion, onDeleteQuestion, readOnly = false }: InterviewQuestionsPanelProps) {
+export function InterviewQuestionsPanel({ questions, isGenerating = false, highlightedIds = [], onQuestionClick, onReorder, onAddQuestion, onDeleteQuestion, onEditQuestion, readOnly = false }: InterviewQuestionsPanelProps) {
   const knockoutQuestions = questions.filter(q => q.type === 'knockout');
   const qualifyingQuestions = questions.filter(q => q.type === 'qualifying');
   const hasQuestions = questions.length > 0;
@@ -191,6 +192,7 @@ export function InterviewQuestionsPanel({ questions, isGenerating = false, highl
                   animationDelay={knockoutQuestionsBaseDelay + index * 80}
                   onClick={readOnly ? undefined : onQuestionClick}
                   onDelete={readOnly ? undefined : onDeleteQuestion}
+                  onEdit={readOnly ? undefined : onEditQuestion}
                   readOnly={readOnly}
                 />
               ))}
@@ -250,6 +252,7 @@ export function InterviewQuestionsPanel({ questions, isGenerating = false, highl
                   animationDelay={qualifyingQuestionsBaseDelay + index * 80}
                   onClick={readOnly ? undefined : onQuestionClick}
                   onDelete={readOnly ? undefined : onDeleteQuestion}
+                  onEdit={readOnly ? undefined : onEditQuestion}
                   readOnly={readOnly}
                 />
               ))}
@@ -611,6 +614,7 @@ function SortableQuestionItem({
   animationDelay = 0,
   onClick,
   onDelete,
+  onEdit,
   readOnly = false,
 }: {
   question: GeneratedQuestion;
@@ -620,12 +624,17 @@ function SortableQuestionItem({
   animationDelay?: number;
   onClick?: (question: GeneratedQuestion, index: number) => void;
   onDelete?: (questionId: string) => void;
+  onEdit?: (questionId: string, newText: string, newIdealAnswer?: string) => void;
   readOnly?: boolean;
 }) {
   const [hasAnimated, setHasAnimated] = useState(false);
   const [showChangeLabel, setShowChangeLabel] = useState(isHighlighted);
   const [showHighlightBg, setShowHighlightBg] = useState(question.changeStatus === 'new' || question.changeStatus === 'updated');
   const [isIdealAnswerExpanded, setIsIdealAnswerExpanded] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editText, setEditText] = useState(question.text);
+  const [editIdealAnswer, setEditIdealAnswer] = useState(question.idealAnswer || '');
+  const editInputRef = useRef<HTMLInputElement>(null);
   const {
     attributes,
     listeners,
@@ -696,9 +705,46 @@ function SortableQuestionItem({
   };
 
   const handleCardClick = () => {
+    if (isEditing) return;
     // For qualifying questions with ideal answer, clicking the card toggles collapse
     if (hasIdealAnswer) {
       setIsIdealAnswerExpanded(!isIdealAnswerExpanded);
+    }
+  };
+
+  const handleEditStart = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditText(question.text);
+    setEditIdealAnswer(question.idealAnswer || '');
+    setIsEditing(true);
+    // Expand ideal answer section when editing qualifying questions
+    if (hasIdealAnswer) setIsIdealAnswerExpanded(true);
+    setTimeout(() => editInputRef.current?.focus(), 50);
+  };
+
+  const handleEditSave = () => {
+    const trimmed = editText.trim();
+    if (!trimmed || trimmed === question.text && editIdealAnswer.trim() === (question.idealAnswer || '')) {
+      setIsEditing(false);
+      return;
+    }
+    onEdit?.(question.id, trimmed, variant === 'qualifying' ? editIdealAnswer.trim() || undefined : undefined);
+    setIsEditing(false);
+  };
+
+  const handleEditCancel = () => {
+    setEditText(question.text);
+    setEditIdealAnswer(question.idealAnswer || '');
+    setIsEditing(false);
+  };
+
+  const handleEditKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleEditSave();
+    }
+    if (e.key === 'Escape') {
+      handleEditCancel();
     }
   };
 
@@ -722,7 +768,7 @@ function SortableQuestionItem({
       onClick={handleCardClick}
     >
       {/* Drag handle - absolutely positioned on the left, visible on hover */}
-      {!readOnly && (
+      {!readOnly && !isEditing && (
         <button
           className="absolute left-1 top-1/2 -translate-y-1/2 p-0.5 text-gray-400 hover:text-gray-600 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity touch-none"
           {...attributes}
@@ -733,7 +779,7 @@ function SortableQuestionItem({
         </button>
       )}
       {/* Action icons - absolutely positioned on the right, visible on hover */}
-      {!readOnly && (
+      {!readOnly && !isEditing && (
         <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity bg-gray-100 rounded-md p-0.5">
           {/* Chat icon - ask about this question */}
           {onClick && (
@@ -747,7 +793,7 @@ function SortableQuestionItem({
           )}
           {/* Edit icon - edit this question */}
           <button
-            onClick={(e) => e.stopPropagation()}
+            onClick={handleEditStart}
             className="p-1 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-200 transition-colors"
             title="Vraag bewerken"
           >
@@ -768,65 +814,102 @@ function SortableQuestionItem({
           )}
         </div>
       )}
-      <div className={`flex items-center gap-2 transition-all duration-200 ${!readOnly ? 'group-hover:ml-5 group-hover:mr-20' : ''}`}>
-        <div className="flex-1 flex items-center gap-2 min-w-0">
-          <p className="text-sm text-gray-700 flex-1">{question.text}</p>
-          {/* Vacancy snippet link indicator with tooltip */}
-          {hasRealSnippet && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  onClick={(e) => e.stopPropagation()}
-                  className="shrink-0 p-1 text-blue-400 hover:text-blue-600 transition-colors"
-                  aria-label="Toon bron uit vacature"
-                >
-                  <Link2 className="w-3.5 h-3.5" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent
-                side="top"
-                sideOffset={4}
-                className="max-w-xs bg-gray-900 text-white border-0"
-              >
-                <p className="text-xs leading-relaxed">{question.vacancySnippet}</p>
-              </TooltipContent>
-            </Tooltip>
-          )}
-          {isStandardQuestion && (
-            <span className={`shrink-0 text-[10px] font-medium px-1.5 py-0.5 rounded bg-gray-200 text-gray-500 ${!readOnly ? 'group-hover:opacity-0' : ''} transition-opacity`}>
-              Standaard
-            </span>
-          )}
-          {/* Chevron for qualifying questions - always visible */}
-          {hasIdealAnswer && (
+      {isEditing ? (
+        <div className="space-y-2" onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center gap-2">
+            <input
+              ref={editInputRef}
+              type="text"
+              value={editText}
+              onChange={(e) => setEditText(e.target.value)}
+              onKeyDown={handleEditKeyDown}
+              className="flex-1 text-sm text-gray-700 bg-white border border-blue-300 rounded px-2 py-1 outline-none focus:ring-1 focus:ring-blue-400"
+            />
             <button
-              onClick={handleIdealAnswerToggle}
-              className="shrink-0 p-1 text-gray-400 hover:text-gray-600 transition-colors"
-              title="Ideaal antwoord"
+              onClick={handleEditSave}
+              disabled={!editText.trim()}
+              className="shrink-0 p-1 rounded text-white bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 transition-colors"
+              title="Opslaan"
             >
-              <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isIdealAnswerExpanded ? 'rotate-180' : ''}`} />
+              <Check className="w-3.5 h-3.5" />
             </button>
-          )}
-          {/* Change label (new/updated) - rightmost item */}
-          {showChangeLabel && labelConfig && (
-            <span className={`shrink-0 text-[10px] font-medium px-1.5 py-0.5 rounded animate-[pulse-opacity_2s_ease-in-out_infinite] transition-opacity duration-300 ${labelConfig.className}`}>
-              {labelConfig.text}
-            </span>
-          )}
-        </div>
-      </div>
-      
-      {/* Collapsible ideal answer section */}
-      {hasIdealAnswer && (
-        <div
-          className={`overflow-hidden transition-all duration-200 ease-in-out ${
-            isIdealAnswerExpanded ? 'max-h-40 opacity-100 mt-2' : 'max-h-0 opacity-0'
-          }`}
-        >
-          <div className="ml-6 pl-2 border-l-2 border-orange-200">
-            <p className="text-sm text-gray-500 leading-relaxed">{question.idealAnswer}</p>
           </div>
+          {variant === 'qualifying' && (
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                value={editIdealAnswer}
+                onChange={(e) => setEditIdealAnswer(e.target.value)}
+                onKeyDown={handleEditKeyDown}
+                placeholder="Ideaal antwoord (optioneel)"
+                className="flex-1 text-sm text-gray-500 bg-white border border-gray-200 rounded px-2 py-1 outline-none focus:border-blue-300 focus:ring-1 focus:ring-blue-400"
+              />
+            </div>
+          )}
         </div>
+      ) : (
+        <>
+          <div className={`flex items-center gap-2 transition-all duration-200 ${!readOnly ? 'group-hover:ml-5 group-hover:mr-20' : ''}`}>
+            <div className="flex-1 flex items-center gap-2 min-w-0">
+              <p className="text-sm text-gray-700 flex-1">{question.text}</p>
+              {/* Vacancy snippet link indicator with tooltip */}
+              {hasRealSnippet && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={(e) => e.stopPropagation()}
+                      className="shrink-0 p-1 text-blue-400 hover:text-blue-600 transition-colors"
+                      aria-label="Toon bron uit vacature"
+                    >
+                      <Link2 className="w-3.5 h-3.5" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent
+                    side="top"
+                    sideOffset={4}
+                    className="max-w-xs bg-gray-900 text-white border-0"
+                  >
+                    <p className="text-xs leading-relaxed">{question.vacancySnippet}</p>
+                  </TooltipContent>
+                </Tooltip>
+              )}
+              {isStandardQuestion && (
+                <span className={`shrink-0 text-[10px] font-medium px-1.5 py-0.5 rounded bg-gray-200 text-gray-500 ${!readOnly ? 'group-hover:opacity-0' : ''} transition-opacity`}>
+                  Standaard
+                </span>
+              )}
+              {/* Chevron for qualifying questions - always visible */}
+              {hasIdealAnswer && (
+                <button
+                  onClick={handleIdealAnswerToggle}
+                  className="shrink-0 p-1 text-gray-400 hover:text-gray-600 transition-colors"
+                  title="Ideaal antwoord"
+                >
+                  <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isIdealAnswerExpanded ? 'rotate-180' : ''}`} />
+                </button>
+              )}
+              {/* Change label (new/updated) - rightmost item */}
+              {showChangeLabel && labelConfig && (
+                <span className={`shrink-0 text-[10px] font-medium px-1.5 py-0.5 rounded animate-[pulse-opacity_2s_ease-in-out_infinite] transition-opacity duration-300 ${labelConfig.className}`}>
+                  {labelConfig.text}
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Collapsible ideal answer section */}
+          {hasIdealAnswer && (
+            <div
+              className={`overflow-hidden transition-all duration-200 ease-in-out ${
+                isIdealAnswerExpanded ? 'max-h-40 opacity-100 mt-2' : 'max-h-0 opacity-0'
+              }`}
+            >
+              <div className="ml-6 pl-2 border-l-2 border-orange-200">
+                <p className="text-sm text-gray-500 leading-relaxed">{question.idealAnswer}</p>
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

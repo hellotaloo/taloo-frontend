@@ -1,8 +1,8 @@
 'use client';
 
-import { Phone, CheckCircle2, Users, MapPin, Building2, ArrowRight, Archive, Loader2, Info, ExternalLink, Calendar, FileEdit, Send, MessageCircle, FileText, Settings } from 'lucide-react';
+import { Phone, CheckCircle2, Users, MapPin, Building2, ArrowRight, Archive, Loader2, Info, ExternalLink, Calendar, FileEdit, Send, MessageCircle, FileText, Settings, Play } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -17,6 +17,7 @@ import {
   ArchivedVacanciesTable,
 } from '@/components/blocks/vacancy-table';
 import { PageLayout, PageLayoutHeader, PageLayoutContent } from '@/components/layout/page-layout';
+import { useAtsImport } from '@/hooks/use-ats-import';
 import {
   Table,
   TableBody,
@@ -61,17 +62,41 @@ function PreScreeningContent() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [autoGenerate, setAutoGenerate] = useState(false);
+  const [autoGenerate, setAutoGenerate] = useState(true);
   const [showAutoGenerateConfirm, setShowAutoGenerateConfirm] = useState(false);
   const [selectedVacancy, setSelectedVacancy] = useState<Vacancy | null>(null);
+
+  const fetchData = useCallback(async (showLoading = false) => {
+    try {
+      if (showLoading) setIsLoading(true);
+      setError(null);
+      const [newData, generatedData, publishedData, archivedData, statsData] = await Promise.all([
+        getPreScreeningVacancies('new'),
+        getPreScreeningVacancies('generated'),
+        getPreScreeningVacancies('published'),
+        getPreScreeningVacancies('archived'),
+        getDashboardStats(),
+      ]);
+
+      setConceptVacancies([...newData.vacancies, ...generatedData.vacancies]);
+      setPublishedVacancies(publishedData.vacancies);
+      setArchivedVacancies(archivedData.vacancies);
+      setStats(statsData);
+    } catch (err) {
+      console.error('Failed to fetch data:', err);
+      if (showLoading) setError('Gegevens laden mislukt');
+    } finally {
+      if (showLoading) setIsLoading(false);
+    }
+  }, []);
+
+  const atsImport = useAtsImport(fetchData);
 
   // Handle auto-generate toggle - show confirmation when enabling
   const handleAutoGenerateToggle = (checked: boolean) => {
     if (checked) {
-      // Show confirmation dialog when enabling
       setShowAutoGenerateConfirm(true);
     } else {
-      // Disable immediately without confirmation
       setAutoGenerate(false);
     }
   };
@@ -92,39 +117,8 @@ function PreScreeningContent() {
 
   // Fetch vacancies from agent endpoints and stats on mount
   useEffect(() => {
-    async function fetchData() {
-      try {
-        setIsLoading(true);
-        setError(null);
-        // Fetch vacancies by status:
-        // - new: no pre-screening yet
-        // - generated: has pre-screening but not published (draft)
-        // - published: published_at IS NOT NULL
-        // - archived: closed/filled
-        const [newData, generatedData, publishedData, archivedData, statsData] = await Promise.all([
-          getPreScreeningVacancies('new'),
-          getPreScreeningVacancies('generated'),
-          getPreScreeningVacancies('published'),
-          getPreScreeningVacancies('archived'),
-          getDashboardStats(),
-        ]);
-
-        // Concept tab = new + generated (all unpublished)
-        // Published tab = published
-        setConceptVacancies([...newData.vacancies, ...generatedData.vacancies]);
-        setPublishedVacancies(publishedData.vacancies);
-        setArchivedVacancies(archivedData.vacancies);
-        setStats(statsData);
-      } catch (err) {
-        console.error('Failed to fetch data:', err);
-        setError('Gegevens laden mislukt');
-      } finally {
-        setIsLoading(false);
-      }
-    }
-
-    fetchData();
-  }, []);
+    fetchData(true);
+  }, [fetchData]);
 
   // Use stats from API or fallback to zeros
   const weeklyMetrics = {
@@ -166,12 +160,31 @@ function PreScreeningContent() {
         title="Pre-screening"
         description="Overzicht van je conversationele pre-screening"
         action={
-          <Link href="/pre-screening/settings">
-            <Button variant="outline" size="sm" className="gap-2">
-              <Settings className="w-4 h-4" />
-              Instellingen
-            </Button>
-          </Link>
+          <div className="flex items-center gap-2">
+            {atsImport.isImporting && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2"
+                disabled
+              >
+                <Loader2 className="w-4 h-4 animate-spin" />
+                {atsImport.phase === 'importing' ? 'Importeren...' : `${atsImport.publishedCount}/${atsImport.totalCount || '...'}`}
+              </Button>
+            )}
+            <Link href="/pre-screening/demo">
+              <Button variant="outline" size="sm" className="gap-2">
+                <Play className="w-4 h-4" />
+                Playground
+              </Button>
+            </Link>
+            <Link href="/pre-screening/settings">
+              <Button variant="outline" size="sm" className="gap-2">
+                <Settings className="w-4 h-4" />
+                Instellingen
+              </Button>
+            </Link>
+          </div>
         }
       />
       <PageLayoutContent>
@@ -260,7 +273,12 @@ function PreScreeningContent() {
         </div>
         
         <TabsContent value="concept" className="">
-          <ConceptVacanciesTable vacancies={conceptVacancies} />
+          <ConceptVacanciesTable
+            vacancies={conceptVacancies}
+            generationStatus={atsImport.vacancies.size > 0 ? atsImport.vacancies : undefined}
+            isImporting={atsImport.isImporting}
+            onSync={atsImport.startImport}
+          />
         </TabsContent>
 
         <TabsContent value="published" className="">

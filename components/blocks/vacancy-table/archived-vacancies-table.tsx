@@ -195,7 +195,7 @@ export function ArchivedVacanciesTable({ vacancies }: ArchivedVacanciesTableProp
               key={vacancy.id}
               data-testid={`archived-vacancy-row-${vacancy.id}`}
               className="cursor-pointer"
-              onClick={() => router.push(`/pre-screening/view/${vacancy.id}`)}
+              onClick={() => router.push(`/pre-screening/detail/${vacancy.id}?mode=dashboard`)}
             >
               <TableCell>
                 <div className="min-w-0">

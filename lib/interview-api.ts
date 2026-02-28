@@ -788,7 +788,13 @@ export async function savePreScreening(
  * Returns null if no pre-screening exists.
  */
 export async function getPreScreening(vacancyId: string): Promise<PreScreening | null> {
-  const response = await fetch(`${BACKEND_URL}/vacancies/${vacancyId}/pre-screening`);
+  let response = await fetch(`${BACKEND_URL}/vacancies/${vacancyId}/pre-screening`);
+
+  // Retry once after a short delay — the pre-screening may still be finalizing
+  if (response.status >= 500) {
+    await new Promise(r => setTimeout(r, 1500));
+    response = await fetch(`${BACKEND_URL}/vacancies/${vacancyId}/pre-screening`);
+  }
 
   if (response.status === 404) {
     return null; // No pre-screening exists yet
@@ -942,6 +948,64 @@ export async function updateChannelStatus(
 }
 
 // =============================================================================
+// Interview Analysis API
+// =============================================================================
+
+export type Verdict = 'excellent' | 'good' | 'needs_work' | 'poor';
+export type DropOffRisk = 'low' | 'medium' | 'high';
+
+export interface AnalysisSummary {
+  completionRate: number;
+  avgTimeSeconds: number;
+  verdict: Verdict;
+  verdictHeadline: string;
+  verdictDescription: string;
+  oneLiner: string;
+}
+
+export interface AnalysisQuestionResult {
+  questionId: string;
+  completionRate: number;
+  avgTimeSeconds: number;
+  dropOffRisk: DropOffRisk;
+  clarityScore: number;
+  tip: string | null;
+}
+
+export interface AnalysisFunnelStep {
+  step: string;
+  candidates: number;
+}
+
+export interface InterviewAnalysisResponse {
+  summary: AnalysisSummary;
+  questions: AnalysisQuestionResult[];
+  funnel: AnalysisFunnelStep[];
+}
+
+/**
+ * Fetch interview analysis for a vacancy's pre-screening.
+ * Returns null if no analysis is available yet (404).
+ */
+export async function getInterviewAnalysis(
+  vacancyId: string
+): Promise<InterviewAnalysisResponse | null> {
+  const response = await fetch(
+    `${BACKEND_URL}/vacancies/${vacancyId}/pre-screening/analysis`
+  );
+
+  if (response.status === 404) {
+    return null;
+  }
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch interview analysis');
+  }
+
+  return response.json();
+}
+
+// =============================================================================
 // Interview Simulation API
 // =============================================================================
 
@@ -966,7 +1030,8 @@ export type SimulationEventCallback = (event: SimulationSSEEvent) => void;
 export async function runSimulation(
   vacancyId: string,
   onEvent: SimulationEventCallback,
-  options?: SimulationRequest
+  options?: SimulationRequest,
+  signal?: AbortSignal
 ): Promise<void> {
   const response = await fetch(`${BACKEND_URL}/vacancies/${vacancyId}/simulate`, {
     method: 'POST',
@@ -976,6 +1041,7 @@ export async function runSimulation(
       custom_persona: options?.custom_persona ?? null,
       candidate_name: options?.candidate_name,
     }),
+    signal,
   });
 
   if (!response.ok) {
@@ -1087,6 +1153,22 @@ export async function deleteSimulation(
 
   if (!response.ok) {
     throw new Error('Failed to delete simulation');
+  }
+
+  return response.json();
+}
+
+/**
+ * Trigger a manual RTS sync to pull the latest vacancies from the
+ * connected recruitment tracking system (Salesforce, Bullhorn, etc.).
+ */
+export async function triggerRtsSync(): Promise<{ status: string; synced: number }> {
+  const response = await fetch(`${BACKEND_URL}/vacancies/sync`, {
+    method: 'POST',
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to trigger RTS sync');
   }
 
   return response.json();

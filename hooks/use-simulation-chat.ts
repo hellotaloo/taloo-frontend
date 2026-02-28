@@ -72,6 +72,13 @@ export function useSimulationChat(vacancyId: string) {
       return;
     }
 
+    // Abort any previous simulation before starting a new one
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     // Reset state
     setMessages([]);
     setIsRunning(true);
@@ -84,21 +91,24 @@ export function useSimulationChat(vacancyId: string) {
       await runSimulation(
         vacancyId,
         (event: SimulationSSEEvent) => {
+          // Ignore events if this simulation was aborted
+          if (controller.signal.aborted) return;
+
           switch (event.type) {
             case 'start':
               setCandidateName(event.candidate_name);
               break;
-              
+
             case 'agent':
               // Agent messages appear on the left (not outgoing)
               addMessage(event.message, false);
               break;
-              
+
             case 'candidate':
               // Candidate messages appear on the right (outgoing)
               addMessage(event.message, true);
               break;
-              
+
             case 'complete':
               setIsRunning(false);
               setIsComplete(true);
@@ -109,7 +119,7 @@ export function useSimulationChat(vacancyId: string) {
                 totalTurns: event.total_turns,
               });
               break;
-              
+
             case 'error':
               setIsRunning(false);
               setError(event.message);
@@ -120,9 +130,12 @@ export function useSimulationChat(vacancyId: string) {
           persona,
           custom_persona: customPersona ?? null,
           candidate_name: name,
-        }
+        },
+        controller.signal
       );
     } catch (e) {
+      // Don't treat abort as an error
+      if (e instanceof DOMException && e.name === 'AbortError') return;
       const errorMessage = e instanceof Error ? e.message : 'Simulation failed';
       setError(errorMessage);
       setIsRunning(false);
