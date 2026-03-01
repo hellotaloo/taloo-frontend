@@ -1,6 +1,6 @@
 'use client';
 
-import { Users, ArrowRight, Phone, X, FlaskConical, FileText, Calendar, Check } from 'lucide-react';
+import { Users, ArrowRight, Phone, X, FlaskConical, FileText, Calendar, Check, Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import {
   Table,
@@ -130,7 +130,7 @@ export function ApplicationsTable({
                   {application.interactionTime}
                 </span>
               ) : (
-                <span className="text-gray-400">Bezig</span>
+                <span className="text-gray-400 animate-pulse">Bezig</span>
               )}
             </TableCell>
             <TableCell className="px-4">
@@ -141,7 +141,7 @@ export function ApplicationsTable({
               />
             </TableCell>
             <TableCell className="px-4 text-center">
-              <SyncedStatus synced={application.synced} isTest={application.isTest} />
+              <SyncedStatus synced={application.synced} isTest={application.isTest} hasInterviewSlot={application.status === 'completed' && application.qualified && !!application.interviewSlot} />
             </TableCell>
             <TableCell className="text-right pl-4">
                 <button
@@ -165,11 +165,11 @@ export function ApplicationsTable({
 
 function StatusLabel({ status, qualified, interviewSlot }: { status: 'active' | 'processing' | 'completed' | 'abandoned'; qualified: boolean; interviewSlot?: string | null }) {
   if (status === 'active') {
-    return <StatusBadge label="Bezig" variant="blue" />;
+    return <StatusBadge label="Bezig" variant="blue" animate />;
   }
 
   if (status === 'processing') {
-    return <StatusBadge label="Verwerken..." variant="orange" />;
+    return <StatusBadge label="Verwerken..." variant="orange" icon={Loader2} animate />;
   }
 
   if (status === 'abandoned') {
@@ -183,7 +183,7 @@ function StatusLabel({ status, qualified, interviewSlot }: { status: 'active' | 
 
   // Qualified with interview slot
   if (interviewSlot) {
-    return <StatusBadge label={formatInterviewSlot(interviewSlot) || ''} variant="green" icon={Calendar} />;
+    return <StatusBadge label={`Gesprek: ${formatInterviewSlot(interviewSlot)}`} variant="green" icon={Calendar} />;
   }
 
   return <StatusBadge label="Review nodig" variant="orange" />;
@@ -254,8 +254,23 @@ function ScoreDisplayInline({
   );
 }
 
-function SyncedStatus({ synced, isTest }: { synced?: boolean; isTest?: boolean }) {
-  // Test applications are never synced - show a cross
+function SyncedStatus({ synced, isTest, hasInterviewSlot }: { synced?: boolean; isTest?: boolean; hasInterviewSlot?: boolean }) {
+  // Show Salesforce logo when synced OR when interview is booked
+  if (synced || hasInterviewSlot) {
+    return (
+      <span className="inline-flex items-center justify-center">
+        <Image
+          src="/salesforc-logo-cloud.png"
+          alt="Salesforce"
+          width={16}
+          height={11}
+          className="opacity-70"
+        />
+      </span>
+    );
+  }
+
+  // Test applications that aren't synced - show a cross
   if (isTest) {
     return (
       <span className="inline-flex items-center justify-center" title="Test - wordt niet gesynchroniseerd">
@@ -263,22 +278,8 @@ function SyncedStatus({ synced, isTest }: { synced?: boolean; isTest?: boolean }
       </span>
     );
   }
-  
-  if (!synced) {
-    return <span className="text-gray-400">-</span>;
-  }
-  
-  return (
-    <span className="inline-flex items-center justify-center">
-      <Image 
-        src="/salesforc-logo-cloud.png" 
-        alt="Salesforce" 
-        width={16} 
-        height={11}
-        className="opacity-70"
-      />
-    </span>
-  );
+
+  return <span className="text-gray-400">-</span>;
 }
 
 function ChannelIcon({ channel }: { channel: 'voice' | 'whatsapp' | 'cv' }) {

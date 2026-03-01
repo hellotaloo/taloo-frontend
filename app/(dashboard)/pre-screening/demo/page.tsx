@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { ArrowLeft, ChevronDown, Check, User, Phone, MessageCircle, CheckCircle, RotateCcw, AlertTriangle, Globe, MapPin, Clock, Briefcase, ListChecks, BarChart3, PhoneForwarded, ShieldCheck, PhoneOff, X } from 'lucide-react';
+import { ArrowLeft, ChevronDown, Check, User, UserCheck, Phone, MessageCircle, CheckCircle, RotateCcw, AlertTriangle, Globe, MapPin, Briefcase, ListChecks, BarChart3, PhoneForwarded, ShieldCheck, ShieldOff, PhoneOff, X, HelpCircle } from 'lucide-react';
 import { ChatBubbleLeftRightIcon } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -20,22 +20,24 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
 import { getPreScreeningVacancies, getPreScreening, getVacancy } from '@/lib/interview-api';
+import { usePlaygroundSession } from '@/hooks/use-playground-session';
 import type { Vacancy } from '@/lib/types';
 
 const VOICE_OPTIONS: VoiceOption[] = [
-  {
-    id: 'bob',
-    name: 'Bob',
-    description: 'Zelfverzekerd en helder',
-    gender: 'male',
-    avatar: '/avatars/large/male_2.png',
-  },
   {
     id: 'emma',
     name: 'Louise',
     description: 'Warm en professioneel',
     gender: 'female',
     avatar: '/avatars/large/female_6.png',
+  },
+  {
+    id: 'bob',
+    name: 'Bob',
+    description: 'Zelfverzekerd en helder',
+    gender: 'male',
+    avatar: '/avatars/large/male_2.png',
+    voiceId: 'Xb7hH8MSUJpSbSDYk0k2',
   },
   {
     id: 'luc',
@@ -47,25 +49,27 @@ const VOICE_OPTIONS: VoiceOption[] = [
 ];
 
 
-type CandidateType = 'unknown' | 'known' | 'active';
+type CandidateContext = 'unknown' | 'known' | 'known_with_vacancy' | 'blocked';
+
+const CANDIDATE_CONTEXT_OPTIONS: { id: CandidateContext; label: string; description: string; candidateName: string; icon: typeof User; iconBg: string }[] = [
+  { id: 'unknown', label: 'Onbekende kandidaat', description: 'Nieuw persoon, geen data bekend', candidateName: 'Onbekende beller', icon: HelpCircle, iconBg: 'bg-gray-500' },
+  { id: 'known', label: 'Bekende kandidaat', description: 'Persoon staat in het systeem', candidateName: 'Jan de Vries', icon: UserCheck, iconBg: 'bg-sky-600' },
+  { id: 'known_with_vacancy', label: 'Kandidaat met actieve vacature', description: 'Bekende kandidaat gekoppeld aan vacature', candidateName: 'Sophie Bakker', icon: Briefcase, iconBg: 'bg-emerald-600' },
+  { id: 'blocked', label: 'Geblokkeerde kandidaat', description: 'Kandidaat staat op de blokkeerlijst', candidateName: 'Geblokkeerd Persoon', icon: ShieldOff, iconBg: 'bg-red-600' },
+];
+
 type StartAgent = 'greeting' | 'screening' | 'open_questions' | 'scheduling';
 
 const START_AGENT_OPTIONS: { id: StartAgent; label: string; description: string }[] = [
-  { id: 'greeting', label: 'Greeting', description: 'Start bij de begroeting' },
-  { id: 'screening', label: 'Screening', description: 'Start bij de screeningvragen' },
-  { id: 'open_questions', label: 'Open Questions', description: 'Start bij de open vragen' },
-  { id: 'scheduling', label: 'Scheduling', description: 'Start bij het inplannen' },
-];
-
-const CANDIDATE_OPTIONS: { id: CandidateType; label: string; description: string }[] = [
-  { id: 'unknown', label: 'Nieuwe kandidaat', description: 'Onbekende beller, geen eerdere gegevens' },
-  { id: 'known', label: 'Bekende kandidaat', description: 'Kandidaat met bestaand profiel' },
-  { id: 'active', label: 'Kandidaat met lopende sollicitatie', description: 'Kandidaat met een actieve sollicitatie' },
+  { id: 'greeting', label: 'Welkom', description: 'Start bij de begroeting' },
+  { id: 'screening', label: 'Knockout-vragen', description: 'Start bij de screeningvragen' },
+  { id: 'open_questions', label: 'Kwalificatievragen', description: 'Start bij de open vragen' },
+  { id: 'scheduling', label: 'Inplannen interview', description: 'Start bij het inplannen' },
 ];
 
 export default function PreScreeningDemoPage() {
   // Voice selection
-  const [selectedVoice, setSelectedVoice] = useState('bob');
+  const [selectedVoice, setSelectedVoice] = useState('emma');
   const [voiceSelectOpen, setVoiceSelectOpen] = useState(false);
   const selectedVoiceData = VOICE_OPTIONS.find(v => v.id === selectedVoice);
 
@@ -163,10 +167,10 @@ export default function PreScreeningDemoPage() {
     fetchVacancyDetail();
   }, [selectedVacancy]);
 
-  // Candidate type
-  const [candidateType, setCandidateType] = useState<CandidateType>('unknown');
-  const [candidateTypeOpen, setCandidateTypeOpen] = useState(false);
-  const selectedCandidateData = CANDIDATE_OPTIONS.find(c => c.id === candidateType);
+  // Candidate context
+  const [candidateContext, setCandidateContext] = useState<CandidateContext>('unknown');
+  const [candidateContextOpen, setCandidateContextOpen] = useState(false);
+  const selectedCandidateContextData = CANDIDATE_CONTEXT_OPTIONS.find(c => c.id === candidateContext)!;
 
   // Start agent
   const [startAgent, setStartAgent] = useState<StartAgent>('greeting');
@@ -176,7 +180,8 @@ export default function PreScreeningDemoPage() {
   // Flags
   const [isUrgent, setIsUrgent] = useState(false);
   const [allowEscalation, setAllowEscalation] = useState(false);
-  const [askConsent, setAskConsent] = useState(true);
+  const [askConsent, setAskConsent] = useState(false);
+  const [allowInterruption, setAllowInterruption] = useState(false);
 
   // Trigger interview dialog
   const [showTriggerDialog, setShowTriggerDialog] = useState(false);
@@ -185,20 +190,84 @@ export default function PreScreeningDemoPage() {
   const [simulatorChannel, setSimulatorChannel] = useState<'whatsapp' | 'voice' | 'website' | 'questions' | 'analytics'>('voice');
   const [chatScenario, setChatScenario] = useState<ChatScenario>('manual');
   const [chatResetKey, setChatResetKey] = useState(0);
-  const [callState, setCallState] = useState<CallState>('idle');
+
+  // LiveKit playground session
+  const {
+    startSession,
+    endSession,
+    toggleMute,
+    connectionState,
+    isMuted: isSessionMuted,
+    isSpeaking,
+    isUserSpeaking,
+    error: sessionError,
+    resetError: resetSessionError,
+  } = usePlaygroundSession();
+
+  // Simulated incoming call state (for outbound call flow)
+  const [isSimulatedRinging, setIsSimulatedRinging] = useState(false);
+
+  // Derive CallState from LiveKit connection state (simulated ringing takes priority)
+  const callState: CallState =
+    isSimulatedRinging ? 'ringing' :
+    connectionState === 'connecting' ? 'ringing' :
+    connectionState === 'connected' ? 'active' :
+    connectionState === 'disconnected' ? 'ended' :
+    'idle';
+
+  const isSessionActive = connectionState === 'connecting' || connectionState === 'connected';
 
   // macOS call notification
   const [showCallNotification, setShowCallNotification] = useState(false);
 
+  // Simulate incoming call — shows ringing UI, user must accept
+  const handleSimulateIncomingCall = async () => {
+    try {
+      const audio = new Audio('/phone-beep.mp3');
+      await audio.play();
+    } catch {
+      // Ignore if browser blocks autoplay
+    }
+    setIsSimulatedRinging(true);
+  };
+
+  const handleStartCall = useCallback(async () => {
+    if (!selectedVacancy) return;
+
+    // Play beep sound while connecting
+    try {
+      const audio = new Audio('/phone-beep.mp3');
+      await audio.play();
+    } catch {
+      // Ignore if browser blocks autoplay
+    }
+
+    await startSession({
+      vacancy_id: selectedVacancy,
+      candidate_name: selectedCandidateContextData.candidateName,
+      start_agent: startAgent,
+      require_consent: askConsent,
+      allow_interruption: allowInterruption,
+    });
+  }, [startSession, selectedVacancy, selectedCandidateContextData, startAgent, askConsent, allowInterruption]);
+
   const handleCallStateChange = useCallback((state: CallState) => {
-    setCallState(state);
+    if (isSimulatedRinging) {
+      setIsSimulatedRinging(false);
+      if (state === 'active') {
+        // User accepted — start the real LiveKit session
+        handleStartCall();
+      }
+      return;
+    }
+    if (state === 'ended') {
+      endSession();
+      setShowCallNotification(false);
+    }
     if (state === 'ringing') {
       setShowCallNotification(true);
     }
-    if (state === 'ended') {
-      setShowCallNotification(false);
-    }
-  }, []);
+  }, [endSession, isSimulatedRinging, handleStartCall]);
 
   // Auto-dismiss notification after 8 seconds
   useEffect(() => {
@@ -254,8 +323,22 @@ export default function PreScreeningDemoPage() {
         <div className="flex h-full">
           {/* Left panel — Controls */}
           <div className="w-[480px] shrink-0 border-r border-gray-200 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] p-6 space-y-8">
+            {/* Error banner */}
+            {sessionError && (
+              <div className="flex items-center gap-3 rounded-lg border border-red-200 bg-red-50 p-3">
+                <AlertTriangle className="w-4 h-4 text-red-500 shrink-0" />
+                <p className="text-sm text-red-700 flex-1">{sessionError}</p>
+                <button
+                  onClick={resetSessionError}
+                  className="text-red-400 hover:text-red-600 transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+
             {/* Voice Selection */}
-            <section className="space-y-3">
+            <section className={cn("space-y-3", isSessionActive && "opacity-50 pointer-events-none")}>
               <div>
                 <h2 className="text-sm font-semibold text-gray-900">Selecteer stem</h2>
                 <p className="text-xs text-gray-500 mt-0.5">Kies een stem voor de demo</p>
@@ -348,7 +431,7 @@ export default function PreScreeningDemoPage() {
             </section>
 
             {/* Vacancy Selection */}
-            <section className="space-y-3">
+            <section className={cn("space-y-3", isSessionActive && "opacity-50 pointer-events-none")}>
               <div>
                 <h2 className="text-sm font-semibold text-gray-900">Selecteer vacature</h2>
                 <p className="text-xs text-gray-500 mt-0.5">Kies een vacature voor de demo</p>
@@ -421,26 +504,26 @@ export default function PreScreeningDemoPage() {
               )}
             </section>
 
-            {/* Candidate Type */}
-            <section className="space-y-3">
+            {/* Candidate Context */}
+            <section className={cn("space-y-3", isSessionActive && "opacity-50 pointer-events-none")}>
               <div>
-                <h2 className="text-sm font-semibold text-gray-900">Kandidaat type</h2>
-                <p className="text-xs text-gray-500 mt-0.5">Selecteer het type kandidaat dat belt</p>
+                <h2 className="text-sm font-semibold text-gray-900">Kandidaat context</h2>
+                <p className="text-xs text-gray-500 mt-0.5">Welk type kandidaat belt er in</p>
               </div>
 
-              <Popover open={candidateTypeOpen} onOpenChange={setCandidateTypeOpen}>
+              <Popover open={candidateContextOpen} onOpenChange={setCandidateContextOpen}>
                 <PopoverTrigger asChild>
                   <button
                     type="button"
                     className="w-full flex items-center justify-between rounded-lg border border-gray-200 p-3 hover:bg-gray-50 transition-colors text-left"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-amber-600 flex items-center justify-center">
-                        <User className="w-5 h-5 text-white" />
+                      <div className={cn("w-10 h-10 rounded-full flex items-center justify-center", selectedCandidateContextData.iconBg)}>
+                        <selectedCandidateContextData.icon className="w-5 h-5 text-white" />
                       </div>
                       <div>
-                        <span className="font-medium text-gray-900 text-sm">{selectedCandidateData?.label}</span>
-                        <p className="text-xs text-gray-500">{selectedCandidateData?.description}</p>
+                        <span className="font-medium text-gray-900 text-sm">{selectedCandidateContextData.label}</span>
+                        <p className="text-xs text-gray-500">{selectedCandidateContextData.description}</p>
                       </div>
                     </div>
                     <ChevronDown className="w-4 h-4 text-gray-400 shrink-0" />
@@ -448,37 +531,43 @@ export default function PreScreeningDemoPage() {
                 </PopoverTrigger>
                 <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-2" align="start">
                   <div className="space-y-1">
-                    {CANDIDATE_OPTIONS.map((option) => (
-                      <button
-                        key={option.id}
-                        type="button"
-                        onClick={() => {
-                          setCandidateType(option.id);
-                          setCandidateTypeOpen(false);
-                        }}
-                        className={cn(
-                          'w-full flex items-center gap-3 rounded-lg p-3 text-left transition-colors',
-                          candidateType === option.id
-                            ? 'bg-brand-dark-blue/5 border border-brand-dark-blue/30'
-                            : 'hover:bg-gray-50'
-                        )}
-                      >
-                        <div className="flex-1 min-w-0">
-                          <span className="font-medium text-gray-900 text-sm block">{option.label}</span>
-                          <p className="text-xs text-gray-500">{option.description}</p>
-                        </div>
-                        {candidateType === option.id && (
-                          <Check className="w-4 h-4 text-brand-dark-blue shrink-0" />
-                        )}
-                      </button>
-                    ))}
+                    {CANDIDATE_CONTEXT_OPTIONS.map((option) => {
+                      const Icon = option.icon;
+                      return (
+                        <button
+                          key={option.id}
+                          type="button"
+                          onClick={() => {
+                            setCandidateContext(option.id);
+                            setCandidateContextOpen(false);
+                          }}
+                          className={cn(
+                            'w-full flex items-center gap-3 rounded-lg p-3 text-left transition-colors',
+                            candidateContext === option.id
+                              ? 'bg-brand-dark-blue/5 border border-brand-dark-blue/30'
+                              : 'hover:bg-gray-50'
+                          )}
+                        >
+                          <div className={cn("w-8 h-8 rounded-full flex items-center justify-center shrink-0", option.iconBg)}>
+                            <Icon className="w-4 h-4 text-white" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <span className="font-medium text-gray-900 text-sm block">{option.label}</span>
+                            <p className="text-xs text-gray-500">{option.description}</p>
+                          </div>
+                          {candidateContext === option.id && (
+                            <Check className="w-4 h-4 text-brand-dark-blue shrink-0" />
+                          )}
+                        </button>
+                      );
+                    })}
                   </div>
                 </PopoverContent>
               </Popover>
             </section>
 
             {/* Start Agent */}
-            <section className="space-y-3">
+            <section className={cn("space-y-3", isSessionActive && "opacity-50 pointer-events-none")}>
               <div>
                 <h2 className="text-sm font-semibold text-gray-900">Start interview bij</h2>
                 <p className="text-xs text-gray-500 mt-0.5">Kies bij welke stap het interview begint</p>
@@ -534,7 +623,7 @@ export default function PreScreeningDemoPage() {
             </section>
 
             {/* Flags */}
-            <section className="space-y-3">
+            <section className={cn("space-y-3", isSessionActive && "opacity-50 pointer-events-none")}>
               <div>
                 <h2 className="text-sm font-semibold text-gray-900">Opties</h2>
                 <p className="text-xs text-gray-500 mt-0.5">Extra instellingen voor de demo</p>
@@ -571,6 +660,17 @@ export default function PreScreeningDemoPage() {
                 <Switch
                   checked={askConsent}
                   onCheckedChange={setAskConsent}
+                />
+              </div>
+
+              <div className="flex items-center justify-between p-3 rounded-lg border border-gray-200 bg-white">
+                <div className="flex items-center gap-2">
+                  <MessageCircle className="w-4 h-4 text-brand-dark-blue" />
+                  <span className="text-sm font-medium text-gray-900">Allow interruption</span>
+                </div>
+                <Switch
+                  checked={allowInterruption}
+                  onCheckedChange={setAllowInterruption}
                 />
               </div>
             </section>
@@ -733,7 +833,11 @@ export default function PreScreeningDemoPage() {
                     callerAvatar={selectedVoiceData?.avatar}
                     callState={callState}
                     onStateChange={handleCallStateChange}
-                    onCallMe={() => handleCallStateChange('ringing')}
+                    onCallMe={startAgent === 'greeting' ? undefined : handleStartCall}
+                    isSpeaking={isSpeaking}
+                    isUserSpeaking={isUserSpeaking}
+                    isMutedExternal={isSessionMuted}
+                    onMuteToggle={toggleMute}
                   />
                 ) : (
                   /* Website vacancy page mockup */
@@ -827,6 +931,24 @@ export default function PreScreeningDemoPage() {
                   </div>
                 )}
               </IPhoneMockup>
+
+              {/* Scenario controls — Voice outbound call */}
+              {simulatorChannel === 'voice' && startAgent === 'greeting' && (
+                <div className="flex items-center justify-center gap-2 mt-6">
+                  <button
+                    onClick={handleSimulateIncomingCall}
+                    disabled={callState !== 'idle'}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                      callState !== 'idle'
+                        ? 'bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed'
+                        : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+                    }`}
+                  >
+                    <Phone className="w-4 h-4" />
+                    Bel kandidaat
+                  </button>
+                </div>
+              )}
 
               {/* Scenario controls — WhatsApp only */}
               {simulatorChannel === 'whatsapp' && (

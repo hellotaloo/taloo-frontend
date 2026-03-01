@@ -22,7 +22,7 @@ interface SimulationResult {
   totalTurns: number;
 }
 
-export function useSimulationChat(vacancyId: string) {
+export function useSimulationChat(vacancyId: string, options?: { isPlayground?: boolean }) {
   const [messages, setMessages] = useState<SimulationMessage[]>([]);
   const [isRunning, setIsRunning] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
@@ -130,6 +130,7 @@ export function useSimulationChat(vacancyId: string) {
           persona,
           custom_persona: customPersona ?? null,
           candidate_name: name,
+          is_playground: options?.isPlayground,
         },
         controller.signal
       );

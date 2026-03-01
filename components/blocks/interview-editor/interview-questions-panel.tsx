@@ -778,42 +778,6 @@ function SortableQuestionItem({
           <GripVertical className="w-4 h-4" />
         </button>
       )}
-      {/* Action icons - absolutely positioned on the right, visible on hover */}
-      {!readOnly && !isEditing && (
-        <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity bg-gray-100 rounded-md p-0.5">
-          {/* Chat icon - ask about this question */}
-          {onClick && (
-            <button
-              onClick={handleChatClick}
-              className="p-1 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-200 transition-colors"
-              title="Vraag stellen over deze vraag"
-            >
-              <MessagesSquare className="w-3.5 h-3.5" />
-            </button>
-          )}
-          {/* Edit icon - edit this question */}
-          <button
-            onClick={handleEditStart}
-            className="p-1 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-200 transition-colors"
-            title="Vraag bewerken"
-          >
-            <Pencil className="w-3.5 h-3.5" />
-          </button>
-          {/* Delete icon - remove this question */}
-          {onDelete && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onDelete(question.id);
-              }}
-              className="p-1 rounded text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
-              title="Vraag verwijderen"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-            </button>
-          )}
-        </div>
-      )}
       {isEditing ? (
         <div className="space-y-2" onClick={(e) => e.stopPropagation()}>
           <div className="flex items-center gap-2">
@@ -849,9 +813,45 @@ function SortableQuestionItem({
         </div>
       ) : (
         <>
-          <div className={`flex items-center gap-2 transition-all duration-200 ${!readOnly ? 'group-hover:ml-5 group-hover:mr-20' : ''}`}>
+          <div className={`flex items-center gap-2 transition-all duration-200 ${!readOnly ? 'group-hover:ml-5' : ''}`}>
             <div className="flex-1 flex items-center gap-2 min-w-0">
               <p className="text-sm text-gray-700 flex-1">{question.text}</p>
+              {/* Action icons - visible on hover, positioned before existing icons */}
+              {!readOnly && (
+                <div className="shrink-0 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity bg-gray-100 rounded-md p-0.5">
+                  {/* Chat icon - ask about this question */}
+                  {onClick && (
+                    <button
+                      onClick={handleChatClick}
+                      className="p-1 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-200 transition-colors"
+                      title="Vraag stellen over deze vraag"
+                    >
+                      <MessagesSquare className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                  {/* Edit icon - edit this question */}
+                  <button
+                    onClick={handleEditStart}
+                    className="p-1 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-200 transition-colors"
+                    title="Vraag bewerken"
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                  </button>
+                  {/* Delete icon - remove this question */}
+                  {onDelete && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDelete(question.id);
+                      }}
+                      className="p-1 rounded text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                      title="Vraag verwijderen"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+              )}
               {/* Vacancy snippet link indicator with tooltip */}
               {hasRealSnippet && (
                 <Tooltip>

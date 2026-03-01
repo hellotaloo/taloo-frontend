@@ -17,7 +17,7 @@ interface TranscriptMessage {
   text: string;
 }
 
-export function useVoiceSimulation(vacancyId: string) {
+export function useVoiceSimulation(vacancyId: string, options?: { isPlayground?: boolean }) {
   const vapiRef = useRef<Vapi | null>(null);
   const [isCallActive, setIsCallActive] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
@@ -52,6 +52,7 @@ export function useVoiceSimulation(vacancyId: string) {
         body: JSON.stringify({
           vacancy_id: vacancyId,
           candidate_name: candidateName,
+          is_playground: options?.isPlayground ?? false,
         }),
       });
 

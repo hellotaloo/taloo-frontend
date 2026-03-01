@@ -106,8 +106,8 @@ function PreScreeningContent() {
     setShowAutoGenerateConfirm(false);
   };
 
-  // Get active tab from URL, default to 'concept'
-  const activeTab = searchParams.get('tab') || 'concept';
+  // Get active tab from URL, default to 'published'
+  const activeTab = searchParams.get('tab') || 'published';
 
   const handleTabChange = (value: string) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -227,13 +227,15 @@ function PreScreeningContent() {
         <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-2">
         <div className="flex items-center justify-between">
           <TabsList variant="line">
-            <TabsTrigger value="concept" data-testid="tab-concept-vacancies">
-              <FileEdit className="w-3.5 h-3.5" />
-              Concept
-              <span className="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-600">
-                {conceptVacancies.length}
-              </span>
-            </TabsTrigger>
+            {conceptVacancies.length > 0 && (
+              <TabsTrigger value="concept" data-testid="tab-concept-vacancies">
+                <FileEdit className="w-3.5 h-3.5" />
+                Concept
+                <span className="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-600">
+                  {conceptVacancies.length}
+                </span>
+              </TabsTrigger>
+            )}
             <TabsTrigger value="published" data-testid="tab-published-vacancies">
               <Send className="w-3.5 h-3.5" />
               Gepubliceerd

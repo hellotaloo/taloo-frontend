@@ -111,10 +111,13 @@ export default function EditPreScreeningPage({ params }: PageProps) {
     isSpeaking,
     isUserSpeaking,
     error: voiceError,
-  } = useVoiceSimulation(id);
+  } = useVoiceSimulation(id, { isPlayground: true });
 
-  // Derive callState from hook state
-  const callState: CallState = isConnecting ? 'ringing' : isCallActive ? 'active' : 'idle';
+  // Simulated incoming call state
+  const [isSimulatedRinging, setIsSimulatedRinging] = useState(false);
+
+  // Derive callState from hook state (simulated ringing takes priority)
+  const callState: CallState = isSimulatedRinging ? 'ringing' : isConnecting ? 'ringing' : isCallActive ? 'active' : 'idle';
   
   // Dashboard state
   const [applications, setApplications] = useState<Application[]>([]);
@@ -935,18 +938,31 @@ export default function EditPreScreeningPage({ params }: PageProps) {
     }
   };
 
-  // VAPI voice call handler
-  const handleVoiceCall = async () => {
+  // Simulate incoming call — shows ringing UI, user must accept
+  const handleSimulateIncomingCall = async () => {
     // Play beep sound
     try {
       const audio = new Audio('/phone-beep.mp3');
       await audio.play();
-    } catch (error) {
-      console.warn('Could not play beep sound:', error);
+    } catch {
+      // Ignore if browser blocks autoplay
     }
+    setIsSimulatedRinging(true);
+  };
 
-    // Start real VAPI call
-    await startCall('Laurijn');
+  // Handle accept/decline from VoiceCallMockup
+  const handleVoiceStateChange = async (state: CallState) => {
+    if (isSimulatedRinging) {
+      setIsSimulatedRinging(false);
+      if (state === 'active') {
+        // User accepted — start real VAPI call
+        await startCall('Laurijn');
+      }
+      return;
+    }
+    if (state === 'ended') {
+      endCall();
+    }
   };
 
   const handleQuestionClick = (question: GeneratedQuestion, index: number) => {
@@ -1396,25 +1412,39 @@ export default function EditPreScreeningPage({ params }: PageProps) {
                     vacancyId={vacancy.id}
                     candidateName="Laurijn"
                     isActive={viewMode === 'preview'}
+                    isPlayground
                   />
                 ) : (
                   <VoiceCallMockup
                     callerName="Bob"
                     callerSubtitle="Taloo Voice Agent"
                     callState={callState}
-                    onStateChange={(state) => {
-                      if (state === 'ended') {
-                        endCall();
-                      }
-                    }}
-                    onCallMe={handleVoiceCall}
+                    onStateChange={handleVoiceStateChange}
                     isSpeaking={isSpeaking}
                     isUserSpeaking={isUserSpeaking}
                   />
                 )}
               </IPhoneMockup>
 
-              {/* Scenario control buttons - only visible for WhatsApp */}
+              {/* Scenario control buttons - Voice */}
+              {simulatorChannel === 'voice' && (
+                <div className="flex items-center justify-center gap-2 mt-6">
+                  <button
+                    onClick={handleSimulateIncomingCall}
+                    disabled={callState !== 'idle'}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                      callState !== 'idle'
+                        ? 'bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed'
+                        : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+                    }`}
+                  >
+                    <Phone className="w-4 h-4" />
+                    Bel kandidaat
+                  </button>
+                </div>
+              )}
+
+              {/* Scenario control buttons - WhatsApp */}
               {simulatorChannel === 'whatsapp' && (
                 <div className="flex items-center justify-center gap-2 mt-6">
                   <button

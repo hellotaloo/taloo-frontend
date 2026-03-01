@@ -42,6 +42,7 @@ interface WhatsAppChatProps {
   vacancyId?: string;
   candidateName?: string;
   isActive?: boolean; // Only start conversation when active (visible)
+  isPlayground?: boolean;
 }
 
 // Pass scenario - candidate qualifies
@@ -139,12 +140,13 @@ const failScript: Omit<Message, 'id' | 'isNew'>[] = [
   },
 ];
 
-export function WhatsAppChat({ 
-  scenario = 'pass', 
+export function WhatsAppChat({
+  scenario = 'pass',
   resetKey = 0,
   vacancyId,
   candidateName = 'Test Kandidaat',
   isActive = true,
+  isPlayground = false,
 }: WhatsAppChatProps) {
   // State for scripted scenarios (pass/fail without vacancyId)
   const [scriptedMessages, setScriptedMessages] = useState<Message[]>([]);
@@ -156,10 +158,10 @@ export function WhatsAppChat({
   const chatContainerRef = useRef<HTMLDivElement>(null);
   
   // Hook for real API chat in manual mode
-  const screeningChat = useScreeningChat(vacancyId || '');
-  
+  const screeningChat = useScreeningChat(vacancyId || '', { isPlayground });
+
   // Hook for simulation API (pass/fail with vacancyId)
-  const simulationChat = useSimulationChat(vacancyId || '');
+  const simulationChat = useSimulationChat(vacancyId || '', { isPlayground });
   
   // Determine which mode we're in:
   // - simulation mode: pass/fail scenarios WITH a vacancyId (uses real simulation API)

@@ -24,6 +24,8 @@ export interface StatusBadgeProps {
   variant: StatusBadgeVariant;
   /** Optional icon (replaces the dot indicator) */
   icon?: LucideIcon;
+  /** Animate the indicator (pulse for dot, spin for icon) */
+  animate?: boolean;
   /** Additional CSS classes */
   className?: string;
 }
@@ -35,9 +37,9 @@ const variantStyles: Record<StatusBadgeVariant, { border: string; text: string; 
     dot: 'bg-blue-600',
   },
   green: {
-    border: 'border-green-500',
-    text: 'text-green-500',
-    dot: 'bg-green-500',
+    border: 'border-green-600',
+    text: 'text-green-600',
+    dot: 'bg-green-600',
   },
   orange: {
     border: 'border-orange-600',
@@ -56,20 +58,25 @@ const variantStyles: Record<StatusBadgeVariant, { border: string; text: string; 
   },
 };
 
-export function StatusBadge({ label, variant, icon: Icon, className }: StatusBadgeProps) {
+export function StatusBadge({ label, variant, icon: Icon, animate, className }: StatusBadgeProps) {
   const styles = variantStyles[variant];
 
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-medium border',
+        'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium border',
         styles.border,
         styles.text,
         className
       )}
     >
       {Icon ? (
-        <Icon className="w-3 h-3" />
+        <Icon className={cn('w-3 h-3', animate && 'animate-spin')} />
+      ) : animate ? (
+        <span className="relative flex h-1.5 w-1.5">
+          <span className={cn('absolute inline-flex h-full w-full rounded-full opacity-75 animate-ping', styles.dot)} />
+          <span className={cn('relative inline-flex h-1.5 w-1.5 rounded-full', styles.dot)} />
+        </span>
       ) : (
         <span className={cn('w-1.5 h-1.5 rounded-full', styles.dot)} />
       )}

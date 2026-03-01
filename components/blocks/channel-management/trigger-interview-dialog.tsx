@@ -41,9 +41,6 @@ export function TriggerInterviewDialog({
         <VisuallyHidden.Root>
           <AlertDialogTitle>Solliciteer</AlertDialogTitle>
         </VisuallyHidden.Root>
-        <div className="mx-8 mt-6 rounded-lg bg-brand-dark-blue/5 border border-brand-dark-blue/15 px-4 py-3 text-sm text-brand-dark-blue text-center">
-          Dit is een testomgeving. Alle sollicitaties worden gemarkeerd als <span className="font-semibold">&quot;test&quot;</span> en worden niet gesynchroniseerd met het ATS.
-        </div>
         <ApplicationForm
           vacancyId={vacancyId}
           vacancyTitle={vacancyTitle}

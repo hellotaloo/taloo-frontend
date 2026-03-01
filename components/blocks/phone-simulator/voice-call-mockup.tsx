@@ -28,6 +28,10 @@ export interface VoiceCallMockupProps {
   isSpeaking?: boolean;
   /** Whether the user is currently speaking */
   isUserSpeaking?: boolean;
+  /** External mute state (controlled mode). If provided, takes precedence over internal state. */
+  isMutedExternal?: boolean;
+  /** Callback when user taps the mute button. Parent should toggle mute. */
+  onMuteToggle?: () => void;
 }
 
 export function VoiceCallMockup({
@@ -39,8 +43,11 @@ export function VoiceCallMockup({
   onCallMe,
   isSpeaking = false,
   isUserSpeaking = false,
+  isMutedExternal,
+  onMuteToggle,
 }: VoiceCallMockupProps) {
-  const [isMuted, setIsMuted] = useState(false);
+  const [isMutedInternal, setIsMutedInternal] = useState(false);
+  const isMuted = isMutedExternal ?? isMutedInternal;
   const [isSpeaker, setIsSpeaker] = useState(false);
   const [duration, setDuration] = useState(0);
 
@@ -211,7 +218,7 @@ export function VoiceCallMockup({
           <>
             <div className="grid grid-cols-3 gap-6 mb-8">
               <button
-                onClick={() => setIsMuted(!isMuted)}
+                onClick={() => onMuteToggle ? onMuteToggle() : setIsMutedInternal(!isMutedInternal)}
                 className={`flex flex-col items-center gap-2 ${
                   isMuted ? 'opacity-100' : 'opacity-70'
                 }`}

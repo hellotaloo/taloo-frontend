@@ -280,6 +280,7 @@ export interface SimulationRequest {
   persona?: SimulationPersona;
   custom_persona?: string | null;
   candidate_name?: string;
+  is_playground?: boolean;
 }
 
 export interface SimulationQAPair {

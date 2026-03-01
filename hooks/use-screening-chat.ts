@@ -18,7 +18,7 @@ interface SSEEvent {
   is_complete?: boolean;
 }
 
-export function useScreeningChat(vacancyId: string) {
+export function useScreeningChat(vacancyId: string, options?: { isPlayground?: boolean }) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -78,10 +78,12 @@ export function useScreeningChat(vacancyId: string) {
     }
 
     try {
+      const isPlayground = options?.isPlayground ?? false;
       const body: Record<string, string | boolean> = {
         vacancy_id: vacancyId,
         message: message,
-        is_test: true,
+        is_test: !isPlayground,
+        is_playground: isPlayground,
       };
       
       if (sessionId) body.session_id = sessionId;

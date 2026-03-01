@@ -1040,6 +1040,7 @@ export async function runSimulation(
       persona: options?.persona ?? 'qualified',
       custom_persona: options?.custom_persona ?? null,
       candidate_name: options?.candidate_name,
+      is_playground: options?.is_playground ?? false,
     }),
     signal,
   });
