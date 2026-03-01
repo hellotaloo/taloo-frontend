@@ -118,11 +118,8 @@ export default function PreScreeningDemoPage() {
     async function fetchVacancies() {
       try {
         setVacanciesLoading(true);
-        const [generated, published] = await Promise.all([
-          getPreScreeningVacancies('generated'),
-          getPreScreeningVacancies('published'),
-        ]);
-        const all = [...generated.vacancies, ...published.vacancies];
+        const published = await getPreScreeningVacancies('published');
+        const all = published.vacancies;
         setVacancies(all);
         if (all.length > 0) {
           setSelectedVacancy(all[0].id);
@@ -278,7 +275,7 @@ export default function PreScreeningDemoPage() {
       candidate_known: isKnown,
       allow_escalation: allowEscalation,
       voice_id: selectedVoiceData?.voiceId,
-      known_answers: isKnown ? { work_permit: 'ja' } : undefined,
+      known_answers: isKnown ? { ko_1: 'ja' } : undefined,
       existing_booking_date: candidateContext === 'known_with_vacancy' ? BOOKING_DATE.full : undefined,
     });
   }, [startSession, selectedVacancy, selectedCandidateContextData, startAgent, askConsent, candidateContext, allowEscalation, selectedVoiceData]);
