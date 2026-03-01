@@ -10,7 +10,11 @@ interface PlaygroundStartRequest {
   candidate_name?: string;
   start_agent?: 'greeting' | 'screening' | 'open_questions' | 'scheduling' | null;
   require_consent?: boolean;
-  allow_interruption?: boolean;
+  candidate_known?: boolean;
+  allow_escalation?: boolean;
+  voice_id?: string;
+  known_answers?: Record<string, string>;
+  existing_booking_date?: string;
 }
 
 interface PlaygroundStartResponse {

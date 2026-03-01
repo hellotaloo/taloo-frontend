@@ -26,7 +26,7 @@ import type { Vacancy } from '@/lib/types';
 const VOICE_OPTIONS: VoiceOption[] = [
   {
     id: 'emma',
-    name: 'Louise',
+    name: 'Anne',
     description: 'Warm en professioneel',
     gender: 'female',
     avatar: '/avatars/large/female_6.png',
@@ -37,7 +37,15 @@ const VOICE_OPTIONS: VoiceOption[] = [
     description: 'Zelfverzekerd en helder',
     gender: 'male',
     avatar: '/avatars/large/male_2.png',
-    voiceId: 'Xb7hH8MSUJpSbSDYk0k2',
+    voiceId: 's7Z6uboUuE4Nd8Q2nye6',
+  },
+  {
+    id: 'louise',
+    name: 'Louise',
+    description: 'Vriendelijk en natuurlijk',
+    gender: 'female',
+    voiceId: 'pFZP5JQG7iQjIQuC4Bku',
+    avatar: '/avatars/large/female_1.png',
   },
   {
     id: 'luc',
@@ -51,10 +59,28 @@ const VOICE_OPTIONS: VoiceOption[] = [
 
 type CandidateContext = 'unknown' | 'known' | 'known_with_vacancy' | 'blocked';
 
+// Compute a weekday +3 days from now for the "active vacancy" scenario
+function getNextWeekday3Days(): { short: string; full: string } {
+  const date = new Date();
+  date.setDate(date.getDate() + 3);
+  const day = date.getDay();
+  if (day === 0) date.setDate(date.getDate() + 1); // Sun → Mon
+  if (day === 6) date.setDate(date.getDate() + 2); // Sat → Mon
+  const days = ['zondag', 'maandag', 'dinsdag', 'woensdag', 'donderdag', 'vrijdag', 'zaterdag'];
+  const months = ['januari', 'februari', 'maart', 'april', 'mei', 'juni', 'juli', 'augustus', 'september', 'oktober', 'november', 'december'];
+  const monthsShort = ['jan', 'feb', 'mrt', 'apr', 'mei', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'];
+  return {
+    short: `${date.getDate()} ${monthsShort[date.getMonth()]}`,
+    full: `${days[date.getDay()]} ${date.getDate()} ${months[date.getMonth()]} om 10 uur`,
+  };
+}
+
+const BOOKING_DATE = getNextWeekday3Days();
+
 const CANDIDATE_CONTEXT_OPTIONS: { id: CandidateContext; label: string; description: string; candidateName: string; icon: typeof User; iconBg: string }[] = [
   { id: 'unknown', label: 'Onbekende kandidaat', description: 'Nieuw persoon, geen data bekend', candidateName: 'Onbekende beller', icon: HelpCircle, iconBg: 'bg-gray-500' },
-  { id: 'known', label: 'Bekende kandidaat', description: 'Persoon staat in het systeem', candidateName: 'Jan de Vries', icon: UserCheck, iconBg: 'bg-sky-600' },
-  { id: 'known_with_vacancy', label: 'Kandidaat met actieve vacature', description: 'Bekende kandidaat gekoppeld aan vacature', candidateName: 'Sophie Bakker', icon: Briefcase, iconBg: 'bg-emerald-600' },
+  { id: 'known', label: 'Bekende kandidaat', description: 'Werkvergunning al gevalideerd, wordt overgeslagen', candidateName: 'Jan de Vries', icon: UserCheck, iconBg: 'bg-sky-600' },
+  { id: 'known_with_vacancy', label: 'Kandidaat met actieve vacature', description: `Interview bij zelfde opdrachtgever op ${BOOKING_DATE.short}`, candidateName: 'Sophie Bakker', icon: Briefcase, iconBg: 'bg-emerald-600' },
   { id: 'blocked', label: 'Geblokkeerde kandidaat', description: 'Kandidaat staat op de blokkeerlijst', candidateName: 'Geblokkeerd Persoon', icon: ShieldOff, iconBg: 'bg-red-600' },
 ];
 
@@ -178,9 +204,9 @@ export default function PreScreeningDemoPage() {
   const selectedStartAgentData = START_AGENT_OPTIONS.find(a => a.id === startAgent);
 
   // Flags
-  const [isUrgent, setIsUrgent] = useState(false);
-  const [allowEscalation, setAllowEscalation] = useState(false);
+  const [allowEscalation, setAllowEscalation] = useState(true);
   const [askConsent, setAskConsent] = useState(false);
+  const [isUrgent, setIsUrgent] = useState(false);
   const [allowInterruption, setAllowInterruption] = useState(false);
 
   // Trigger interview dialog
@@ -242,14 +268,20 @@ export default function PreScreeningDemoPage() {
       // Ignore if browser blocks autoplay
     }
 
+    const isKnown = candidateContext === 'known' || candidateContext === 'known_with_vacancy';
+
     await startSession({
       vacancy_id: selectedVacancy,
       candidate_name: selectedCandidateContextData.candidateName,
       start_agent: startAgent,
       require_consent: askConsent,
-      allow_interruption: allowInterruption,
+      candidate_known: isKnown,
+      allow_escalation: allowEscalation,
+      voice_id: selectedVoiceData?.voiceId,
+      known_answers: isKnown ? { work_permit: 'ja' } : undefined,
+      existing_booking_date: candidateContext === 'known_with_vacancy' ? BOOKING_DATE.full : undefined,
     });
-  }, [startSession, selectedVacancy, selectedCandidateContextData, startAgent, askConsent, allowInterruption]);
+  }, [startSession, selectedVacancy, selectedCandidateContextData, startAgent, askConsent, candidateContext, allowEscalation, selectedVoiceData]);
 
   const handleCallStateChange = useCallback((state: CallState) => {
     if (isSimulatedRinging) {
@@ -631,18 +663,6 @@ export default function PreScreeningDemoPage() {
 
               <div className="flex items-center justify-between p-3 rounded-lg border border-gray-200 bg-white">
                 <div className="flex items-center gap-2">
-                  <AlertTriangle className="w-4 h-4 text-amber-500" />
-                  <span className="text-sm font-medium text-gray-900">Urgente vacature</span>
-                </div>
-                <Switch
-                  checked={isUrgent}
-                  onCheckedChange={setIsUrgent}
-                  className="data-[state=checked]:bg-amber-500"
-                />
-              </div>
-
-              <div className="flex items-center justify-between p-3 rounded-lg border border-gray-200 bg-white">
-                <div className="flex items-center gap-2">
                   <PhoneForwarded className="w-4 h-4 text-brand-dark-blue" />
                   <span className="text-sm font-medium text-gray-900">Allow human escalation</span>
                 </div>
@@ -660,6 +680,18 @@ export default function PreScreeningDemoPage() {
                 <Switch
                   checked={askConsent}
                   onCheckedChange={setAskConsent}
+                />
+              </div>
+
+              <div className="flex items-center justify-between p-3 rounded-lg border border-gray-200 bg-white">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 text-amber-500" />
+                  <span className="text-sm font-medium text-gray-900">Urgente vacature</span>
+                </div>
+                <Switch
+                  checked={isUrgent}
+                  onCheckedChange={setIsUrgent}
+                  className="data-[state=checked]:bg-amber-500"
                 />
               </div>
 
