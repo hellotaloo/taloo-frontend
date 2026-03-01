@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Save, Calendar, MessageCircle, CheckCircle2, ShieldQuestion, MessageSquare, Pencil, Check, X, Phone, Info, Mic, SlidersHorizontal, ListOrdered } from 'lucide-react';
 import Link from 'next/link';
@@ -15,12 +15,16 @@ import { Switch } from '@/components/ui/switch';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { Timeline, TimelineNode } from '@/components/kit/timeline';
 import { NavItem } from '@/components/kit/nav-item';
+import { toast } from 'sonner';
+import { getPreScreeningConfig, updatePreScreeningConfig } from '@/lib/interview-api';
 
 type SettingsSection = 'algemeen' | 'planning' | 'escalatie' | 'interview';
 
 export default function PreScreeningSettingsPage() {
   const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [activeSection, setActiveSection] = useState<SettingsSection>('algemeen');
 
   // Exit thresholds
@@ -69,6 +73,35 @@ export default function PreScreeningSettingsPage() {
   const [tempIntro, setTempIntro] = useState(introMessage);
   const [tempSuccess, setTempSuccess] = useState(successMessage);
 
+  // Fetch config from API on mount
+  useEffect(() => {
+    async function loadConfig() {
+      try {
+        const config = await getPreScreeningConfig();
+        setMaxUnrelatedAnswers(config.max_unrelated_answers);
+        setScheduleDaysAhead(config.schedule_days_ahead);
+        setScheduleStartOffset(config.schedule_start_offset);
+        setConsentEnabled(config.require_consent);
+        setEscalationEnabled(config.allow_escalation);
+        setSchedulingOption(config.planning_mode as 'funnel' | 'direct');
+        if (config.intro_message) {
+          setIntroMessage(config.intro_message);
+          setTempIntro(config.intro_message);
+        }
+        if (config.success_message) {
+          setSuccessMessage(config.success_message);
+          setTempSuccess(config.success_message);
+        }
+      } catch (error) {
+        console.error('Failed to load pre-screening config:', error);
+        setLoadError('Kon instellingen niet laden');
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadConfig();
+  }, []);
+
   const handleSaveConsent = () => {
     setConsentMessage(tempConsent);
     setEditingConsent(false);
@@ -101,11 +134,36 @@ export default function PreScreeningSettingsPage() {
 
   const handleSave = useCallback(async () => {
     setIsSaving(true);
-    // Simulate API save
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    setIsSaving(false);
-    router.push('/pre-screening');
-  }, [router]);
+    try {
+      await updatePreScreeningConfig({
+        max_unrelated_answers: maxUnrelatedAnswers,
+        schedule_days_ahead: scheduleDaysAhead,
+        schedule_start_offset: scheduleStartOffset,
+        planning_mode: schedulingOption,
+        intro_message: introMessage,
+        success_message: successMessage,
+        require_consent: consentEnabled,
+        allow_escalation: escalationEnabled,
+      });
+      toast.success('Instellingen opgeslagen');
+      router.refresh();
+    } catch (error) {
+      console.error('Failed to save config:', error);
+      toast.error('Opslaan mislukt. Probeer opnieuw.');
+    } finally {
+      setIsSaving(false);
+    }
+  }, [
+    router,
+    maxUnrelatedAnswers,
+    scheduleDaysAhead,
+    scheduleStartOffset,
+    schedulingOption,
+    introMessage,
+    successMessage,
+    consentEnabled,
+    escalationEnabled,
+  ]);
 
   const sidebar = (
     <div className="flex flex-col h-full py-4">
@@ -167,6 +225,21 @@ export default function PreScreeningSettingsPage() {
         sidebarWidth="w-64"
         sidebarClassName="bg-gray-50/50"
       >
+        {isLoading ? (
+          <div className="flex items-center justify-center h-64">
+            <p className="text-gray-500">Instellingen laden...</p>
+          </div>
+        ) : loadError ? (
+          <div className="flex flex-col items-center justify-center h-64 gap-4">
+            <p className="text-red-500">{loadError}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="text-blue-500 hover:underline text-sm"
+            >
+              Opnieuw proberen
+            </button>
+          </div>
+        ) : (
         <div className="max-w-2xl space-y-8">
           {/* ── Algemeen ── */}
           {activeSection === 'algemeen' && (
@@ -747,6 +820,7 @@ export default function PreScreeningSettingsPage() {
             </>
           )}
         </div>
+        )}
       </PageLayoutContent>
     </PageLayout>
   );

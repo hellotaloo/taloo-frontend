@@ -1174,3 +1174,65 @@ export async function triggerRtsSync(): Promise<{ status: string; synced: number
 
   return response.json();
 }
+
+// =============================================================================
+// Pre-Screening Config API (Global Settings)
+// =============================================================================
+
+export interface PreScreeningConfig {
+  id: string;
+  max_unrelated_answers: number;
+  schedule_days_ahead: number;
+  schedule_start_offset: number;
+  planning_mode: string;
+  intro_message: string | null;
+  success_message: string | null;
+  require_consent: boolean;
+  allow_escalation: boolean;
+}
+
+export interface PreScreeningConfigUpdate {
+  max_unrelated_answers?: number;
+  schedule_days_ahead?: number;
+  schedule_start_offset?: number;
+  planning_mode?: string;
+  intro_message?: string;
+  success_message?: string;
+  require_consent?: boolean;
+  allow_escalation?: boolean;
+}
+
+/**
+ * Fetch the global pre-screening agent configuration.
+ */
+export async function getPreScreeningConfig(): Promise<PreScreeningConfig> {
+  const response = await fetch(`${BACKEND_URL}/pre-screening/config`);
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: 'Failed to fetch config' }));
+    throw new Error(error.detail || 'Failed to fetch pre-screening config');
+  }
+
+  return response.json();
+}
+
+/**
+ * Update the global pre-screening agent configuration.
+ * All fields are optional — only sends changed values.
+ */
+export async function updatePreScreeningConfig(
+  updates: PreScreeningConfigUpdate
+): Promise<PreScreeningConfig> {
+  const response = await fetch(`${BACKEND_URL}/pre-screening/config`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(updates),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: 'Failed to update config' }));
+    throw new Error(error.detail || 'Failed to update pre-screening config');
+  }
+
+  return response.json();
+}

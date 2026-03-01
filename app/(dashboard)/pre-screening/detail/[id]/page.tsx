@@ -54,7 +54,7 @@ import { InterviewAnalyticsPanel } from '@/components/blocks/interview-analytics
 import { toast } from 'sonner';
 import { Vacancy } from '@/lib/types';
 import { convertToComponentApplication } from '@/lib/pre-screening-utils';
-import { useVoiceSimulation } from '@/hooks/use-voice-simulation';
+import { usePlaygroundSession } from '@/hooks/use-playground-session';
 import Link from 'next/link';
 
 interface PageProps {
@@ -102,22 +102,22 @@ export default function EditPreScreeningPage({ params }: PageProps) {
   // Simulator channel state (WhatsApp vs Voice)
   const [simulatorChannel, setSimulatorChannel] = useState<'whatsapp' | 'voice' | 'analytics'>('whatsapp');
 
-  // VAPI Voice Simulation hook
+  // LiveKit playground session hook
   const {
-    startCall,
-    endCall,
-    isCallActive,
-    isConnecting,
+    startSession,
+    endSession,
+    connectionState,
     isSpeaking,
     isUserSpeaking,
     error: voiceError,
-  } = useVoiceSimulation(id, { isPlayground: true });
+  } = usePlaygroundSession();
 
-  // Simulated incoming call state
-  const [isSimulatedRinging, setIsSimulatedRinging] = useState(false);
-
-  // Derive callState from hook state (simulated ringing takes priority)
-  const callState: CallState = isSimulatedRinging ? 'ringing' : isConnecting ? 'ringing' : isCallActive ? 'active' : 'idle';
+  // Derive callState from LiveKit connection state
+  const callState: CallState =
+    connectionState === 'connecting' ? 'ringing' :
+    connectionState === 'connected' ? 'active' :
+    connectionState === 'disconnected' ? 'ended' :
+    'idle';
   
   // Dashboard state
   const [applications, setApplications] = useState<Application[]>([]);
@@ -134,6 +134,7 @@ export default function EditPreScreeningPage({ params }: PageProps) {
   const prevQuestionsRef = useRef<GeneratedQuestion[]>([]);
   const highlightTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const ringAudioRef = useRef<HTMLAudioElement | null>(null);
   const [isAutoSaving, setIsAutoSaving] = useState(false);
 
   // Detect if there are unsaved changes by comparing current questions with saved pre-screening
@@ -938,32 +939,40 @@ export default function EditPreScreeningPage({ params }: PageProps) {
     }
   };
 
-  // Simulate incoming call — shows ringing UI, user must accept
-  const handleSimulateIncomingCall = async () => {
-    // Play beep sound
+  // Stop ring audio when call becomes active or ends
+  useEffect(() => {
+    if (connectionState === 'connected' || connectionState === 'disconnected' || connectionState === 'idle') {
+      if (ringAudioRef.current) {
+        ringAudioRef.current.pause();
+        ringAudioRef.current = null;
+      }
+    }
+  }, [connectionState]);
+
+  // Start LiveKit playground call directly
+  const handleStartCall = useCallback(async () => {
+    // Play ring sound (will be stopped when call connects)
     try {
-      const audio = new Audio('/phone-beep.mp3');
+      const audio = new Audio('/phone-ring.mp3');
+      ringAudioRef.current = audio;
       await audio.play();
     } catch {
       // Ignore if browser blocks autoplay
     }
-    setIsSimulatedRinging(true);
-  };
 
-  // Handle accept/decline from VoiceCallMockup
-  const handleVoiceStateChange = async (state: CallState) => {
-    if (isSimulatedRinging) {
-      setIsSimulatedRinging(false);
-      if (state === 'active') {
-        // User accepted — start real VAPI call
-        await startCall('Laurijn');
-      }
-      return;
-    }
+    await startSession({
+      vacancy_id: id,
+      candidate_name: 'Anna',
+      candidate_known: false,
+    });
+  }, [startSession, id]);
+
+  // Handle state changes from VoiceCallMockup
+  const handleVoiceStateChange = useCallback((state: CallState) => {
     if (state === 'ended') {
-      endCall();
+      endSession();
     }
-  };
+  }, [endSession]);
 
   const handleQuestionClick = (question: GeneratedQuestion, index: number) => {
     const typeLabel = question.type === 'knockout' ? 'knockout vraag' : 'kwalificatie vraag';
@@ -1369,7 +1378,7 @@ export default function EditPreScreeningPage({ params }: PageProps) {
               <button
                 onClick={() => {
                   setSimulatorChannel('voice');
-                  endCall(); // Reset any active call when switching
+                  endSession(); // Reset any active call when switching
                 }}
                 className={cn(
                   "p-2 rounded-full transition-colors",
@@ -1416,10 +1425,12 @@ export default function EditPreScreeningPage({ params }: PageProps) {
                   />
                 ) : (
                   <VoiceCallMockup
-                    callerName="Bob"
+                    callerName="Anna"
                     callerSubtitle="Taloo Voice Agent"
+                    callerAvatar="/avatars/large/female_6.png"
                     callState={callState}
                     onStateChange={handleVoiceStateChange}
+                    onCallMe={handleStartCall}
                     isSpeaking={isSpeaking}
                     isUserSpeaking={isUserSpeaking}
                   />
@@ -1430,7 +1441,7 @@ export default function EditPreScreeningPage({ params }: PageProps) {
               {simulatorChannel === 'voice' && (
                 <div className="flex items-center justify-center gap-2 mt-6">
                   <button
-                    onClick={handleSimulateIncomingCall}
+                    onClick={handleStartCall}
                     disabled={callState !== 'idle'}
                     className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
                       callState !== 'idle'
