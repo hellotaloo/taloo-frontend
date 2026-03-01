@@ -227,7 +227,7 @@ function PreScreeningContent() {
         <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-2">
         <div className="flex items-center justify-between">
           <TabsList variant="line">
-            {conceptVacancies.length > 0 && (
+            {(conceptVacancies.length > 0 || (publishedVacancies.length === 0 && archivedVacancies.length === 0)) && (
               <TabsTrigger value="concept" data-testid="tab-concept-vacancies">
                 <FileEdit className="w-3.5 h-3.5" />
                 Concept
