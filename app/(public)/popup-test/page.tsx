@@ -23,28 +23,40 @@ import {
   Volume2,
   RotateCcw,
   UserRound,
-  ArrowLeft,
+  Upload,
 } from 'lucide-react';
 
-type Step = 'choose' | 'phone-form' | 'call-prep';
+type Step = 'choose' | 'phone-form' | 'call-prep' | 'cv-form';
 type Channel = 'phone' | 'whatsapp';
 
 export default function PopupTestPage() {
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState<Step>('choose');
-  const [name, setName] = useState('');
+
+  // Phone flow fields (matches: phoneFirstName, phoneLastName, phoneValue, phoneContactMethod)
+  const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
-  const [phone, setPhone] = useState('');
+  const [phoneValue, setPhoneValue] = useState('');
   const [channel, setChannel] = useState<Channel>('phone');
+
+  // CV flow fields (matches: firstName, lastName, emailValue, cvFile)
+  const [cvFirstName, setCvFirstName] = useState('');
+  const [cvLastName, setCvLastName] = useState('');
+  const [email, setEmail] = useState('');
+  const [cvFile, setCvFile] = useState<File | null>(null);
 
   function handleOpenChange(next: boolean) {
     setOpen(next);
     if (!next) {
       setStep('choose');
-      setName('');
+      setFirstName('');
       setLastName('');
-      setPhone('');
+      setPhoneValue('');
       setChannel('phone');
+      setCvFirstName('');
+      setCvLastName('');
+      setEmail('');
+      setCvFile(null);
     }
   }
 
@@ -69,20 +81,36 @@ export default function PopupTestPage() {
             {/* Left: Content */}
             <div className="p-8 md:p-10 flex flex-col justify-center">
               {step === 'choose' && (
-                <ChooseStep onSelectPhone={() => setStep('phone-form')} />
+                <ChooseStep
+                  onSelectPhone={() => setStep('phone-form')}
+                  onSelectCv={() => setStep('cv-form')}
+                />
               )}
               {step === 'phone-form' && (
                 <PhoneFormStep
-                  name={name}
+                  firstName={firstName}
                   lastName={lastName}
-                  phone={phone}
+                  phoneValue={phoneValue}
                   channel={channel}
-                  onNameChange={setName}
+                  onFirstNameChange={setFirstName}
                   onLastNameChange={setLastName}
-                  onPhoneChange={setPhone}
+                  onPhoneChange={setPhoneValue}
                   onChannelChange={setChannel}
                   onBack={() => setStep('choose')}
                   onNext={() => setStep('call-prep')}
+                />
+              )}
+              {step === 'cv-form' && (
+                <CvFormStep
+                  firstName={cvFirstName}
+                  lastName={cvLastName}
+                  email={email}
+                  cvFile={cvFile}
+                  onFirstNameChange={setCvFirstName}
+                  onLastNameChange={setCvLastName}
+                  onEmailChange={setEmail}
+                  onCvFileChange={setCvFile}
+                  onBack={() => setStep('choose')}
                 />
               )}
               {step === 'call-prep' && (
@@ -115,7 +143,9 @@ export default function PopupTestPage() {
   );
 }
 
-function ChooseStep({ onSelectPhone }: { onSelectPhone: () => void }) {
+/* ─── Step 1: Choose ─── */
+
+function ChooseStep({ onSelectPhone, onSelectCv }: { onSelectPhone: () => void; onSelectCv: () => void }) {
   return (
     <div className="space-y-6">
       {/* Subtitle */}
@@ -161,7 +191,10 @@ function ChooseStep({ onSelectPhone }: { onSelectPhone: () => void }) {
         </div>
 
         {/* Klassiek met cv */}
-        <div className="relative flex flex-col rounded-xl border-2 border-gray-200 p-5 cursor-pointer transition-all duration-200 hover:shadow-xl hover:bg-gray-50 hover:-translate-y-0.5">
+        <div
+          onClick={onSelectCv}
+          className="relative flex flex-col rounded-xl border-2 border-gray-200 p-5 cursor-pointer transition-all duration-200 hover:shadow-xl hover:bg-gray-50 hover:-translate-y-0.5"
+        >
           <span className="font-semibold text-gray-900">
             Klassiek met cv
           </span>
@@ -177,12 +210,14 @@ function ChooseStep({ onSelectPhone }: { onSelectPhone: () => void }) {
   );
 }
 
+/* ─── Step 2a: Phone Form ─── */
+
 interface PhoneFormStepProps {
-  name: string;
+  firstName: string;
   lastName: string;
-  phone: string;
+  phoneValue: string;
   channel: Channel;
-  onNameChange: (val: string) => void;
+  onFirstNameChange: (val: string) => void;
   onLastNameChange: (val: string) => void;
   onPhoneChange: (val: string) => void;
   onChannelChange: (val: Channel) => void;
@@ -191,11 +226,11 @@ interface PhoneFormStepProps {
 }
 
 function PhoneFormStep({
-  name,
+  firstName,
   lastName,
-  phone,
+  phoneValue,
   channel,
-  onNameChange,
+  onFirstNameChange,
   onLastNameChange,
   onPhoneChange,
   onChannelChange,
@@ -223,28 +258,28 @@ function PhoneFormStep({
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
             <Label
-              htmlFor="apply-firstname"
+              htmlFor="phone-firstname"
               className="text-sm font-medium text-gray-700"
             >
               Voornaam
             </Label>
             <Input
-              id="apply-firstname"
+              id="phone-firstname"
               placeholder="Voornaam"
-              value={name}
-              onChange={(e) => onNameChange(e.target.value)}
+              value={firstName}
+              onChange={(e) => onFirstNameChange(e.target.value)}
               className="h-11"
             />
           </div>
           <div className="space-y-1.5">
             <Label
-              htmlFor="apply-lastname"
+              htmlFor="phone-lastname"
               className="text-sm font-medium text-gray-700"
             >
               Achternaam
             </Label>
             <Input
-              id="apply-lastname"
+              id="phone-lastname"
               placeholder="Achternaam"
               value={lastName}
               onChange={(e) => onLastNameChange(e.target.value)}
@@ -256,16 +291,16 @@ function PhoneFormStep({
         {/* Phone */}
         <div className="space-y-1.5">
           <Label
-            htmlFor="apply-phone"
+            htmlFor="phone-number"
             className="text-sm font-medium text-gray-700"
           >
             Gsm-nummer
           </Label>
           <Input
-            id="apply-phone"
+            id="phone-number"
             type="tel"
             placeholder="+32 4xx xx xx xx"
-            value={phone}
+            value={phoneValue}
             onChange={(e) => onPhoneChange(e.target.value)}
             className="h-11"
           />
@@ -311,7 +346,7 @@ function PhoneFormStep({
       <div className="flex items-center gap-3 pt-1">
         <Button
           className="bg-gray-900 text-white hover:bg-gray-800 font-medium h-11 px-6"
-          disabled={!name.trim() || !lastName.trim() || !phone.trim()}
+          disabled={!firstName.trim() || !lastName.trim() || !phoneValue.trim()}
           onClick={onNext}
         >
           Laat Anna bellen
@@ -329,6 +364,145 @@ function PhoneFormStep({
   );
 }
 
+/* ─── Step 2b: CV Form ─── */
+
+interface CvFormStepProps {
+  firstName: string;
+  lastName: string;
+  email: string;
+  cvFile: File | null;
+  onFirstNameChange: (val: string) => void;
+  onLastNameChange: (val: string) => void;
+  onEmailChange: (val: string) => void;
+  onCvFileChange: (file: File | null) => void;
+  onBack: () => void;
+}
+
+function CvFormStep({
+  firstName,
+  lastName,
+  email,
+  cvFile,
+  onFirstNameChange,
+  onLastNameChange,
+  onEmailChange,
+  onCvFileChange,
+  onBack,
+}: CvFormStepProps) {
+  return (
+    <div className="space-y-6 animate-in fade-in-0 duration-300">
+      {/* Subtitle */}
+      <div className="flex items-center gap-2 text-sm text-gray-600">
+        <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center">
+          <FileText className="w-3 h-3 text-gray-600" />
+        </div>
+        <span className="font-medium">Klassiek solliciteren met cv</span>
+      </div>
+
+      {/* Heading */}
+      <DialogTitle className="text-3xl font-semibold text-gray-900 tracking-tight font-serif !leading-tight">
+        Upload je cv
+      </DialogTitle>
+
+      {/* Form fields */}
+      <div className="space-y-4">
+        {/* CV Upload */}
+        <div className="space-y-1.5">
+          <Label className="text-sm font-medium text-gray-700">
+            CV bestand
+          </Label>
+          <label className="block cursor-pointer">
+            <div className={cn(
+              'w-full px-4 py-3 h-11 rounded-md border border-dashed transition-colors flex items-center gap-3',
+              cvFile
+                ? 'border-amber-400 bg-amber-50'
+                : 'border-gray-300 hover:border-gray-400'
+            )}>
+              <Upload className="w-4 h-4 text-gray-400 shrink-0" />
+              <span className={cn('text-sm truncate', cvFile ? 'text-gray-700' : 'text-gray-400')}>
+                {cvFile ? cvFile.name : 'Upload je CV (PDF, DOC, DOCX)'}
+              </span>
+            </div>
+            <input
+              type="file"
+              accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+              onChange={(e) => onCvFileChange(e.target.files?.[0] || null)}
+              className="hidden"
+            />
+          </label>
+        </div>
+
+        {/* Name */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1.5">
+            <Label
+              htmlFor="cv-firstname"
+              className="text-sm font-medium text-gray-700"
+            >
+              Voornaam
+            </Label>
+            <Input
+              id="cv-firstname"
+              placeholder="Voornaam"
+              value={firstName}
+              onChange={(e) => onFirstNameChange(e.target.value)}
+              className="h-11"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label
+              htmlFor="cv-lastname"
+              className="text-sm font-medium text-gray-700"
+            >
+              Achternaam
+            </Label>
+            <Input
+              id="cv-lastname"
+              placeholder="Achternaam"
+              value={lastName}
+              onChange={(e) => onLastNameChange(e.target.value)}
+              className="h-11"
+            />
+          </div>
+        </div>
+
+        {/* Email */}
+        <div className="space-y-1.5">
+          <Label
+            htmlFor="cv-email"
+            className="text-sm font-medium text-gray-700"
+          >
+            E-mailadres
+          </Label>
+          <Input
+            id="cv-email"
+            type="email"
+            placeholder="jouw@email.com"
+            value={email}
+            onChange={(e) => onEmailChange(e.target.value)}
+            className="h-11"
+          />
+        </div>
+      </div>
+
+      {/* Actions */}
+      <div className="flex items-center gap-3 pt-1">
+        <Button
+          className="bg-gray-900 text-white hover:bg-gray-800 font-medium h-11 px-6"
+          disabled={!firstName.trim() || !lastName.trim() || !email.trim() || !cvFile}
+        >
+          Solliciteer met cv
+        </Button>
+        <Button variant="outline" className="h-11 px-6" onClick={onBack}>
+          Toch met Anna
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Step 3: Call Prep ─── */
+
 const callPrepTips = [
   { icon: Calendar, text: 'Dankzij Anna kun je direct een afspraak inplannen met de recruiter — geen formulieren nodig' },
   { icon: Globe, text: 'Je mag in je eigen taal spreken' },
@@ -341,9 +515,13 @@ function CallPrepStep({ onBack }: { onBack: () => void }) {
   return (
     <div className="space-y-6 animate-in fade-in-0 duration-300">
       {/* Icon + heading */}
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-full bg-amber-400/20 flex items-center justify-center">
-          <Phone className="w-5 h-5 text-amber-500" />
+      <div className="flex items-center gap-5">
+        <div className="relative shrink-0">
+          <div className="w-10 h-10 rounded-full bg-amber-400/20 flex items-center justify-center">
+            <Phone className="w-5 h-5 text-amber-500" />
+          </div>
+          <div className="absolute inset-0 w-10 h-10 rounded-full border-2 border-amber-400/40 animate-ping [animation-duration:2s]" />
+          <div className="absolute inset-0 w-10 h-10 rounded-full border border-amber-400/20 animate-ping [animation-duration:2s] [animation-delay:500ms]" />
         </div>
         <div>
           <DialogTitle className="text-2xl font-semibold text-gray-900 tracking-tight font-serif !leading-tight">
@@ -367,17 +545,10 @@ function CallPrepStep({ onBack }: { onBack: () => void }) {
         ))}
       </div>
 
-      {/* Actions */}
-      <div className="flex items-center gap-3 pt-1">
-        <Button variant="outline" className="h-11 px-6" onClick={onBack}>
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Terug
-        </Button>
-        <Button className="bg-gray-900 text-white hover:bg-gray-800 font-medium h-11 px-6">
-          <Phone className="w-4 h-4 mr-2" />
-          Start gesprek
-        </Button>
-      </div>
+      {/* Good luck */}
+      <p className="text-sm text-gray-600 font-medium pt-1">
+        Veel succes! 🍀
+      </p>
     </div>
   );
 }
