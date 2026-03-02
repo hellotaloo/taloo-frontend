@@ -53,13 +53,17 @@ export function usePlaygroundSession() {
   }, []);
 
   const startSession = useCallback(async (params: PlaygroundStartRequest) => {
+    console.log('[usePlaygroundSession] startSession called with:', params);
+
     if (!params.vacancy_id) {
+      console.warn('[usePlaygroundSession] BLOCKED: no vacancy_id');
       setError('Geen vacature geselecteerd');
       return;
     }
 
     // Guard against multiple calls
     if (roomRef.current) {
+      console.warn('[usePlaygroundSession] BLOCKED: roomRef.current is not null', roomRef.current);
       return;
     }
 
@@ -69,6 +73,7 @@ export function usePlaygroundSession() {
       resetTimerRef.current = null;
     }
 
+    console.log('[usePlaygroundSession] Setting connecting state, fetching', `${BACKEND_URL}/playground/start`);
     setConnectionState('connecting');
     setError(null);
     setIsMuted(false);

@@ -245,29 +245,25 @@ export default function PreScreeningDemoPage() {
   const [showCallNotification, setShowCallNotification] = useState(false);
 
   // Simulate incoming call — shows ringing UI, user must accept
-  const handleSimulateIncomingCall = async () => {
-    try {
-      const audio = new Audio('/phone-beep.mp3');
-      await audio.play();
-    } catch {
-      // Ignore if browser blocks autoplay
-    }
+  const handleSimulateIncomingCall = () => {
+    console.log('[Demo] handleSimulateIncomingCall called');
+    new Audio('/phone-beep.mp3').play().catch(() => {});
     setIsSimulatedRinging(true);
   };
 
   const handleStartCall = useCallback(async () => {
-    if (!selectedVacancy) return;
-
-    // Play beep sound while connecting
-    try {
-      const audio = new Audio('/phone-beep.mp3');
-      await audio.play();
-    } catch {
-      // Ignore if browser blocks autoplay
+    console.log('[Demo] handleStartCall called, selectedVacancy:', selectedVacancy);
+    if (!selectedVacancy) {
+      console.warn('[Demo] BLOCKED: no selectedVacancy');
+      return;
     }
+
+    // Play beep sound (fire-and-forget — must not block the API call)
+    new Audio('/phone-beep.mp3').play().catch(() => {});
 
     const isKnown = candidateContext === 'known' || candidateContext === 'known_with_vacancy';
 
+    console.log('[Demo] Calling startSession...');
     await startSession({
       vacancy_id: selectedVacancy,
       candidate_name: selectedCandidateContextData.candidateName,
@@ -863,7 +859,7 @@ export default function PreScreeningDemoPage() {
                     callerAvatar={selectedVoiceData?.avatar}
                     callState={callState}
                     onStateChange={handleCallStateChange}
-                    onCallMe={startAgent === 'greeting' ? undefined : handleStartCall}
+                    onCallMe={handleStartCall}
                     isSpeaking={isSpeaking}
                     isUserSpeaking={isUserSpeaking}
                     isMutedExternal={isSessionMuted}
@@ -966,7 +962,7 @@ export default function PreScreeningDemoPage() {
               {simulatorChannel === 'voice' && startAgent === 'greeting' && (
                 <div className="flex items-center justify-center gap-2 mt-6">
                   <button
-                    onClick={handleSimulateIncomingCall}
+                    onClick={handleStartCall}
                     disabled={callState !== 'idle'}
                     className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
                       callState !== 'idle'

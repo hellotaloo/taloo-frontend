@@ -106,6 +106,8 @@ export default function EditPreScreeningPage({ params }: PageProps) {
   const {
     startSession,
     endSession,
+    toggleMute,
+    isMuted: isVoiceMuted,
     connectionState,
     isSpeaking,
     isUserSpeaking,
@@ -951,15 +953,12 @@ export default function EditPreScreeningPage({ params }: PageProps) {
 
   // Start LiveKit playground call directly
   const handleStartCall = useCallback(async () => {
-    // Play ring sound (will be stopped when call connects)
-    try {
-      const audio = new Audio('/phone-ring.mp3');
-      ringAudioRef.current = audio;
-      await audio.play();
-    } catch {
-      // Ignore if browser blocks autoplay
-    }
+    // Play ring sound (fire-and-forget — must not block the API call)
+    const audio = new Audio('/phone-ring.mp3');
+    ringAudioRef.current = audio;
+    audio.play().catch(() => {});
 
+    // Start the actual LiveKit session via /playground/start
     await startSession({
       vacancy_id: id,
       candidate_name: 'Anna',
@@ -1433,6 +1432,8 @@ export default function EditPreScreeningPage({ params }: PageProps) {
                     onCallMe={handleStartCall}
                     isSpeaking={isSpeaking}
                     isUserSpeaking={isUserSpeaking}
+                    isMutedExternal={isVoiceMuted}
+                    onMuteToggle={toggleMute}
                   />
                 )}
               </IPhoneMockup>
