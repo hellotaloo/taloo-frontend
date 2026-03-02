@@ -98,6 +98,7 @@ export default function PopupTestPage() {
                   onChannelChange={setChannel}
                   onBack={() => setStep('choose')}
                   onNext={() => setStep('call-prep')}
+                  onSwitchToCv={() => setStep('cv-form')}
                 />
               )}
               {step === 'cv-form' && (
@@ -111,6 +112,7 @@ export default function PopupTestPage() {
                   onEmailChange={setEmail}
                   onCvFileChange={setCvFile}
                   onBack={() => setStep('choose')}
+                  onSwitchToAnna={() => setStep('phone-form')}
                 />
               )}
               {step === 'call-prep' && (
@@ -223,6 +225,7 @@ interface PhoneFormStepProps {
   onChannelChange: (val: Channel) => void;
   onBack: () => void;
   onNext: () => void;
+  onSwitchToCv: () => void;
 }
 
 function PhoneFormStep({
@@ -236,6 +239,7 @@ function PhoneFormStep({
   onChannelChange,
   onBack,
   onNext,
+  onSwitchToCv,
 }: PhoneFormStepProps) {
   return (
     <div className="space-y-6 animate-in fade-in-0 duration-300">
@@ -351,7 +355,7 @@ function PhoneFormStep({
         >
           Laat Anna bellen
         </Button>
-        <Button variant="outline" className="h-11 px-6" onClick={onBack}>
+        <Button variant="outline" className="h-11 px-6" onClick={onSwitchToCv}>
           Toch met cv
         </Button>
       </div>
@@ -376,6 +380,7 @@ interface CvFormStepProps {
   onEmailChange: (val: string) => void;
   onCvFileChange: (file: File | null) => void;
   onBack: () => void;
+  onSwitchToAnna: () => void;
 }
 
 function CvFormStep({
@@ -388,6 +393,7 @@ function CvFormStep({
   onEmailChange,
   onCvFileChange,
   onBack,
+  onSwitchToAnna,
 }: CvFormStepProps) {
   return (
     <div className="space-y-6 animate-in fade-in-0 duration-300">
@@ -493,7 +499,7 @@ function CvFormStep({
         >
           Solliciteer met cv
         </Button>
-        <Button variant="outline" className="h-11 px-6" onClick={onBack}>
+        <Button variant="outline" className="h-11 px-6" onClick={onSwitchToAnna}>
           Toch met Anna
         </Button>
       </div>

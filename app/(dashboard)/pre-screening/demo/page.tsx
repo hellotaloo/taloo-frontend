@@ -13,7 +13,7 @@ import {
 } from '@/components/layout/page-layout';
 import { IPhoneMockup, WhatsAppChat, type ChatScenario, VoiceCallMockup, type CallState } from '@/components/blocks/phone-simulator';
 import { type VoiceOption } from '@/components/blocks/voice-settings';
-import { TriggerInterviewDialog } from '@/components/blocks/channel-management';
+import { SolliciteerDialog } from '@/components/blocks/channel-management';
 import { InterviewQuestionsPanel, type GeneratedQuestion } from '@/components/blocks/interview-editor';
 import { InterviewAnalyticsPanel } from '@/components/blocks/interview-analytics';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -1101,7 +1101,7 @@ export default function PreScreeningDemoPage() {
         document.body
       )}
 
-      <TriggerInterviewDialog
+      <SolliciteerDialog
         open={showTriggerDialog}
         onOpenChange={setShowTriggerDialog}
         vacancyId={selectedVacancy ?? 'demo'}

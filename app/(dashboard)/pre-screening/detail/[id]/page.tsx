@@ -47,7 +47,7 @@ import {
 import {
   PublishDialog,
   PublishChannels,
-  TriggerInterviewDialog,
+  SolliciteerDialog,
   ChannelStatusPopover,
 } from '@/components/blocks/channel-management';
 import { InterviewAnalyticsPanel } from '@/components/blocks/interview-analytics';
@@ -1583,8 +1583,8 @@ export default function EditPreScreeningPage({ params }: PageProps) {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Trigger Interview Dialog */}
-      <TriggerInterviewDialog
+      {/* Solliciteer Dialog */}
+      <SolliciteerDialog
         open={showTriggerInterviewDialog}
         onOpenChange={setShowTriggerInterviewDialog}
         vacancyId={vacancy.id}
