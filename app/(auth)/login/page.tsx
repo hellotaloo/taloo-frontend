@@ -18,13 +18,13 @@ export default function LoginPage() {
   // Redirect if already authenticated
   React.useEffect(() => {
     if (!authLoading && isAuthenticated) {
-      router.push('/pre-screening');
+      router.push('/');
     }
   }, [isAuthenticated, authLoading, router]);
 
   const handleGoogleLogin = () => {
     setIsLoading(true);
-    login('/pre-screening');
+    login('/');
   };
 
   const handleDevLogin = async () => {

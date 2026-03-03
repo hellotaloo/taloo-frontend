@@ -59,7 +59,7 @@ export default function CallbackPage() {
         }
 
         // Redirect to dashboard
-        router.push("/pre-screening");
+        router.push("/");
       } catch (err) {
         console.error("Auth callback error:", err);
         setError(err instanceof Error ? err.message : "Authenticatie mislukt");

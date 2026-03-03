@@ -110,7 +110,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   // Redirect to Google OAuth login
   const login = useCallback((redirectTo?: string) => {
-    window.location.href = getGoogleLoginUrl(redirectTo || '/pre-screening');
+    window.location.href = getGoogleLoginUrl(redirectTo || '/');
   }, []);
 
   // Development-only login
@@ -124,7 +124,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setCurrentWorkspaceId(data.workspaces[0]?.id || null);
 
       // Redirect to dashboard
-      router.push('/pre-screening');
+      router.push('/');
     } catch (error) {
       console.error('Dev login failed:', error);
       throw error;

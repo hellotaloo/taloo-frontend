@@ -42,12 +42,10 @@ import {
   Workflow,
   type LucideIcon,
 } from 'lucide-react';
-import { PencilSquareIcon } from '@heroicons/react/24/outline';
-
 export type PageConfig = {
   title: string;
   description?: string;
-  icon: LucideIcon | typeof PencilSquareIcon;
+  icon: LucideIcon;
 };
 
 /**
@@ -56,8 +54,7 @@ export type PageConfig = {
  */
 export const pageConfigs: Record<string, PageConfig> = {
   // Main pages
-  '/dashboard': { title: 'Dashboard', description: 'Overzicht van agent activiteiten en prestaties', icon: LayoutDashboard },
-  '/': { title: 'Nieuw gesprek', icon: PencilSquareIcon },
+  '/': { title: 'Dashboard', description: 'Overzicht van agent activiteiten en prestaties', icon: LayoutDashboard },
   '/inbox': { title: 'Inbox', icon: Inbox },
   '/records': { title: 'Records', description: 'Bekijk en beheer al je gegevens', icon: LayoutList },
   '/records/vacancies': { title: 'Vacatures', description: 'Bekijk en beheer al je vacatures', icon: Briefcase },

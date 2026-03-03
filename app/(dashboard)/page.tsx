@@ -1,410 +1,330 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
-import { ArrowUp, Square, Briefcase, Star, Clock, RotateCcw, Sparkles } from 'lucide-react';
 import {
-  PromptInput,
-  PromptInputAction,
-  PromptInputActions,
-  PromptInputTextarea,
-} from '@/components/prompt-kit/prompt-input';
-import { Button } from '@/components/ui/button';
-import { ThinkingIndicator } from '@/components/kit/chat';
-import ReactMarkdown from 'react-markdown';
-import { queryAnalyst, AnalystSSEEvent } from '@/lib/analyst-api';
+  Phone,
+  CheckCircle2,
+  Boxes,
+  Clock,
+  FileCheck,
+  ArrowRight,
+} from 'lucide-react';
+import {
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+} from 'recharts';
+import { MetricCard } from '@/components/kit/metric-card';
+import { StatusBadge } from '@/components/kit/status-badge';
+import { formatRelativeDate } from '@/lib/utils';
+import { PageLayout, PageLayoutHeader, PageLayoutContent } from '@/components/layout/page-layout';
 
-interface ChatMessage {
-  id: string;
-  role: 'user' | 'assistant';
-  content: string;
-  timestamp: string;
-  isNew?: boolean;
-}
+// --- Mock data ---
 
-// Get time-based greeting
-function getGreeting(): string {
-  const hour = new Date().getHours();
-  if (hour < 12) return 'Goedemorgen';
-  if (hour < 18) return 'Goedemiddag';
-  return 'Goedenavond';
-}
-
-// Widget data matching the mockup using brand colors
-const widgets = [
-  {
-    id: 'vacatures',
-    icon: Briefcase,
-    title: 'Open vacatures',
-    value: '47',
-    subtitle: 'Totaal',
-    bgColor: 'bg-brand-light-blue',
-    textColor: 'text-brand-dark-blue',
-    chartColor: '#022641',
-  },
-  {
-    id: 'aanvragen',
-    icon: Star,
-    title: 'Nieuwe aanvragen',
-    value: '+16%',
-    subtitle: 'Week',
-    bgColor: 'bg-brand-lime-green',
-    textColor: 'text-brand-dark-blue',
-    chartColor: '#022641',
-  },
-  {
-    id: 'uurcoefficient',
-    icon: Clock,
-    title: 'Uurcoefficient',
-    value: 'x1.8',
-    subtitle: 'Gem',
-    bgColor: 'bg-brand-dark-blue',
-    textColor: 'text-white',
-    chartType: 'bar' as const,
-  },
+const activityChartData = [
+  { date: '19 feb', prescreening: 12, onboarding: 4 },
+  { date: '20 feb', prescreening: 18, onboarding: 6 },
+  { date: '21 feb', prescreening: 15, onboarding: 8 },
+  { date: '22 feb', prescreening: 22, onboarding: 5 },
+  { date: '23 feb', prescreening: 28, onboarding: 9 },
+  { date: '24 feb', prescreening: 14, onboarding: 7 },
+  { date: '25 feb', prescreening: 10, onboarding: 3 },
+  { date: '26 feb', prescreening: 24, onboarding: 11 },
+  { date: '27 feb', prescreening: 30, onboarding: 8 },
+  { date: '28 feb', prescreening: 26, onboarding: 10 },
+  { date: '1 mrt', prescreening: 32, onboarding: 12 },
+  { date: '2 mrt', prescreening: 28, onboarding: 9 },
+  { date: '3 mrt', prescreening: 35, onboarding: 14 },
 ];
 
-// Simple line chart SVG for widgets
-function MiniLineChart({ color }: { color: string }) {
+const sparklineTrend = activityChartData.map(d => ({ value: d.prescreening + d.onboarding }));
+
+const recentActivities = [
+  { id: 1, agent: 'Pre-screening', candidate: 'Anna de Vries', vacancy: 'Frontend Developer', status: 'completed' as const, time: new Date(Date.now() - 1000 * 60 * 12).toISOString() },
+  { id: 2, agent: 'Pre-screening', candidate: 'Bram Jansen', vacancy: 'UX Designer', status: 'active' as const, time: new Date(Date.now() - 1000 * 60 * 34).toISOString() },
+  { id: 3, agent: 'Pre-onboarding', candidate: 'Claudia Bakker', vacancy: 'Product Manager', status: 'completed' as const, time: new Date(Date.now() - 1000 * 60 * 58).toISOString() },
+  { id: 4, agent: 'Pre-screening', candidate: 'Dennis Smit', vacancy: 'Backend Developer', status: 'stuck' as const, time: new Date(Date.now() - 1000 * 60 * 120).toISOString() },
+  { id: 5, agent: 'Pre-screening', candidate: 'Eva Mulder', vacancy: 'Data Engineer', status: 'completed' as const, time: new Date(Date.now() - 1000 * 60 * 180).toISOString() },
+  { id: 6, agent: 'Pre-onboarding', candidate: 'Floris de Boer', vacancy: 'DevOps Engineer', status: 'active' as const, time: new Date(Date.now() - 1000 * 60 * 240).toISOString() },
+];
+
+const agents = [
+  { id: 1, name: 'Pre-screening Voice', type: 'Pre-screening', status: 'online' as const, activeTasks: 3, completedToday: 24 },
+  { id: 2, name: 'Pre-screening WhatsApp', type: 'Pre-screening', status: 'online' as const, activeTasks: 1, completedToday: 18 },
+  { id: 3, name: 'Pre-onboarding', type: 'Onboarding', status: 'online' as const, activeTasks: 2, completedToday: 12 },
+  { id: 4, name: 'Document Collector', type: 'Onboarding', status: 'offline' as const, activeTasks: 0, completedToday: 0 },
+];
+
+const activityStatusMap = {
+  completed: { label: 'Afgerond', variant: 'green' as const },
+  active: { label: 'Bezig', variant: 'blue' as const },
+  stuck: { label: 'Vastgelopen', variant: 'orange' as const },
+};
+
+const agentStatusMap = {
+  online: { label: 'Online', variant: 'green' as const, animate: true },
+  offline: { label: 'Offline', variant: 'gray' as const, animate: false },
+};
+
+// --- Components ---
+
+function ActivityChart() {
   return (
-    <div className="flex-1 w-full flex items-center">
-      <svg 
-        viewBox="0 0 100 40" 
-        className="w-full h-12"
-        preserveAspectRatio="none"
-      >
-        <path
-          d="M 0 30 Q 15 25, 25 28 T 50 22 T 75 18 T 100 25"
-          fill="none"
-          stroke={color}
-          strokeWidth="2"
-          strokeLinecap="round"
-        />
-      </svg>
-    </div>
-  );
-}
-
-// Simple bar chart for widgets
-function MiniBarChart() {
-  return (
-    <div className="flex-1 flex items-end gap-1">
-      <div className="w-8 h-4 bg-white/40 rounded-sm" />
-      <div className="w-8 h-6 bg-white/70 rounded-sm" />
-    </div>
-  );
-}
-
-// Hook for typewriter effect
-function useTypewriter(text: string, enabled: boolean, speed: number = 15) {
-  const [displayedText, setDisplayedText] = useState(enabled ? '' : text);
-  const [isTyping, setIsTyping] = useState(enabled);
-
-  useEffect(() => {
-    if (!enabled) {
-      setDisplayedText(text);
-      setIsTyping(false);
-      return;
-    }
-
-    setDisplayedText('');
-    setIsTyping(true);
-    let currentIndex = 0;
-
-    const intervalId = setInterval(() => {
-      if (currentIndex < text.length) {
-        const charsToAdd = Math.min(3, text.length - currentIndex);
-        setDisplayedText(text.slice(0, currentIndex + charsToAdd));
-        currentIndex += charsToAdd;
-      } else {
-        setIsTyping(false);
-        clearInterval(intervalId);
-      }
-    }, speed);
-
-    return () => clearInterval(intervalId);
-  }, [text, enabled, speed]);
-
-  return { displayedText, isTyping };
-}
-
-function ChatMessageBubble({ message, onTypingComplete }: { message: ChatMessage; onTypingComplete?: () => void }) {
-  const isAssistant = message.role === 'assistant';
-  const { displayedText, isTyping } = useTypewriter(
-    message.content,
-    isAssistant && !!message.isNew
-  );
-
-  useEffect(() => {
-    if (!isTyping && message.isNew && onTypingComplete) {
-      onTypingComplete();
-    }
-  }, [isTyping, message.isNew, onTypingComplete]);
-
-  if (isAssistant) {
-    return (
-      <div className="text-sm text-gray-700 max-w-[90%]">
-        <ReactMarkdown
-          components={{
-            p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
-            strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
-            ul: ({ children }) => <ul className="list-disc list-inside mb-2 space-y-1">{children}</ul>,
-            ol: ({ children }) => <ol className="list-decimal list-inside mb-2 space-y-1">{children}</ol>,
-            li: ({ children }) => <li>{children}</li>,
-          }}
-        >
-          {displayedText}
-        </ReactMarkdown>
-        {isTyping && (
-          <span className="inline-block w-1 h-4 ml-0.5 bg-gray-400 animate-pulse" />
-        )}
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex justify-end">
-      <div className="max-w-[85%]">
-        <div className="rounded-2xl px-3 py-2 bg-gray-50">
-          <p className="text-sm text-gray-700">{message.content}</p>
+    <div
+      className="rounded-xl border border-gray-200 bg-white p-5"
+      style={{ animation: 'fade-in-up 0.3s ease-out 200ms backwards' }}
+    >
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h2 className="text-sm font-semibold text-gray-900">Agent activiteiten</h2>
+          <p className="text-xs text-gray-500 mt-0.5">Overzicht van alle agent interacties</p>
+        </div>
+        <div className="flex items-center gap-4 text-xs text-gray-500">
+          <span className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-sky-500" />
+            Pre-screening
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-brand-dark-blue" />
+            Onboarding
+          </span>
         </div>
       </div>
+      <div className="h-[280px]">
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart data={activityChartData} margin={{ top: 5, right: 5, bottom: 0, left: -20 }}>
+            <defs>
+              <linearGradient id="gradPrescreening" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#0ea5e9" stopOpacity={0.15} />
+                <stop offset="100%" stopColor="#0ea5e9" stopOpacity={0} />
+              </linearGradient>
+              <linearGradient id="gradOnboarding" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#022641" stopOpacity={0.1} />
+                <stop offset="100%" stopColor="#022641" stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+            <XAxis
+              dataKey="date"
+              tick={{ fontSize: 11, fill: '#94a3b8' }}
+              tickLine={false}
+              axisLine={false}
+            />
+            <YAxis
+              tick={{ fontSize: 11, fill: '#94a3b8' }}
+              tickLine={false}
+              axisLine={false}
+            />
+            <Tooltip
+              contentStyle={{
+                backgroundColor: '#fff',
+                border: '1px solid #e2e8f0',
+                borderRadius: '8px',
+                fontSize: '12px',
+                boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.05)',
+              }}
+            />
+            <Area
+              type="monotone"
+              dataKey="prescreening"
+              name="Pre-screening"
+              stroke="#0ea5e9"
+              strokeWidth={2}
+              fill="url(#gradPrescreening)"
+            />
+            <Area
+              type="monotone"
+              dataKey="onboarding"
+              name="Onboarding"
+              stroke="#022641"
+              strokeWidth={2}
+              fill="url(#gradOnboarding)"
+            />
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
     </div>
   );
 }
 
-export default function HomePage() {
-  const [input, setInput] = useState('');
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [status, setStatus] = useState('');
-  const [thinkingContent, setThinkingContent] = useState('');
-  const [extendedThinking, setExtendedThinking] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const sessionIdRef = useRef<string | undefined>(undefined);
-
-  // Only hide welcome when messages have been sent
-  const showWelcome = messages.length === 0;
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
-  const markMessageAsOld = (messageId: string) => {
-    setMessages(prev =>
-      prev.map(msg =>
-        msg.id === messageId ? { ...msg, isNew: false } : msg
-      )
-    );
-  };
-
-  const handleSSEEvent = (event: AnalystSSEEvent) => {
-    if (event.type === 'status') {
-      setStatus(event.message || '');
-    } else if (event.type === 'thinking') {
-      // Append thinking content as it streams in
-      setThinkingContent(prev => prev + (event.content || ''));
-    } else if (event.type === 'error') {
-      console.error('Analyst error:', event.message);
-    }
-  };
-
-  const handleSubmit = async () => {
-    if (!input.trim() || isLoading) return;
-
-    const userMessage: ChatMessage = {
-      id: `msg-${Date.now()}`,
-      role: 'user',
-      content: input.trim(),
-      timestamp: new Date().toISOString(),
-    };
-    setMessages((prev) => [...prev, userMessage]);
-    const question = input.trim();
-    setInput('');
-
-    setIsLoading(true);
-    setStatus('Vraag analyseren...');
-    setThinkingContent(''); // Reset thinking content for new query
-
-    try {
-      const { message, sessionId } = await queryAnalyst(
-        question,
-        handleSSEEvent,
-        {
-          sessionId: sessionIdRef.current,
-          extendedThinking,
-        }
-      );
-
-      sessionIdRef.current = sessionId;
-
-      const assistantMessage: ChatMessage = {
-        id: `msg-${Date.now() + 1}`,
-        role: 'assistant',
-        content: message,
-        timestamp: new Date().toISOString(),
-        isNew: true,
-      };
-      setMessages((prev) => [...prev, assistantMessage]);
-    } catch (error) {
-      console.error('Failed to query analyst:', error);
-      const errorMessage: ChatMessage = {
-        id: `msg-${Date.now() + 1}`,
-        role: 'assistant',
-        content: 'Er is een fout opgetreden. Controleer of de backend draait en probeer het opnieuw.',
-        timestamp: new Date().toISOString(),
-        isNew: true,
-      };
-      setMessages((prev) => [...prev, errorMessage]);
-    } finally {
-      setIsLoading(false);
-      setStatus('');
-      setThinkingContent(''); // Clear thinking content when done
-    }
-  };
-
-  const startNewConversation = () => {
-    sessionIdRef.current = undefined;
-    setMessages([]);
-    setStatus('');
-    setThinkingContent('');
-  };
-
+function RecentActivities() {
   return (
-    <div className="flex flex-col h-full -m-6 bg-white">
-      {/* Main content area */}
-      <div className="flex-1 flex flex-col overflow-y-auto px-6 py-4">
-        {/* Welcome state with greeting and widgets */}
-        {showWelcome ? (
-          <div className="flex-1 flex flex-col items-center justify-center">
-            <div className="w-full max-w-3xl">
-              {/* Greeting */}
-              <h1 className="text-4xl font-serif  text-gray-900 mb-8">
-                {getGreeting()} Laurijn
-              </h1>
-
-              {/* Widgets */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {widgets.map((widget) => (
-                  <div
-                    key={widget.id}
-                    className={`
-                      ${widget.bgColor} ${widget.textColor}
-                      rounded-xl p-5 h-[200px] flex flex-col
-                    `}
-                  >
-                    <div className="flex items-center gap-2 mb-2">
-                      <widget.icon className="w-4 h-4 opacity-80" />
-                      <span className="text-sm font-medium opacity-90">
-                        {widget.title}
-                      </span>
-                    </div>
-                    
-                    {widget.chartType === 'bar' ? (
-                      <MiniBarChart />
-                    ) : (
-                      <MiniLineChart color={widget.chartColor || 'white'} />
-                    )}
-                    
-                    <div className="mt-auto flex items-end justify-between">
-                      <span className="text-base font-normal">{widget.value}</span>
-                      <span className="text-sm opacity-70">{widget.subtitle}</span>
-                    </div>
-                  </div>
-                ))}
+    <div
+      className="rounded-xl border border-gray-200 bg-white p-5"
+      style={{ animation: 'fade-in-up 0.3s ease-out 300ms backwards' }}
+    >
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-sm font-semibold text-gray-900">Recente activiteiten</h2>
+        <a
+          href="/activities"
+          className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-900 transition-colors"
+        >
+          Bekijk alles
+          <ArrowRight className="w-3 h-3" />
+        </a>
+      </div>
+      <div className="divide-y divide-gray-100">
+        {recentActivities.map((activity) => {
+          const statusConfig = activityStatusMap[activity.status];
+          return (
+            <div key={activity.id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
+              <div className="w-8 h-8 rounded-lg bg-brand-dark-blue flex items-center justify-center shrink-0">
+                {activity.agent === 'Pre-screening' ? (
+                  <Phone className="w-3.5 h-3.5 text-white" />
+                ) : (
+                  <FileCheck className="w-3.5 h-3.5 text-white" />
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-900 truncate">
+                  {activity.candidate}
+                </p>
+                <p className="text-xs text-gray-500 truncate">
+                  {activity.vacancy}
+                </p>
+              </div>
+              <div className="flex items-center gap-3 shrink-0">
+                <StatusBadge label={statusConfig.label} variant={statusConfig.variant} />
+                <span className="text-xs text-gray-400 w-16 text-right">
+                  {formatRelativeDate(activity.time)}
+                </span>
               </div>
             </div>
-          </div>
-        ) : (
-          /* Messages area */
-          <div className="w-full max-w-3xl mx-auto flex-1 space-y-4">
-            {/* New conversation button */}
-            <div className="flex justify-end">
-              <button
-                onClick={startNewConversation}
-                className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-700 transition-colors"
-              >
-                <RotateCcw className="w-3 h-3" />
-                Nieuw gesprek
-              </button>
-            </div>
-            
-            {messages.map((message) => (
-              <ChatMessageBubble
-                key={message.id}
-                message={message}
-                onTypingComplete={() => markMessageAsOld(message.id)}
-              />
-            ))}
-            
-            {isLoading && (
-              <ThinkingIndicator 
-                message={status || undefined} 
-                thinkingContent={thinkingContent || undefined}
-              />
-            )}
-            
-            <div ref={messagesEndRef} />
-          </div>
-        )}
-      </div>
-
-      {/* Chat input - always visible at bottom */}
-      <div className="w-full max-w-3xl mx-auto px-6 pb-4">
-        <PromptInput
-          value={input}
-          onValueChange={setInput}
-          isLoading={isLoading}
-          onSubmit={handleSubmit}
-          className="w-full"
-        >
-          <PromptInputTextarea
-            ref={textareaRef}
-            placeholder="Stel een vraag of plan een opdracht. / voor prompts, @ voor context"
-          />
-
-          <PromptInputActions className="flex items-center justify-between pt-2">
-            {/* Extended thinking toggle */}
-            <PromptInputAction tooltip={extendedThinking ? "Extended thinking aan" : "Extended thinking uit"}>
-              <button
-                type="button"
-                onClick={() => setExtendedThinking(!extendedThinking)}
-                className={`
-                  flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium transition-all
-                  ${extendedThinking
-                    ? 'bg-purple-500 text-white hover:bg-purple-600'
-                    : 'text-gray-500 hover:bg-gray-50'
-                  }
-                `}
-              >
-                <Sparkles className={`size-3.5 ${extendedThinking ? 'text-purple-600' : ''}`} />
-                <span>Extended</span>
-              </button>
-            </PromptInputAction>
-
-            {/* Submit button */}
-            <PromptInputAction tooltip={isLoading ? "Stop generatie" : "Verstuur bericht"}>
-              <Button
-                variant="default"
-                size="icon"
-                className="h-8 w-8 rounded-full"
-                onClick={handleSubmit}
-                disabled={!input.trim() && !isLoading}
-              >
-                {isLoading ? (
-                  <Square className="size-4 fill-current" />
-                ) : (
-                  <ArrowUp className="size-4" />
-                )}
-              </Button>
-            </PromptInputAction>
-          </PromptInputActions>
-        </PromptInput>
+          );
+        })}
       </div>
     </div>
+  );
+}
+
+function AgentsOverview() {
+  return (
+    <div
+      className="rounded-xl border border-gray-200 bg-white p-5"
+      style={{ animation: 'fade-in-up 0.3s ease-out 400ms backwards' }}
+    >
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-sm font-semibold text-gray-900">Agents overzicht</h2>
+        <a
+          href="/agents"
+          className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-900 transition-colors"
+        >
+          Beheer
+          <ArrowRight className="w-3 h-3" />
+        </a>
+      </div>
+      <div className="space-y-3">
+        {agents.map((agent) => {
+          const statusConfig = agentStatusMap[agent.status];
+          return (
+            <div
+              key={agent.id}
+              className="flex items-center gap-3 p-3 rounded-lg border border-gray-100 hover:border-gray-200 transition-colors"
+            >
+              <div className="w-9 h-9 rounded-lg bg-brand-dark-blue flex items-center justify-center shrink-0">
+                <Boxes className="w-4 h-4 text-white" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-medium text-gray-900 truncate">
+                    {agent.name}
+                  </p>
+                  <StatusBadge
+                    label={statusConfig.label}
+                    variant={statusConfig.variant}
+                    animate={statusConfig.animate}
+                  />
+                </div>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  {agent.activeTasks > 0
+                    ? `${agent.activeTasks} actief \u00b7 ${agent.completedToday} afgerond vandaag`
+                    : 'Geen actieve taken'}
+                </p>
+              </div>
+              <div className="text-right shrink-0">
+                <p className="text-lg font-semibold text-gray-900">{agent.completedToday}</p>
+                <p className="text-xs text-gray-500">vandaag</p>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// --- Page ---
+
+export default function DashboardPage() {
+  const totalToday = agents.reduce((sum, a) => sum + a.completedToday, 0);
+  const activeAgents = agents.filter(a => a.status === 'online').length;
+
+  return (
+    <PageLayout>
+      <PageLayoutHeader>
+        <div>
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-lg font-semibold text-gray-900">Dashboard</h1>
+            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide bg-brand-dark-blue text-white">
+              Coming soon
+            </span>
+          </div>
+          <p className="text-sm text-gray-500">Overzicht van agent activiteiten en prestaties</p>
+        </div>
+      </PageLayoutHeader>
+      <PageLayoutContent>
+        <div className="space-y-8 opacity-40 pointer-events-none select-none">
+          {/* Metric Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <MetricCard
+              title="Totaal activiteiten"
+              value={totalToday}
+              label="Vandaag"
+              icon={Phone}
+              variant="blue"
+              sparklineData={sparklineTrend}
+            />
+            <MetricCard
+              title="Voltooiingspercentage"
+              value="87%"
+              label="Gem"
+              icon={CheckCircle2}
+              variant="dark"
+              progress={87}
+            />
+            <MetricCard
+              title="Actieve agents"
+              value={`${activeAgents}/${agents.length}`}
+              label="Online"
+              icon={Boxes}
+              variant="lime"
+            />
+            <MetricCard
+              title="Gem. doorlooptijd"
+              value="4m12s"
+              label="Per gesprek"
+              icon={Clock}
+              variant="purple"
+              sparklineData={[
+                { value: 5.2 }, { value: 4.8 }, { value: 5.1 }, { value: 4.5 },
+                { value: 4.3 }, { value: 4.0 }, { value: 4.2 },
+              ]}
+            />
+          </div>
+
+          {/* Full-width Line Graph */}
+          <ActivityChart />
+
+          {/* Recent Activities & Agents Overview */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <RecentActivities />
+            <AgentsOverview />
+          </div>
+        </div>
+      </PageLayoutContent>
+    </PageLayout>
   );
 }

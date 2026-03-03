@@ -103,7 +103,7 @@ export function ApplicationsTable({
                     {application.candidateName}
                   </span>
                   {application.isTest && (
-                    <TagBadge label="Test" variant="gray" icon={FlaskConical} iconVariant="orange" />
+                    <TagBadge label="Test" variant="gray" icon={FlaskConical} />
                   )}
                 </div>
                 <div className="flex items-center gap-3 mt-0.5">

@@ -53,7 +53,7 @@ import { useAuth } from '@/contexts/auth-context';
 
 // Navigation data
 const primaryNavItems = [
-  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+  { name: 'Dashboard', href: '/', icon: LayoutDashboard },
   { name: 'Activiteiten', href: '/activities', icon: Activity },
   { name: 'Audit trail', href: '/audit-trail', icon: History },
 ];
@@ -79,15 +79,6 @@ function getInitials(name: string): string {
     .join('')
     .toUpperCase()
     .slice(0, 2);
-}
-
-function getRoleBadge(role: 'owner' | 'admin' | 'member'): string {
-  const labels: Record<string, string> = {
-    owner: 'Eigenaar',
-    admin: 'Admin',
-    member: 'Lid',
-  };
-  return labels[role] || role;
 }
 
 export function AppSidebar() {
@@ -172,7 +163,7 @@ export function AppSidebar() {
                   {currentWorkspace?.name || 'Workspace'}
                 </p>
                 <p className="text-xs text-sidebar-foreground/60">
-                  Agent control
+                  Admin workspace
                 </p>
               </div>
               <ChevronDown className="h-4 w-4 text-sidebar-foreground/60" />
@@ -200,7 +191,7 @@ export function AppSidebar() {
                 )}
                 <div className="flex-1">
                   <p className="text-sm font-medium">{workspace.name}</p>
-                  <p className="text-xs text-gray-500">{getRoleBadge(workspace.role)}</p>
+                  <p className="text-xs text-gray-500">Admin workspace</p>
                 </div>
                 {workspace.id === currentWorkspace?.id && (
                   <Check className="h-4 w-4 text-green-600" />
@@ -357,13 +348,9 @@ export function AppSidebar() {
                 </SidebarMenuButton>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuItem>
+                <DropdownMenuItem disabled>
                   <User className="h-4 w-4 mr-2" />
-                  Profiel
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <Settings className="h-4 w-4 mr-2" />
-                  Instellingen
+                  Profiel (coming soon)
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout} className="text-red-600">
