@@ -63,7 +63,7 @@ export function ChatInterface({
         
         {isLoading && (
           <Flex gap="3">
-            <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center">
               <RefreshCw className="w-4 h-4 text-blue-600 animate-spin" />
             </div>
             <div className="bg-white border border-[var(--border)] rounded-2xl rounded-tl-sm px-4 py-2.5">

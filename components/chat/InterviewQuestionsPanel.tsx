@@ -218,8 +218,8 @@ export function InterviewQuestionsPanel({ questions, isGenerating = false, highl
         className="relative py-2 flex items-center"
         style={{ animation: `fade-in-up 0.6s ease-out ${branchDelay + 40}ms backwards` }}
       >
-        <div className="absolute left-[-24px] w-4 h-4 rounded-full bg-green-100 border-2 border-green-500 flex items-center justify-center">
-          <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
+        <div className="absolute left-[-24px] w-4 h-4 rounded-full bg-green-500 border-2 border-green-500 flex items-center justify-center">
+          <div className="w-1.5 h-1.5 rounded-full bg-white" />
         </div>
         <span className="text-xs text-green-600 font-medium">Geslaagd</span>
       </div>
@@ -332,8 +332,8 @@ function TimelineBranch({
     >
       {/* T-shaped branch connector */}
       <div className="absolute left-[-56px] top-1/2 -translate-y-1/2 flex items-center z-0">
-        <div className="w-4 h-4 rounded-full bg-orange-100 border-2 border-orange-400 flex items-center justify-center z-10">
-          <div className="w-1.5 h-1.5 rounded-full bg-orange-400" />
+        <div className="w-4 h-4 rounded-full bg-orange-500 border-2 border-orange-500 flex items-center justify-center z-10">
+          <div className="w-1.5 h-1.5 rounded-full bg-white" />
         </div>
         <div className="w-10 border-t-2 border-dashed border-orange-300" />
       </div>
@@ -447,9 +447,9 @@ function SkeletonCard({ isAnimating = false }: { isAnimating?: boolean }) {
 }
 
 // New question highlight styles: slide-in + blue bg + soft pulse
-const NEW_QUESTION_HIGHLIGHT_CLASSES = 'bg-blue-100 animate-[slide-in-right_1.2s_cubic-bezier(0.16,1,0.3,1)_0s_backwards]';
+const NEW_QUESTION_HIGHLIGHT_CLASSES = 'bg-blue-50 animate-[slide-in-right_1.2s_cubic-bezier(0.16,1,0.3,1)_0s_backwards]';
 // Updated question highlight styles: orange bg + soft pulse only (no slide-in)
-const UPDATED_QUESTION_HIGHLIGHT_CLASSES = 'bg-orange-100 animate-[soft-pulse_3s_ease-in-out_infinite]';
+const UPDATED_QUESTION_HIGHLIGHT_CLASSES = 'bg-orange-50 animate-[soft-pulse_3s_ease-in-out_infinite]';
 const NORMAL_QUESTION_CLASSES = 'bg-gray-50 transition-all duration-500';
 
 function AddQuestionInput({ 
@@ -563,7 +563,7 @@ function AddQuestionInput({
   return (
     <div className="rounded-lg border-2 border-blue-300 bg-blue-50 overflow-hidden transition-all duration-200">
       {/* Show the question being added */}
-      <div className="px-3 py-2 border-b border-blue-200 bg-blue-100/50">
+      <div className="px-3 py-2 border-b border-blue-200 bg-blue-50/50">
         <p className="text-xs text-blue-600 font-medium mb-0.5">Nieuwe vraag:</p>
         <p className="text-sm text-gray-700">{questionText}</p>
       </div>

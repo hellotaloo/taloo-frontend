@@ -164,12 +164,12 @@ export function AppSidebar() {
                 />
               ) : (
                 <div className="w-10 h-10 rounded-lg bg-gray-800 flex items-center justify-center text-white text-sm font-semibold">
-                  TD
+                  {currentWorkspace ? getInitials(currentWorkspace.name) : 'W'}
                 </div>
               )}
               <div className="flex-1 text-left">
                 <p className="text-sm font-semibold text-sidebar-foreground">
-                  Taloo Demo
+                  {currentWorkspace?.name || 'Workspace'}
                 </p>
                 <p className="text-xs text-sidebar-foreground/60">
                   Agent control

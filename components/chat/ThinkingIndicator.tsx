@@ -187,7 +187,7 @@ export function ThinkingIndicator({
                 ul: ({ children }) => <ul className="list-disc list-inside mb-2 space-y-0.5">{children}</ul>,
                 ol: ({ children }) => <ol className="list-decimal list-inside mb-2 space-y-0.5">{children}</ol>,
                 li: ({ children }) => <li className="text-gray-500">{children}</li>,
-                code: ({ children }) => <code className="bg-gray-100 px-1 py-0.5 rounded text-xs">{children}</code>,
+                code: ({ children }) => <code className="bg-gray-50 px-1 py-0.5 rounded text-xs">{children}</code>,
               }}
             >
               {/* Add markdown line breaks: "..." followed by capital letter becomes new line */}

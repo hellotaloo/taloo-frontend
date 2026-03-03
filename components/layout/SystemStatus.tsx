@@ -89,7 +89,7 @@ export function SystemStatus() {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <button
-          className="flex items-center gap-1.5 px-2 py-1 text-sm text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors focus:outline-none"
+          className="flex items-center gap-1.5 px-2 py-1 text-sm text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded transition-colors focus:outline-none"
           aria-label="System status"
         >
           <span className="relative flex items-center justify-center">

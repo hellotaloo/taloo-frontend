@@ -449,7 +449,7 @@ function ActivityRow({
 }
 
 // Filter types
-type FilterType = 'all' | 'candidate' | 'recruiter' | 'system';
+type FilterType = 'all' | 'candidate' | 'recruiter' | 'agent';
 
 export default function AuditTrailPage() {
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
@@ -474,7 +474,7 @@ export default function AuditTrailPage() {
       setError(null);
       try {
         // Map filter to actor_type
-        const actorType = activeFilter === 'all' ? undefined : activeFilter === 'candidate' ? 'agent' : activeFilter;
+        const actorType = activeFilter === 'all' ? undefined : activeFilter;
         const response = await getActivities({
           actor_type: actorType as ActivityActorType | undefined,
           limit: 100,
@@ -622,9 +622,9 @@ export default function AuditTrailPage() {
                     <UserCog className="w-3.5 h-3.5" />
                     Recruiters
                   </TabsTrigger>
-                  <TabsTrigger value="system" data-testid="filter-system">
+                  <TabsTrigger value="agent" data-testid="filter-agent">
                     <Settings className="w-3.5 h-3.5" />
-                    Systeem
+                    Agents
                   </TabsTrigger>
                 </TabsList>
               </Tabs>

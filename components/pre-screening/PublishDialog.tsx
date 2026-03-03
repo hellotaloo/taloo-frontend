@@ -76,8 +76,8 @@ export function PublishDialog({
           <div className="space-y-3">
             <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
               <div className="flex items-center gap-3">
-                <div className="flex items-center justify-center w-8 h-8 bg-blue-100 rounded-lg">
-                  <Phone className="w-4 h-4 text-blue-600" />
+                <div className="flex items-center justify-center w-8 h-8 bg-brand-dark-blue rounded-lg">
+                  <Phone className="w-4 h-4 text-white" />
                 </div>
                 <div>
                   <p className="text-sm font-medium text-gray-900">Voice Call</p>
@@ -94,8 +94,8 @@ export function PublishDialog({
 
             <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
               <div className="flex items-center gap-3">
-                <div className="flex items-center justify-center w-8 h-8 bg-green-100 rounded-lg">
-                  <MessageSquare className="w-4 h-4 text-green-600" />
+                <div className="flex items-center justify-center w-8 h-8 bg-brand-dark-blue rounded-lg">
+                  <MessageSquare className="w-4 h-4 text-white" />
                 </div>
                 <div>
                   <p className="text-sm font-medium text-gray-900">WhatsApp</p>
@@ -112,8 +112,8 @@ export function PublishDialog({
 
             <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
               <div className="flex items-center gap-3">
-                <div className="flex items-center justify-center w-8 h-8 bg-purple-100 rounded-lg">
-                  <FileText className="w-4 h-4 text-purple-600" />
+                <div className="flex items-center justify-center w-8 h-8 bg-brand-dark-blue rounded-lg">
+                  <FileText className="w-4 h-4 text-white" />
                 </div>
                 <div>
                   <p className="text-sm font-medium text-gray-900">Smart CV</p>

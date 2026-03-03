@@ -84,12 +84,12 @@ export function InterviewDashboard({ applications }: InterviewDashboardProps) {
           'bg-purple-500 text-white'
         )}
       >
-        <div className="flex items-center gap-2 text-sm font-medium text-gray-900">
+        <div className="flex items-center gap-2 text-sm font-medium text-white">
           <BarChart3 className="w-4 h-4" />
           Insights
         </div>
         <div className="my-3 flex-1 flex items-center justify-center">
-          <span className="text-sm text-gray-600">Niet genoeg data</span>
+          <span className="text-sm text-white/70">Niet genoeg data</span>
         </div>
       </div>
     </div>

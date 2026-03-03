@@ -203,7 +203,7 @@ export function InterviewAnalyticsPanel({
   if (!analysis) {
     return (
       <div className="flex flex-col items-center justify-center py-20 space-y-4">
-        <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
+        <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center">
           <BarChart3 className="w-5 h-5 text-gray-400" />
         </div>
         <div className="text-center">
@@ -540,7 +540,7 @@ export function InterviewAnalyticsPanel({
                 </div>
                 <div className="flex items-center gap-1.5 flex-1">
                   <span className="shrink-0">Helderheid</span>
-                  <div className="flex-1 h-1.5 rounded-full bg-gray-100 max-w-[80px]">
+                  <div className="flex-1 h-1.5 rounded-full bg-gray-50 max-w-[80px]">
                     <div
                       className={cn(
                         'h-full rounded-full transition-all',
