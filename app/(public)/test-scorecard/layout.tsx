@@ -1,7 +1,7 @@
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Agent Test Scorecard | Taloo',
+  title: 'Agent Test Scorecard',
 };
 
 export default function TestScorecardLayout({

@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Solliciteren | Taloo',
+  title: 'Solliciteren',
 };
 
 export default function ApplyLayout({

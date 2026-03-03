@@ -1,7 +1,7 @@
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Agents | Taloo',
+  title: 'Agents',
   description: 'Ontdek en activeer AI agents voor je workspace',
 };
 

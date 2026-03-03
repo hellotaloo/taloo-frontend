@@ -17,7 +17,10 @@ const hedvigLetters = Hedvig_Letters_Serif({
 });
 
 export const metadata: Metadata = {
-  title: "Taloo Admin",
+  title: {
+    default: "Taloo | Admin workspace",
+    template: "%s | Admin workspace",
+  },
   description: "Manage your WhatsApp and voice agents",
   icons: {
     icon: [

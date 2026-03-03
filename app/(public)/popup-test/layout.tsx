@@ -1,7 +1,7 @@
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Popup Test | Taloo',
+  title: 'Popup Test',
 };
 
 export default function PopupTestLayout({

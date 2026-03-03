@@ -1,7 +1,7 @@
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Activiteiten | Taloo',
+  title: 'Activiteiten',
   description: 'Overzicht van alle actieve agent taken',
 };
 

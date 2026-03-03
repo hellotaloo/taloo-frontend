@@ -1,7 +1,7 @@
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Monitor | Taloo',
+  title: 'Monitor',
   description: 'Bekijk alle systeem events',
 };
 
