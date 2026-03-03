@@ -498,9 +498,9 @@ export default function GeneratePreScreeningPage({ params }: PageProps) {
               <span className="text-sm text-gray-400">•</span>
               <span className="text-sm text-gray-500">{vacancy.location}</span>
               <span className={`inline-flex items-center ml-2 px-2 py-0.5 rounded-full text-xs font-medium ${
-                isAgentOnline 
-                  ? 'bg-green-100 text-green-700' 
-                  : 'bg-gray-100 text-gray-500'
+                isAgentOnline
+                  ? 'bg-green-500 text-white'
+                  : 'bg-gray-50 text-gray-500'
               }`}>
                 {isAgentOnline ? 'Actief' : 'Offline'}
               </span>
@@ -600,7 +600,7 @@ export default function GeneratePreScreeningPage({ params }: PageProps) {
             <span className="text-sm text-gray-500">{vacancy.company}</span>
             <span className="text-sm text-gray-400">•</span>
             <span className="text-sm text-gray-500">{vacancy.location}</span>
-            <span className="inline-flex items-center ml-2 px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">
+            <span className="inline-flex items-center ml-2 px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-500 text-white">
               Concept
             </span>
           </div>
@@ -613,7 +613,7 @@ export default function GeneratePreScreeningPage({ params }: PageProps) {
                   onClick={() => setRightPanelView('assistant')}
                   className={`px-3 py-1.5 text-sm font-medium flex items-center gap-1.5 transition-colors ${
                     rightPanelView === 'assistant'
-                      ? 'bg-gray-100 text-gray-900'
+                      ? 'bg-gray-50 text-gray-900'
                       : 'bg-white text-gray-500 hover:bg-gray-50'
                   }`}
                 >

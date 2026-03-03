@@ -164,7 +164,7 @@ function ChatMessageBubble({ message, onTypingComplete }: { message: ChatMessage
   return (
     <div className="flex justify-end">
       <div className="max-w-[85%]">
-        <div className="rounded-2xl px-3 py-2 bg-gray-100">
+        <div className="rounded-2xl px-3 py-2 bg-gray-50">
           <p className="text-sm text-gray-700">{message.content}</p>
         </div>
       </div>
@@ -375,9 +375,9 @@ export default function HomePage() {
                 onClick={() => setExtendedThinking(!extendedThinking)}
                 className={`
                   flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium transition-all
-                  ${extendedThinking 
-                    ? 'bg-purple-100 text-purple-700 hover:bg-purple-200' 
-                    : 'text-gray-500 hover:bg-gray-200'
+                  ${extendedThinking
+                    ? 'bg-purple-500 text-white hover:bg-purple-600'
+                    : 'text-gray-500 hover:bg-gray-50'
                   }
                 `}
               >

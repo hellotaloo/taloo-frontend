@@ -434,21 +434,21 @@ export default function ActivitiesPage() {
             <TabsTrigger value="active" data-testid="filter-active">
               <Play className="w-3.5 h-3.5" />
               Actief
-              <span className="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-600">
+              <span className="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-500 text-white">
                 {isLoading && activeCount === 0 ? '...' : activeCount}
               </span>
             </TabsTrigger>
             <TabsTrigger value="stuck" data-testid="filter-stuck">
               <PauseCircle className="w-3.5 h-3.5" />
               Vast
-              <span className="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-600">
+              <span className="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-500 text-white">
                 {isLoading && stuckCount === 0 ? '...' : stuckCount}
               </span>
             </TabsTrigger>
             <TabsTrigger value="completed" data-testid="filter-completed">
               <CheckCircle2 className="w-3.5 h-3.5" />
               Afgerond
-              <span className="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-600">
+              <span className="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-500 text-white">
                 {isLoading && completedCount === 0 ? '...' : completedCount}
               </span>
             </TabsTrigger>
@@ -476,7 +476,7 @@ export default function ActivitiesPage() {
             <div data-testid="activities-empty" className="flex flex-col items-center justify-center h-64 text-gray-400 pt-2">
               {/* Radar pulse animation */}
               <div className="relative mb-6">
-                <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center">
+                <div className="w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center">
                   <div className="w-3 h-3 rounded-full bg-gray-400" />
                 </div>
                 <div className="absolute inset-0 w-12 h-12 rounded-full border-2 border-gray-300 animate-ping [animation-duration:2s]" />
@@ -644,7 +644,7 @@ export default function ActivitiesPage() {
                               'flex items-center justify-center w-6 h-6 rounded-full',
                               step.status === 'completed' && 'bg-green-500 text-white',
                               step.status === 'current' && 'bg-blue-500 text-white',
-                              step.status === 'pending' && 'bg-gray-200 text-gray-500',
+                              step.status === 'pending' && 'bg-gray-50 text-gray-500',
                               step.status === 'failed' && 'bg-red-500 text-white',
                             )}>
                               {step.status === 'completed' ? (

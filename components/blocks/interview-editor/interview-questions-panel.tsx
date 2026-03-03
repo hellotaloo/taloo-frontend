@@ -221,8 +221,8 @@ export function InterviewQuestionsPanel({ questions, isGenerating = false, highl
         className="relative py-2 flex items-center"
         style={{ animation: `fade-in-up 0.6s ease-out ${branchDelay + 40}ms backwards` }}
       >
-        <div className="absolute left-[-24px] w-4 h-4 rounded-full bg-green-100 border-2 border-green-500 flex items-center justify-center">
-          <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
+        <div className="absolute left-[-24px] w-4 h-4 rounded-full bg-green-500 border-2 border-green-500 flex items-center justify-center">
+          <div className="w-1.5 h-1.5 rounded-full bg-white" />
         </div>
         <span className="text-xs text-green-600 font-medium">Geslaagd</span>
       </div>
@@ -336,8 +336,8 @@ function TimelineBranch({
     >
       {/* T-shaped branch connector */}
       <div className="absolute left-[-56px] top-1/2 -translate-y-1/2 flex items-center z-0">
-        <div className="w-4 h-4 rounded-full bg-orange-100 border-2 border-orange-400 flex items-center justify-center z-10">
-          <div className="w-1.5 h-1.5 rounded-full bg-orange-400" />
+        <div className="w-4 h-4 rounded-full bg-orange-500 border-2 border-orange-500 flex items-center justify-center z-10">
+          <div className="w-1.5 h-1.5 rounded-full bg-white" />
         </div>
         <div className="w-10 border-t-2 border-dashed border-orange-300" />
       </div>
@@ -451,10 +451,10 @@ function SkeletonCard({ isAnimating = false }: { isAnimating?: boolean }) {
 }
 
 // New question highlight styles: slide-in + blue bg + soft pulse
-const NEW_QUESTION_HIGHLIGHT_CLASSES = 'bg-blue-100 animate-[slide-in-right_1.2s_cubic-bezier(0.16,1,0.3,1)_0s_backwards]';
+const NEW_QUESTION_HIGHLIGHT_CLASSES = 'bg-blue-50 animate-[slide-in-right_1.2s_cubic-bezier(0.16,1,0.3,1)_0s_backwards]';
 // Updated question highlight styles: orange bg + soft pulse only (no slide-in)
-const UPDATED_QUESTION_HIGHLIGHT_CLASSES = 'bg-orange-100 animate-[soft-pulse_3s_ease-in-out_infinite]';
-const NORMAL_QUESTION_CLASSES = 'bg-gray-100 transition-all duration-500';
+const UPDATED_QUESTION_HIGHLIGHT_CLASSES = 'bg-orange-50 animate-[soft-pulse_3s_ease-in-out_infinite]';
+const NORMAL_QUESTION_CLASSES = 'bg-gray-50 transition-all duration-500';
 
 // Standard snippet text that indicates a question is not derived from vacancy
 const STANDARD_SNIPPET_TEXT = "Standaard knockout vraag - niet afgeleid van specifieke vacaturetekst";
@@ -555,7 +555,7 @@ function AddQuestionInput({
             className={`shrink-0 flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium transition-all duration-200 ${
               canSubmitQuestion 
                 ? 'bg-blue-500 text-white hover:bg-blue-600 cursor-pointer' 
-                : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                : 'bg-gray-50 text-gray-400 cursor-not-allowed'
             }`}
           >
             <Check className="w-3 h-3" />
@@ -570,7 +570,7 @@ function AddQuestionInput({
   return (
     <div className="rounded-lg border-2 border-blue-300 bg-blue-50 overflow-hidden transition-all duration-200">
       {/* Show the question being added */}
-      <div className="px-3 py-2 border-b border-blue-200 bg-blue-100/50">
+      <div className="px-3 py-2 border-b border-blue-200 bg-blue-50/50">
         <p className="text-xs text-blue-600 font-medium mb-0.5">Nieuwe vraag:</p>
         <p className="text-sm text-gray-700">{questionText}</p>
       </div>
@@ -589,7 +589,7 @@ function AddQuestionInput({
         <button
           type="button"
           onClick={handleCancel}
-          className="shrink-0 px-1.5 py-0.5 rounded text-[10px] font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-200 transition-colors"
+          className="shrink-0 px-1.5 py-0.5 rounded text-[10px] font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-50 transition-colors"
         >
           cancel
         </button>
@@ -818,12 +818,12 @@ function SortableQuestionItem({
               <p className="text-sm text-gray-700 flex-1">{question.text}</p>
               {/* Action icons - visible on hover, positioned before existing icons */}
               {!readOnly && (
-                <div className="shrink-0 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity bg-gray-100 rounded-md p-0.5">
+                <div className="shrink-0 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity bg-gray-50 rounded-md p-0.5">
                   {/* Chat icon - ask about this question */}
                   {onClick && (
                     <button
                       onClick={handleChatClick}
-                      className="p-1 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-200 transition-colors"
+                      className="p-1 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-colors"
                       title="Vraag stellen over deze vraag"
                     >
                       <MessagesSquare className="w-3.5 h-3.5" />
@@ -832,7 +832,7 @@ function SortableQuestionItem({
                   {/* Edit icon - edit this question */}
                   <button
                     onClick={handleEditStart}
-                    className="p-1 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-200 transition-colors"
+                    className="p-1 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-colors"
                     title="Vraag bewerken"
                   >
                     <Pencil className="w-3.5 h-3.5" />
@@ -874,7 +874,7 @@ function SortableQuestionItem({
                 </Tooltip>
               )}
               {isStandardQuestion && (
-                <span className={`shrink-0 text-[10px] font-medium px-1.5 py-0.5 rounded bg-gray-200 text-gray-500 ${!readOnly ? 'group-hover:opacity-0' : ''} transition-opacity`}>
+                <span className={`shrink-0 text-[10px] font-medium px-1.5 py-0.5 rounded bg-gray-50 text-gray-500 ${!readOnly ? 'group-hover:opacity-0' : ''} transition-opacity`}>
                   Standaard
                 </span>
               )}

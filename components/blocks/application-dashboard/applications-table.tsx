@@ -43,7 +43,7 @@ export function ApplicationsTable({
           onClick={onPublishClick}
           className="w-full text-center py-12 rounded-lg border-2 border-dashed border-gray-200 hover:border-green-300 hover:bg-green-50/50 transition-colors group cursor-pointer"
         >
-          <div className="w-12 h-12 rounded-full bg-gray-100 group-hover:bg-green-100 flex items-center justify-center mx-auto mb-3 transition-colors">
+          <div className="w-12 h-12 rounded-full bg-gray-50 group-hover:bg-green-50 flex items-center justify-center mx-auto mb-3 transition-colors">
             <Users className="w-6 h-6 text-gray-400 group-hover:text-green-500 transition-colors" />
           </div>
           <p className="text-sm text-gray-500 group-hover:text-green-600 transition-colors">
@@ -55,7 +55,7 @@ export function ApplicationsTable({
     
     return (
       <div className="text-center py-12">
-        <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-3">
+        <div className="w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center mx-auto mb-3">
           <Users className="w-6 h-6 text-gray-400" />
         </div>
         <p className="text-sm text-gray-500">Nog geen kandidaten ontvangen</p>
@@ -92,7 +92,7 @@ export function ApplicationsTable({
               onClick={() => onSelectApplication(application.id)}
               className={`cursor-pointer transition-colors ${
                 selectedId === application.id
-                  ? 'bg-blue-50 hover:bg-blue-100'
+                  ? 'bg-blue-50 hover:bg-blue-50'
                   : ''
               }`}
             >
@@ -149,7 +149,7 @@ export function ApplicationsTable({
                     e.stopPropagation();
                     onSelectApplication(application.id);
                   }}
-                  className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+                  className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-50 rounded-md hover:bg-gray-50 transition-colors"
                 >
                   Details bekijken
                   <ArrowRight className="w-3 h-3" />

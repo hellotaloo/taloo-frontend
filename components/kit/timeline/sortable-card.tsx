@@ -60,7 +60,7 @@ export function SortableCard({
     <div
       ref={setNodeRef}
       style={style}
-      className={`rounded-lg p-2 group bg-gray-100 transition-all duration-500 ${
+      className={`rounded-lg p-2 group bg-gray-50 transition-all duration-500 ${
         isDragging ? 'opacity-60 shadow-lg z-50' : ''
       } ${onClick ? 'cursor-pointer' : ''} ${className}`}
       onClick={onClick}
@@ -92,7 +92,7 @@ export function SortableCard({
                 className={`p-1.5 rounded-md transition-colors ${
                   action.variant === 'danger'
                     ? 'text-gray-400 hover:text-red-600 hover:bg-red-50'
-                    : 'text-gray-400 hover:text-gray-600 hover:bg-gray-200'
+                    : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'
                 }`}
                 title={action.label}
               >

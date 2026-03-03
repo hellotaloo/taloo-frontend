@@ -17,8 +17,8 @@ export function KnockoutQuestions({ questions, onEdit, onDelete }: KnockoutQuest
   return (
     <div className="space-y-4">
       <Flex align="center" gap="2">
-        <div className="p-1.5 bg-red-100 rounded">
-          <AlertCircle className="w-4 h-4 text-red-500" />
+        <div className="p-1.5 bg-red-500 rounded">
+          <AlertCircle className="w-4 h-4 text-white" />
         </div>
         <div>
           <Heading size="3" className="text-[var(--text-primary)]">

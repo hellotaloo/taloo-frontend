@@ -117,7 +117,7 @@ export function ConceptVacanciesTable({ vacancies, generationStatus, isImporting
   if (vacancies.length === 0 && !isImporting) {
     return (
       <div className="text-center py-12">
-        <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-3">
+        <div className="w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center mx-auto mb-3">
           <FileEdit className="w-6 h-6 text-gray-400" />
         </div>
         <p className="text-sm text-gray-500">Geen concepten. Alle vacatures zijn gepubliceerd.</p>
@@ -259,14 +259,14 @@ export function ConceptVacanciesTable({ vacancies, generationStatus, isImporting
                   <Link
                     href={`/pre-screening/detail/${vacancy.id}`}
                     data-testid={`generate-prescreening-btn-${vacancy.id}`}
-                    className="inline-flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                    className="inline-flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-50 rounded-lg hover:bg-gray-50 transition-colors"
                   >
                     Genereren
                     <ArrowRight className="w-4 h-4" />
                   </Link>
                 )}
                 {genStatus?.status === 'generating' && (
-                  <span className="inline-flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-medium text-gray-400 bg-gray-100 rounded-lg cursor-not-allowed">
+                  <span className="inline-flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-medium text-gray-400 bg-gray-50 rounded-lg cursor-not-allowed">
                     Genereren
                     <ArrowRight className="w-4 h-4" />
                   </span>
@@ -291,7 +291,7 @@ export function ConceptVacanciesTable({ vacancies, generationStatus, isImporting
                   <Link
                     href={`/pre-screening/detail/${vacancy.id}`}
                     data-testid={`generate-prescreening-btn-${vacancy.id}`}
-                    className="inline-flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                    className="inline-flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-50 rounded-lg hover:bg-gray-50 transition-colors"
                   >
                     Genereren
                     <ArrowRight className="w-4 h-4" />

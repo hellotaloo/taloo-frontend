@@ -284,8 +284,8 @@ export function InterviewAssistant({
       {/* Fixed collapsible vacancy context card */}
       <div className="px-6 pt-6 pb-2">
         <Collapsible open={isVacancyOpen} onOpenChange={setIsVacancyOpen}>
-          <div className="rounded-lg bg-gray-100">
-            <CollapsibleTrigger className="flex w-full items-center justify-between px-4 py-3 text-left hover:bg-gray-200/50 transition-colors rounded-lg">
+          <div className="rounded-lg bg-gray-50">
+            <CollapsibleTrigger className="flex w-full items-center justify-between px-4 py-3 text-left hover:bg-gray-50/50 transition-colors rounded-lg">
               <div className="flex items-center gap-2">
                 <FileText className="w-4 h-4 text-gray-500" />
                 <span className="text-sm font-medium text-gray-700">Vacaturetekst</span>
@@ -470,7 +470,7 @@ function ChatMessage({ message, onTypingComplete }: ChatMessageProps) {
   return (
     <div className="flex justify-end">
       <div className="max-w-[85%]">
-        <div className="rounded-2xl px-3 py-2 bg-gray-100">
+        <div className="rounded-2xl px-3 py-2 bg-gray-50">
           <p className="text-sm text-gray-700">{message.content}</p>
         </div>
       </div>

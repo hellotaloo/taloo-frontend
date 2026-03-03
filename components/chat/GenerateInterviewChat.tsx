@@ -235,7 +235,7 @@ export function GenerateInterviewChat({ vacancyTitle, onComplete, onQuestionsGen
           <div className="flex gap-2 justify-end">
             <button
               onClick={handleRegenerate}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 bg-gray-50 rounded-lg hover:bg-gray-50 transition-colors"
             >
               <RefreshCw className="w-3.5 h-3.5" />
               Regenereer
@@ -301,7 +301,7 @@ function ChatMessageBubble({ message }: { message: Message }) {
   return (
     <div className="flex justify-end">
       <div className="max-w-[610px]">
-        <div className="rounded-2xl px-4 py-2.5 bg-gray-100">
+        <div className="rounded-2xl px-4 py-2.5 bg-gray-50">
           <p className="text-sm text-gray-700">{message.content}</p>
         </div>
       </div>

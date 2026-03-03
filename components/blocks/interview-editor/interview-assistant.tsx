@@ -450,7 +450,7 @@ function ChatMessage({ message, onTypingComplete }: ChatMessageProps) {
   return (
     <div className="flex justify-end">
       <div className="max-w-[85%]">
-        <div className="rounded-2xl px-3 py-2 bg-gray-100">
+        <div className="rounded-2xl px-3 py-2 bg-gray-50">
           <p className="text-sm text-gray-700">{message.content}</p>
         </div>
       </div>

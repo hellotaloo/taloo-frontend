@@ -72,7 +72,7 @@ export function CollapseBox({
     >
       <CollapsibleTrigger
         className={cn(
-          'flex w-full items-center justify-between px-4 py-3 text-left transition-colors rounded-lg hover:bg-gray-200/50',
+          'flex w-full items-center justify-between px-4 py-3 text-left transition-colors rounded-lg hover:bg-gray-50/50',
         )}
         data-testid="collapse-box-trigger"
       >

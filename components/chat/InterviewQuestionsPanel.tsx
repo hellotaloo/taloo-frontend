@@ -440,7 +440,7 @@ function SkeletonTimelineItem({
 
 function SkeletonCard({ isAnimating = false }: { isAnimating?: boolean }) {
   return (
-    <div className={`bg-gray-100 rounded-lg p-2 ${isAnimating ? 'animate-pulse' : ''}`}>
+    <div className={`bg-gray-50 rounded-lg p-2 ${isAnimating ? 'animate-pulse' : ''}`}>
       <div className="h-4 bg-gray-200 rounded w-full" />
     </div>
   );
@@ -450,7 +450,7 @@ function SkeletonCard({ isAnimating = false }: { isAnimating?: boolean }) {
 const NEW_QUESTION_HIGHLIGHT_CLASSES = 'bg-blue-100 animate-[slide-in-right_1.2s_cubic-bezier(0.16,1,0.3,1)_0s_backwards]';
 // Updated question highlight styles: orange bg + soft pulse only (no slide-in)
 const UPDATED_QUESTION_HIGHLIGHT_CLASSES = 'bg-orange-100 animate-[soft-pulse_3s_ease-in-out_infinite]';
-const NORMAL_QUESTION_CLASSES = 'bg-gray-100 transition-all duration-500';
+const NORMAL_QUESTION_CLASSES = 'bg-gray-50 transition-all duration-500';
 
 function AddQuestionInput({ 
   type, 
@@ -548,7 +548,7 @@ function AddQuestionInput({
             className={`shrink-0 flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium transition-all duration-200 ${
               canSubmitQuestion 
                 ? 'bg-blue-500 text-white hover:bg-blue-600 cursor-pointer' 
-                : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                : 'bg-gray-50 text-gray-400 cursor-not-allowed'
             }`}
           >
             <Check className="w-3 h-3" />
@@ -582,7 +582,7 @@ function AddQuestionInput({
         <button
           type="button"
           onClick={handleCancel}
-          className="shrink-0 px-1.5 py-0.5 rounded text-[10px] font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-200 transition-colors"
+          className="shrink-0 px-1.5 py-0.5 rounded text-[10px] font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-50 transition-colors"
         >
           cancel
         </button>
@@ -733,7 +733,7 @@ function SortableQuestionItem({
               {onClick && (
                 <button
                   onClick={handleChatClick}
-                  className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-200 transition-colors"
+                  className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-colors"
                   title="Vraag stellen over deze vraag"
                 >
                   <MessagesSquare className="w-4 h-4" />
@@ -742,7 +742,7 @@ function SortableQuestionItem({
               {/* Edit icon - edit this question (functionality to be added) */}
               <button
                 onClick={(e) => e.stopPropagation()}
-                className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-200 transition-colors"
+                className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-colors"
                 title="Vraag bewerken"
               >
                 <Pencil className="w-4 h-4" />

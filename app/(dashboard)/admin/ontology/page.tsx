@@ -329,7 +329,7 @@ export default function OntologyPage() {
           <div className="flex items-center gap-3">
             <Link
               href="/admin"
-              className="flex items-center justify-center w-8 h-8 rounded-lg hover:bg-gray-100 transition-colors text-gray-500 hover:text-gray-700"
+              className="flex items-center justify-center w-8 h-8 rounded-lg hover:bg-gray-50 transition-colors text-gray-500 hover:text-gray-700"
             >
               <ArrowLeft className="w-5 h-5" />
             </Link>
@@ -375,7 +375,7 @@ export default function OntologyPage() {
                   <h2 className="text-lg font-semibold text-gray-900">
                     {activeType.name_plural || activeType.name}
                   </h2>
-                  <Badge variant="secondary" className="bg-gray-100">
+                  <Badge variant="secondary" className="bg-gray-50">
                     {activeType.entity_count} items
                   </Badge>
                 </div>
@@ -418,7 +418,7 @@ export default function OntologyPage() {
                         key={entity.id}
                         onClick={() => handleEntityClick(entity.id)}
                         data-testid={`entity-card-${entity.id}`}
-                        className="rounded-xl border border-gray-200 bg-white p-5 hover:border-gray-300 hover:shadow-sm transition-all cursor-pointer"
+                        className="rounded-xl border border-gray-200 bg-white p-5 hover:border-gray-300 transition-all cursor-pointer"
                         style={{ animation: `fade-in-up 0.3s ease-out ${index * 50}ms backwards` }}
                       >
                         <div className="flex items-center gap-3">
@@ -570,7 +570,7 @@ export default function OntologyPage() {
                         vacancyCount={0}
                         categorySlug={category?.id || ''}
                         categoryName={category?.name || ''}
-                        categoryColor="bg-gray-100 text-gray-600"
+                        categoryColor="bg-gray-500 text-white"
                         description={func.description || ''}
                         onClick={() => handleEntityClick(func.id)}
                         onCategoryClick={(id) => handleEntityClick(id)}
@@ -620,7 +620,7 @@ export default function OntologyPage() {
                     >
                       <div className="flex items-center justify-between mb-3">
                         <h3 className="font-medium text-gray-900">{cat.name}</h3>
-                        <Badge variant="secondary" className="bg-gray-100">
+                        <Badge variant="secondary" className="bg-gray-50">
                           {cat.documents.length}
                         </Badge>
                       </div>

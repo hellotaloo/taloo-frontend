@@ -246,14 +246,14 @@ export function RecordsContent({ activeTab }: RecordsContentProps) {
                 <TabsTrigger value="active">
                   <List className="w-3.5 h-3.5" />
                   Alle
-                  <span className="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-600">
+                  <span className="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-500 text-white">
                     {isLoading ? '...' : allCounts[activeTab] ?? 0}
                   </span>
                 </TabsTrigger>
                 <TabsTrigger value="archived">
                   <Archive className="w-3.5 h-3.5" />
                   Gearchiveerd
-                  <span className="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-600">
+                  <span className="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-500 text-white">
                     {isLoading ? '...' : archivedCounts[activeTab] ?? 0}
                   </span>
                 </TabsTrigger>

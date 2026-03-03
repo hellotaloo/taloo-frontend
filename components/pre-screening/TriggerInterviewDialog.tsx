@@ -222,7 +222,7 @@ export function TriggerInterviewDialog({
         {cvStep !== 'processing' && (
           <button
             onClick={() => handleDialogClose(false)}
-            className="absolute right-4 top-4 p-1.5 rounded-lg hover:bg-gray-100 transition-colors z-10"
+            className="absolute right-4 top-4 p-1.5 rounded-lg hover:bg-gray-50 transition-colors z-10"
           >
             <X className="w-5 h-5 text-gray-400" />
           </button>
@@ -294,7 +294,7 @@ export function TriggerInterviewDialog({
                         key={index}
                         className="w-full flex items-center gap-4 p-4 rounded-lg border border-gray-200 hover:border-[#FEAE03] hover:bg-[#FEAE03]/5 transition-colors text-left group"
                       >
-                        <div className="w-10 h-10 rounded-full bg-gray-100 group-hover:bg-[#FEAE03]/20 flex items-center justify-center transition-colors">
+                        <div className="w-10 h-10 rounded-full bg-gray-50 group-hover:bg-[#FEAE03]/20 flex items-center justify-center transition-colors">
                           <Calendar className="w-5 h-5 text-gray-600" />
                         </div>
                         <div className="flex-1">
@@ -338,7 +338,7 @@ export function TriggerInterviewDialog({
                 <div className="w-full max-w-md space-y-4">
                   {/* Toggle between WhatsApp and Call - only show if both are available */}
                   {hasBothPhoneOptions && (
-                    <div className="flex items-center gap-1 p-1 bg-gray-100 rounded-lg">
+                    <div className="flex items-center gap-1 p-1 bg-gray-50 rounded-lg">
                       <button
                         type="button"
                         onClick={() => setPhoneContactMethod('whatsapp')}
@@ -538,7 +538,7 @@ export function TriggerInterviewDialog({
               
               {/* Toggle between WhatsApp and Call - only show if both are available */}
               {hasBothPhoneOptions && (
-                <div className="flex items-center gap-1 p-1 bg-gray-100 rounded-lg mb-4">
+                <div className="flex items-center gap-1 p-1 bg-gray-50 rounded-lg mb-4">
                   <button
                     type="button"
                     onClick={() => setPhoneContactMethod('whatsapp')}

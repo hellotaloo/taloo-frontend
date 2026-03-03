@@ -314,7 +314,7 @@ export default function PreScreeningDemoPage() {
   if (!vacanciesLoading && vacancies.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-[calc(100vh-40px)] gap-4">
-        <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center">
+        <div className="w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center">
           <Briefcase className="w-6 h-6 text-gray-400" />
         </div>
         <div className="text-center">
@@ -323,7 +323,7 @@ export default function PreScreeningDemoPage() {
         </div>
         <Link
           href="/pre-screening"
-          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors"
+          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium text-gray-700 bg-gray-50 hover:bg-white transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
           Terug naar pre-screening
@@ -338,7 +338,7 @@ export default function PreScreeningDemoPage() {
         <div className="flex items-center gap-3">
           <Link
             href="/pre-screening"
-            className="flex items-center justify-center w-8 h-8 rounded-lg hover:bg-gray-100 transition-colors text-gray-500 hover:text-gray-700"
+            className="flex items-center justify-center w-8 h-8 rounded-lg hover:bg-gray-50 transition-colors text-gray-500 hover:text-gray-700"
           >
             <ArrowLeft className="w-5 h-5" />
           </Link>
@@ -887,7 +887,7 @@ export default function PreScreeningDemoPage() {
                     </div>
                     {/* Safari URL bar */}
                     <div className="bg-white px-4 pb-2">
-                      <div className="bg-gray-100 rounded-xl px-3 py-1.5 flex items-center justify-center gap-1">
+                      <div className="bg-gray-50 rounded-xl px-3 py-1.5 flex items-center justify-center gap-1">
                         <svg className="w-[10px] h-[10px] text-gray-500" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a4 4 0 0 0-4 4v3H3a1 1 0 0 0-1 1v5a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V9a1 1 0 0 0-1-1h-1V5a4 4 0 0 0-4-4zm2.5 7H5.5V5a2.5 2.5 0 1 1 5 0v3z"/></svg>
                         <span className="text-[12px] text-gray-900 font-medium">{vacancyDetail?.company ? `${vacancyDetail.company.toLowerCase().replace(/\s+/g, '')}.be` : 'vacature.be'}</span>
                       </div>
@@ -918,13 +918,13 @@ export default function PreScreeningDemoPage() {
 
                       <div className="flex flex-wrap gap-2">
                         {vacancyDetail?.location && (
-                          <span className="inline-flex items-center gap-1 text-[11px] text-gray-600 bg-gray-100 px-2 py-1 rounded-md">
+                          <span className="inline-flex items-center gap-1 text-[11px] text-gray-600 bg-gray-50 px-2 py-1 rounded-md">
                             <MapPin className="w-3 h-3" />
                             {vacancyDetail.location}
                           </span>
                         )}
                         {vacancyDetail?.company && (
-                          <span className="inline-flex items-center gap-1 text-[11px] text-gray-600 bg-gray-100 px-2 py-1 rounded-md">
+                          <span className="inline-flex items-center gap-1 text-[11px] text-gray-600 bg-gray-50 px-2 py-1 rounded-md">
                             <Briefcase className="w-3 h-3" />
                             {vacancyDetail.company}
                           </span>
@@ -966,7 +966,7 @@ export default function PreScreeningDemoPage() {
                     disabled={callState !== 'idle'}
                     className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
                       callState !== 'idle'
-                        ? 'bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed'
+                        ? 'bg-gray-50 text-gray-400 border border-gray-200 cursor-not-allowed'
                         : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
                     }`}
                   >
@@ -987,7 +987,7 @@ export default function PreScreeningDemoPage() {
                     className={cn(
                       'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors',
                       chatScenario === 'manual'
-                        ? 'bg-gray-200 text-gray-800 border border-gray-300'
+                        ? 'bg-gray-50 text-gray-800 border border-gray-300'
                         : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
                     )}
                   >
@@ -1002,7 +1002,7 @@ export default function PreScreeningDemoPage() {
                     className={cn(
                       'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors',
                       chatScenario === 'pass'
-                        ? 'bg-green-100 text-green-700 border border-green-200'
+                        ? 'bg-green-500 text-white border border-green-500'
                         : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
                     )}
                   >

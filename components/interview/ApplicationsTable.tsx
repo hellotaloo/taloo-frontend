@@ -53,7 +53,7 @@ export function ApplicationsTable({
           onClick={onPublishClick}
           className="w-full text-center py-12 rounded-lg border-2 border-dashed border-gray-200 hover:border-green-300 hover:bg-green-50/50 transition-colors group cursor-pointer"
         >
-          <div className="w-12 h-12 rounded-full bg-gray-100 group-hover:bg-green-100 flex items-center justify-center mx-auto mb-3 transition-colors">
+          <div className="w-12 h-12 rounded-full bg-gray-50 group-hover:bg-green-50 flex items-center justify-center mx-auto mb-3 transition-colors">
             <Users className="w-6 h-6 text-gray-400 group-hover:text-green-500 transition-colors" />
           </div>
           <p className="text-sm text-gray-500 group-hover:text-green-600 transition-colors">
@@ -65,7 +65,7 @@ export function ApplicationsTable({
     
     return (
       <div className="text-center py-12">
-        <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-3">
+        <div className="w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center mx-auto mb-3">
           <Users className="w-6 h-6 text-gray-400" />
         </div>
         <p className="text-sm text-gray-500">Nog geen kandidaten ontvangen</p>
@@ -98,10 +98,10 @@ export function ApplicationsTable({
               key={application.id}
               onClick={() => onSelectApplication(application.id)}
               className={`cursor-pointer transition-colors ${
-                selectedId === application.id 
-                  ? 'bg-blue-50 hover:bg-blue-100' 
+                selectedId === application.id
+                  ? 'bg-blue-50 hover:bg-blue-50'
                   : application.isTest
-                    ? 'bg-orange-50/50 hover:bg-orange-100/50'
+                    ? 'bg-orange-50/50 hover:bg-orange-50/50'
                     : ''
               }`}
             >
@@ -153,7 +153,7 @@ export function ApplicationsTable({
                     e.stopPropagation();
                     onSelectApplication(application.id);
                   }}
-                  className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+                  className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-50 rounded-md hover:bg-gray-50 transition-colors"
                 >
                   Details bekijken
                   <ArrowRight className="w-3 h-3" />
@@ -170,7 +170,7 @@ export function ApplicationsTable({
 function StatusLabel({ status, qualified }: { status: 'active' | 'processing' | 'completed'; qualified: boolean }) {
   if (status === 'active') {
     return (
-      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-100 text-blue-600">
+      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-500 text-white">
         Bezig
       </span>
     );
@@ -183,14 +183,14 @@ function StatusLabel({ status, qualified }: { status: 'active' | 'processing' | 
   // status === 'completed' - only show qualification status when completed
   if (qualified) {
     return (
-      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-green-100 text-green-700">
+      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-green-500 text-white">
         Gekwalificeerd
       </span>
     );
   }
   
   return (
-    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-orange-100 text-orange-700">
+    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-orange-500 text-white">
       Niet gekwalificeerd
     </span>
   );
@@ -308,13 +308,13 @@ function OverallScoreBadge({ score, completed }: { score?: number; completed: bo
   // Determine color based on score thresholds
   let colorClasses: string;
   if (score >= 80) {
-    colorClasses = 'bg-green-100 text-green-700';
+    colorClasses = 'bg-green-500 text-white';
   } else if (score >= 60) {
-    colorClasses = 'bg-lime-100 text-lime-700';
+    colorClasses = 'bg-lime-500 text-white';
   } else if (score >= 40) {
-    colorClasses = 'bg-orange-100 text-orange-700';
+    colorClasses = 'bg-orange-500 text-white';
   } else {
-    colorClasses = 'bg-red-100 text-red-700';
+    colorClasses = 'bg-red-500 text-white';
   }
   
   return (

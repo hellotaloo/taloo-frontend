@@ -256,9 +256,9 @@ export default function FinetunePage() {
                       <Flex align="center" gap="3">
                         <span className={cn(
                           'text-xs px-2 py-0.5 rounded-full',
-                          activeCount > 0 
-                            ? 'bg-green-100 text-green-600' 
-                            : 'bg-gray-100 text-gray-400'
+                          activeCount > 0
+                            ? 'bg-green-500 text-white'
+                            : 'bg-gray-50 text-gray-400'
                         )}>
                           {activeCount}
                         </span>

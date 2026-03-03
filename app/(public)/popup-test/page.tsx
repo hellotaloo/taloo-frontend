@@ -61,7 +61,7 @@ export default function PopupTestPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center gap-4 p-4">
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center gap-4 p-4">
       <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogTrigger asChild>
           <Button className="bg-gray-900 text-white hover:bg-gray-800 text-base px-8 py-3 h-auto">
@@ -176,7 +176,7 @@ function ChooseStep({ onSelectPhone, onSelectCv }: { onSelectPhone: () => void; 
         {/* Sneller met Anna */}
         <div
           onClick={onSelectPhone}
-          className="relative flex flex-col rounded-xl border-2 border-gray-900 bg-gray-50/50 p-5 cursor-pointer transition-all duration-200 hover:shadow-xl hover:bg-gray-100 hover:-translate-y-0.5"
+          className="relative flex flex-col rounded-xl border-2 border-gray-900 bg-gray-50/50 p-5 cursor-pointer transition-all duration-200 hover:bg-gray-50 hover:-translate-y-0.5"
         >
           <span className="absolute -top-2.5 right-4 bg-brand-lime-green text-gray-900 text-[11px] font-bold px-2.5 py-0.5 rounded-full tracking-wide">
             Aanrader
@@ -195,7 +195,7 @@ function ChooseStep({ onSelectPhone, onSelectCv }: { onSelectPhone: () => void; 
         {/* Klassiek met cv */}
         <div
           onClick={onSelectCv}
-          className="relative flex flex-col rounded-xl border-2 border-gray-200 p-5 cursor-pointer transition-all duration-200 hover:shadow-xl hover:bg-gray-50 hover:-translate-y-0.5"
+          className="relative flex flex-col rounded-xl border-2 border-gray-200 p-5 cursor-pointer transition-all duration-200 hover:bg-gray-50 hover:-translate-y-0.5"
         >
           <span className="font-semibold text-gray-900">
             Klassiek met cv
@@ -315,7 +315,7 @@ function PhoneFormStep({
           <Label className="text-sm font-medium text-gray-700">
             Hoe mogen we je contacteren?
           </Label>
-          <div className="flex rounded-lg bg-gray-100 p-1">
+          <div className="flex rounded-lg bg-gray-50 p-1">
             <button
               type="button"
               onClick={() => onChannelChange('phone')}
@@ -399,7 +399,7 @@ function CvFormStep({
     <div className="space-y-6 animate-in fade-in-0 duration-300">
       {/* Subtitle */}
       <div className="flex items-center gap-2 text-sm text-gray-600">
-        <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center">
+        <div className="w-6 h-6 rounded-full bg-gray-50 flex items-center justify-center">
           <FileText className="w-3 h-3 text-gray-600" />
         </div>
         <span className="font-medium">Klassiek solliciteren met cv</span>
@@ -543,7 +543,7 @@ function CallPrepStep({ onBack }: { onBack: () => void }) {
       <div className="space-y-3">
         {callPrepTips.map(({ icon: Icon, text }, i) => (
           <div key={i} className="flex items-start gap-3">
-            <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center shrink-0 mt-0.5">
+            <div className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center shrink-0 mt-0.5">
               <Icon className="w-4 h-4 text-gray-600" />
             </div>
             <p className="text-sm text-gray-600 leading-relaxed pt-1">{text}</p>

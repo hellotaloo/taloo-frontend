@@ -6,11 +6,11 @@ import { cn } from '@/lib/utils';
 
 // Application status styles
 const applicationStatusStyles = {
-  applied: { bg: 'bg-gray-100', text: 'text-gray-600', label: 'Gesolliciteerd' },
-  screening: { bg: 'bg-orange-100', text: 'text-orange-700', label: 'Screening' },
-  submitted: { bg: 'bg-blue-100', text: 'text-blue-700', label: 'Voorgesteld' },
-  placed: { bg: 'bg-green-100', text: 'text-green-700', label: 'Geplaatst' },
-  rejected: { bg: 'bg-red-100', text: 'text-red-700', label: 'Afgewezen' },
+  applied: { bg: 'bg-gray-500', text: 'text-white', label: 'Gesolliciteerd' },
+  screening: { bg: 'bg-orange-500', text: 'text-white', label: 'Screening' },
+  submitted: { bg: 'bg-brand-blue', text: 'text-white', label: 'Voorgesteld' },
+  placed: { bg: 'bg-green-500', text: 'text-white', label: 'Geplaatst' },
+  rejected: { bg: 'bg-red-500', text: 'text-white', label: 'Afgewezen' },
 } as const;
 
 // Channel icons and labels

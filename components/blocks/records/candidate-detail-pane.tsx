@@ -30,10 +30,10 @@ export interface CandidateDetailPaneProps {
 
 // Status badge styles
 const statusStyles: Record<APICandidateStatus, { bg: string; text: string; label: string }> = {
-  new: { bg: 'bg-gray-100', text: 'text-gray-700', label: 'Nieuw' },
-  qualified: { bg: 'bg-blue-100', text: 'text-blue-700', label: 'Gekwalificeerd' },
-  active: { bg: 'bg-green-100', text: 'text-green-700', label: 'Actief' },
-  placed: { bg: 'bg-emerald-100', text: 'text-emerald-700', label: 'Geplaatst' },
+  new: { bg: 'bg-gray-500', text: 'text-white', label: 'Nieuw' },
+  qualified: { bg: 'bg-blue-500', text: 'text-white', label: 'Gekwalificeerd' },
+  active: { bg: 'bg-green-500', text: 'text-white', label: 'Actief' },
+  placed: { bg: 'bg-emerald-500', text: 'text-white', label: 'Geplaatst' },
   inactive: { bg: 'bg-gray-50 border border-gray-200', text: 'text-gray-500', label: 'Inactief' },
 };
 
@@ -46,10 +46,10 @@ const availabilityLabels: Record<APIAvailabilityStatus, string> = {
 
 // Application status styles
 const applicationStatusStyles: Record<string, { bg: string; text: string; label: string }> = {
-  active: { bg: 'bg-blue-100', text: 'text-blue-700', label: 'Actief' },
-  processing: { bg: 'bg-orange-100', text: 'text-orange-700', label: 'Verwerken' },
-  completed: { bg: 'bg-green-100', text: 'text-green-700', label: 'Afgerond' },
-  abandoned: { bg: 'bg-gray-100', text: 'text-gray-500', label: 'Verlaten' },
+  active: { bg: 'bg-blue-500', text: 'text-white', label: 'Actief' },
+  processing: { bg: 'bg-orange-500', text: 'text-white', label: 'Verwerken' },
+  completed: { bg: 'bg-green-500', text: 'text-white', label: 'Afgerond' },
+  abandoned: { bg: 'bg-gray-500', text: 'text-white', label: 'Verlaten' },
 };
 
 // Channel icons
@@ -105,7 +105,7 @@ function ApplicationCard({ application }: { application: APICandidateApplication
   const ChannelIcon = channelIcons[application.channel] || FileText;
 
   return (
-    <div className="bg-gray-50 rounded-lg p-3 hover:bg-gray-100 transition-colors">
+    <div className="bg-gray-50 rounded-lg p-3 hover:bg-gray-50 transition-colors">
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
@@ -267,7 +267,7 @@ export function CandidateDetailPane({ candidate, isLoading, onClose }: Candidate
               {skills.map((skill) => (
                 <span
                   key={skill.id}
-                  className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-600"
+                  className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-50 text-gray-600"
                 >
                   {skill.skill_name.charAt(0).toUpperCase() + skill.skill_name.slice(1)}
                 </span>

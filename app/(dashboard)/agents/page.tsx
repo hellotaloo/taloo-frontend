@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import {
   Phone,
@@ -20,11 +21,22 @@ import {
   Crosshair,
   Plus,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import {
   PageLayout,
   PageLayoutHeader,
   PageLayoutContent,
 } from '@/components/layout/page-layout';
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from '@/components/ui/alert-dialog';
 
 interface Agent {
   name: string;
@@ -147,9 +159,11 @@ const agentCategories: AgentCategory[] = [
 function AgentCard({
   agent,
   animationDelay = 0,
+  onRequest,
 }: {
   agent: Agent;
   animationDelay?: number;
+  onRequest?: (agent: Agent) => void;
 }) {
   const Icon = agent.icon;
 
@@ -165,7 +179,14 @@ function AgentCard({
             Actief
           </span>
         ) : (
-          <button className="w-7 h-7 rounded-lg border border-gray-200 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:border-gray-300 transition-colors">
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onRequest?.(agent);
+            }}
+            className="w-7 h-7 rounded-lg border border-gray-200 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:border-gray-300 transition-colors"
+          >
             <Plus className="w-3.5 h-3.5" />
           </button>
         )}
@@ -177,8 +198,8 @@ function AgentCard({
 
   const className = `block rounded-xl border p-5 transition-all ${
     agent.active
-      ? 'bg-white border-green-200 hover:border-green-300 hover:shadow-sm'
-      : 'bg-white border-gray-200 hover:border-gray-300 hover:shadow-sm'
+      ? 'bg-white border-green-200 hover:border-green-300'
+      : 'bg-white border-gray-200 hover:border-gray-300'
   }`;
 
   if (agent.href) {
@@ -212,7 +233,15 @@ function AgentCard({
 }
 
 export default function AgentsPage() {
+  const [requestAgent, setRequestAgent] = useState<Agent | null>(null);
   let globalIndex = 0;
+
+  function handleRequest() {
+    if (requestAgent) {
+      toast.success(`Aanvraag voor ${requestAgent.name} is verstuurd!`);
+      setRequestAgent(null);
+    }
+  }
 
   return (
     <PageLayout>
@@ -230,6 +259,7 @@ export default function AgentsPage() {
                       key={agent.name}
                       agent={agent}
                       animationDelay={delay}
+                      onRequest={setRequestAgent}
                     />
                   );
                 })}
@@ -237,6 +267,28 @@ export default function AgentsPage() {
             </section>
           ))}
         </div>
+
+        <AlertDialog open={!!requestAgent} onOpenChange={(open) => !open && setRequestAgent(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              {requestAgent && (
+                <div className="flex items-center gap-3 mb-1">
+                  <div className="w-10 h-10 rounded-lg bg-brand-dark-blue flex items-center justify-center">
+                    {requestAgent && <requestAgent.icon className="w-5 h-5 text-white" />}
+                  </div>
+                  <AlertDialogTitle>{requestAgent.name} toevoegen</AlertDialogTitle>
+                </div>
+              )}
+              <AlertDialogDescription>
+                Wil je {requestAgent?.name} aanvragen voor je workspace? Ons team neemt contact met je op om de activatie te bespreken.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Annuleren</AlertDialogCancel>
+              <AlertDialogAction onClick={handleRequest}>Aanvragen</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </PageLayoutContent>
     </PageLayout>
   );

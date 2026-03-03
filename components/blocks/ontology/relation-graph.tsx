@@ -53,7 +53,7 @@ function MiniNode({ data }: { data: MiniNodeData }) {
   // Group node — subtle label
   if (data.isGroup) {
     return (
-      <div className="px-4 py-2 rounded-lg bg-gray-100 border border-gray-200 min-w-[100px]">
+      <div className="px-4 py-2 rounded-lg bg-gray-50 border border-gray-200 min-w-[100px]">
         <Handle type="target" position={Position.Top} className="!bg-gray-400 !w-2 !h-2" />
         <Handle type="source" position={Position.Bottom} className="!bg-gray-400 !w-2 !h-2" />
         <div className="flex items-center gap-2">
@@ -67,7 +67,7 @@ function MiniNode({ data }: { data: MiniNodeData }) {
   // Regular entity node
   return (
     <div
-      className="px-3 py-2.5 rounded-xl bg-white border-2 shadow-sm hover:shadow-md transition-shadow cursor-pointer w-[160px]"
+      className="px-3 py-2.5 rounded-xl bg-white border-2 shadow-sm transition-shadow cursor-pointer w-[160px]"
       style={{ borderColor: data.color }}
     >
       <Handle type="target" position={Position.Top} className="!bg-gray-400 !w-2 !h-2" />

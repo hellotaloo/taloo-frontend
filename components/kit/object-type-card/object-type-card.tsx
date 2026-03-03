@@ -49,7 +49,7 @@ export function ObjectTypeCard({
         'relative rounded-xl border bg-white p-5 transition-all',
         comingSoon
           ? 'border-gray-100 opacity-60 cursor-not-allowed'
-          : 'border-gray-200 hover:border-gray-300 hover:shadow-sm cursor-pointer',
+          : 'border-gray-200 hover:border-gray-300 cursor-pointer',
         className
       )}
       style={animationDelay > 0 ? { animation: `fade-in-up 0.3s ease-out ${animationDelay}ms backwards` } : undefined}
@@ -57,7 +57,7 @@ export function ObjectTypeCard({
       {comingSoon && (
         <Badge
           variant="secondary"
-          className="absolute top-3 right-3 text-xs bg-gray-100"
+          className="absolute top-3 right-3 text-xs bg-gray-50"
         >
           Binnenkort
         </Badge>

@@ -252,11 +252,11 @@ function getRatingLabel(rating: AnswerRating): string {
 
 function getRatingColor(rating: AnswerRating): string {
   switch (rating) {
-    case 'excellent': return 'bg-green-100 text-green-700';
-    case 'good': return 'bg-lime-100 text-lime-700';
-    case 'average': return 'bg-orange-100 text-orange-700';
-    case 'below_average': return 'bg-orange-100 text-orange-700';
-    case 'weak': return 'bg-red-100 text-red-700';
+    case 'excellent': return 'bg-green-500 text-white';
+    case 'good': return 'bg-lime-500 text-white';
+    case 'average': return 'bg-orange-500 text-white';
+    case 'below_average': return 'bg-orange-500 text-white';
+    case 'weak': return 'bg-red-500 text-white';
   }
 }
 
@@ -291,8 +291,8 @@ function AnswerCard({ answer, showStatus = false }: AnswerCardProps) {
           {showStatus && hasAnswer && answer.passed !== undefined && (
             <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${
               answer.passed
-                ? 'bg-green-100 text-green-700'
-                : 'bg-red-100 text-red-700'
+                ? 'bg-green-500 text-white'
+                : 'bg-red-500 text-white'
             }`}>
               {answer.passed ? 'Geslaagd' : 'Niet geslaagd'}
             </span>

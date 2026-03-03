@@ -27,17 +27,17 @@ export function ChannelIcons({ channels, className }: ChannelIconsProps) {
     <div className={cn("flex items-center gap-2", className)}>
       {channels.whatsapp && (
         <span title="WhatsApp-kanaal actief">
-          <MessageCircle className="w-4 h-4 text-gray-600" />
+          <MessageCircle className="w-4 h-4 text-green-600" />
         </span>
       )}
       {channels.voice && (
         <span title="Telefoon-kanaal actief">
-          <Phone className="w-4 h-4 text-gray-600" />
+          <Phone className="w-4 h-4 text-blue-600" />
         </span>
       )}
       {channels.cv && (
         <span title="Smart CV-kanaal actief">
-          <FileText className="w-4 h-4 text-gray-600" />
+          <FileText className="w-4 h-4 text-purple-600" />
         </span>
       )}
     </div>

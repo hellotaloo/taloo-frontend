@@ -16,7 +16,7 @@ function PendingSetup({ vacancies }: { vacancies: Vacancy[] }) {
           Recently Added Vacancies
         </h2>
         <div className="text-center py-8">
-          <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-3">
+          <div className="w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center mx-auto mb-3">
             <CheckCircle2 className="w-6 h-6 text-gray-400" />
           </div>
           <p className="text-sm text-gray-500">No new vacancies to set up.</p>
@@ -31,7 +31,7 @@ function PendingSetup({ vacancies }: { vacancies: Vacancy[] }) {
         <h2 className="text-lg font-semibold text-gray-900">
           Recently Added Vacancies
         </h2>
-        <span className="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+        <span className="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-500 text-white">
           {vacancies.length}
         </span>
       </div>
@@ -87,7 +87,7 @@ function PendingSetup({ vacancies }: { vacancies: Vacancy[] }) {
             
             <Link
               href={`/interviews/generate/${vacancy.id}`}
-              className="shrink-0 inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+              className="shrink-0 inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-50 rounded-md hover:bg-gray-50 transition-colors"
             >
               Generate pre-screening
               <ArrowRight className="w-3 h-3" />

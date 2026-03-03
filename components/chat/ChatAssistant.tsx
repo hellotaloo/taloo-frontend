@@ -230,8 +230,8 @@ export function ChatAssistant({
       {contextCard && (
         <div className="px-6 pt-6 pb-2">
           <Collapsible open={isContextOpen} onOpenChange={setIsContextOpen}>
-            <div className="rounded-lg bg-gray-100">
-              <CollapsibleTrigger className="flex w-full items-center justify-between px-4 py-3 text-left hover:bg-gray-200/50 transition-colors rounded-lg">
+            <div className="rounded-lg bg-gray-50">
+              <CollapsibleTrigger className="flex w-full items-center justify-between px-4 py-3 text-left hover:bg-gray-50/50 transition-colors rounded-lg">
                 <div className="flex items-center gap-2">
                   <ContextIcon className="w-4 h-4 text-gray-500" />
                   <span className="text-sm font-medium text-gray-700">{contextCard.title}</span>
@@ -298,7 +298,7 @@ export function ChatAssistant({
             {actionButtons.map((button, idx) => {
               const Icon = button.icon;
               const variantClasses = {
-                default: 'text-gray-600 bg-gray-100 hover:bg-gray-200',
+                default: 'text-gray-600 bg-gray-50 hover:bg-gray-50',
                 primary: 'text-white bg-brand-blue hover:bg-brand-blue/90',
                 success: 'text-white bg-green-500 hover:bg-green-600',
               };
@@ -330,7 +330,7 @@ export function ChatAssistant({
                     setInput(suggestion.prompt);
                     setTimeout(() => textareaRef.current?.focus(), 0);
                   }}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-100 rounded-full hover:bg-gray-200 transition-colors border border-gray-200"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-50 rounded-full hover:bg-gray-50 transition-colors border border-gray-200"
                 >
                   {SuggestionIcon && <SuggestionIcon className="w-3 h-3 text-gray-500" />}
                   {suggestion.label}
@@ -417,7 +417,7 @@ function ChatMessageBubble({ message, onTypingComplete }: ChatMessageBubbleProps
   return (
     <div className="flex justify-end">
       <div className="max-w-[85%]">
-        <div className="rounded-2xl px-3 py-2 bg-gray-100">
+        <div className="rounded-2xl px-3 py-2 bg-gray-50">
           <p className="text-sm text-gray-700">{message.content}</p>
         </div>
       </div>

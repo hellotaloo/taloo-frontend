@@ -276,7 +276,7 @@ export default function DashboardPage() {
         </div>
       </PageLayoutHeader>
       <PageLayoutContent>
-        <div className="space-y-8 opacity-60 pointer-events-none select-none">
+        <div className="space-y-8 opacity-40 pointer-events-none select-none">
           {/* Metric Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <MetricCard

@@ -77,8 +77,8 @@ const defaultEventConfig = { icon: Bell, color: 'text-gray-500', dotColor: 'bg-g
 
 // Actor type configuration
 const actorTypeConfig: Record<ActivityActorType, { label: string; color: string; bgColor: string }> = {
-  agent: { label: 'Agent', color: 'text-brand-dark-blue', bgColor: 'bg-brand-light-blue/30' },
-  candidate: { label: 'Kandidaat', color: 'text-gray-700', bgColor: 'bg-gray-100' },
+  agent: { label: 'Agent', color: 'text-white', bgColor: 'bg-brand-dark-blue' },
+  candidate: { label: 'Kandidaat', color: 'text-gray-700', bgColor: 'bg-gray-50' },
   recruiter: { label: 'Recruiter', color: 'text-orange-700', bgColor: 'bg-orange-50' },
   system: { label: 'Systeem', color: 'text-gray-500', bgColor: 'bg-gray-50' },
 };
@@ -185,13 +185,13 @@ function getMetadataPreview(metadata: Record<string, unknown>, eventType: string
   if ('score' in metadata && typeof metadata.score === 'number') {
     const score = metadata.score;
     const displayScore = score > 1 ? score : Math.round(score * 100);
-    const color = displayScore >= 70 ? 'bg-green-100 text-green-700' : displayScore >= 40 ? 'bg-orange-100 text-orange-700' : 'bg-red-100 text-red-700';
+    const color = displayScore >= 70 ? 'bg-green-500 text-white' : displayScore >= 40 ? 'bg-orange-500 text-white' : 'bg-red-500 text-white';
     badges.push({ label: 'Score', value: `${displayScore}%`, color });
   }
 
   if ('match_score' in metadata && typeof metadata.match_score === 'number') {
     const score = metadata.match_score;
-    const color = score >= 70 ? 'bg-green-100 text-green-700' : score >= 40 ? 'bg-orange-100 text-orange-700' : 'bg-red-100 text-red-700';
+    const color = score >= 70 ? 'bg-green-500 text-white' : score >= 40 ? 'bg-orange-500 text-white' : 'bg-red-500 text-white';
     badges.push({ label: 'Match', value: `${score}%`, color });
   }
 
@@ -199,7 +199,7 @@ function getMetadataPreview(metadata: Record<string, unknown>, eventType: string
     badges.push({
       label: 'Knockout',
       value: `${metadata.knockout_passed}/${metadata.knockout_total}`,
-      color: 'bg-blue-100 text-blue-700',
+      color: 'bg-brand-blue text-white',
     });
   }
 
@@ -207,7 +207,7 @@ function getMetadataPreview(metadata: Record<string, unknown>, eventType: string
     badges.push({
       label: 'Duur',
       value: formatDuration(metadata.duration_seconds),
-      color: 'bg-gray-100 text-gray-600',
+      color: 'bg-gray-500 text-white',
     });
   }
 
@@ -215,7 +215,7 @@ function getMetadataPreview(metadata: Record<string, unknown>, eventType: string
     badges.push({
       label: 'Document',
       value: documentTypeLabels[metadata.document_type] || metadata.document_type,
-      color: 'bg-purple-100 text-purple-700',
+      color: 'bg-purple-500 text-white',
     });
   }
 
@@ -223,7 +223,7 @@ function getMetadataPreview(metadata: Record<string, unknown>, eventType: string
     badges.push({
       label: 'Ervaring',
       value: `${metadata.experience_years} jaar`,
-      color: 'bg-gray-100 text-gray-600',
+      color: 'bg-gray-500 text-white',
     });
   }
 
@@ -609,7 +609,7 @@ export default function MonitorPage() {
           <div className="flex items-center gap-3">
             <Link
               href="/admin"
-              className="flex items-center justify-center w-8 h-8 rounded-lg hover:bg-gray-100 transition-colors text-gray-500 hover:text-gray-700"
+              className="flex items-center justify-center w-8 h-8 rounded-lg hover:bg-gray-50 transition-colors text-gray-500 hover:text-gray-700"
             >
               <ArrowLeft className="w-5 h-5" />
             </Link>

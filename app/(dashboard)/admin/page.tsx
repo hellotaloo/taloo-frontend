@@ -35,7 +35,7 @@ function AdminCard({
       <div className="flex items-center gap-2 mb-1">
         <h3 className="font-semibold text-gray-900">{title}</h3>
         {comingSoon && (
-          <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">coming soon</span>
+          <span className="text-xs text-gray-400 bg-gray-50 px-2 py-0.5 rounded-full">coming soon</span>
         )}
       </div>
       <p className="text-sm text-gray-500">{description}</p>
@@ -62,7 +62,7 @@ function AdminCard({
     <Link
       href={href}
       data-testid={testId}
-      className="block rounded-xl border border-gray-200 bg-white p-5 hover:border-gray-300 hover:shadow-sm transition-all"
+      className="block rounded-xl border border-gray-200 bg-white p-5 hover:border-gray-300 transition-all"
       style={
         animationDelay > 0
           ? { animation: `fade-in-up 0.3s ease-out ${animationDelay}ms backwards` }

@@ -62,7 +62,7 @@ export function JobFunctionCard({
       onClick={onClick}
       data-testid={`job-function-card-${slug}`}
       className={cn(
-        'rounded-xl border border-gray-200 bg-white p-5 hover:border-gray-300 hover:shadow-sm transition-all cursor-pointer group',
+        'rounded-xl border border-gray-200 bg-white p-5 hover:border-gray-300 transition-all cursor-pointer group',
         className
       )}
       style={

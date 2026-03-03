@@ -214,7 +214,7 @@ export default function PreScreeningSettingsPage() {
           <div className="flex items-center gap-3">
             <Link
               href="/pre-screening"
-              className="flex items-center justify-center w-8 h-8 rounded-lg hover:bg-gray-100 transition-colors text-gray-500 hover:text-gray-700"
+              className="flex items-center justify-center w-8 h-8 rounded-lg hover:bg-gray-50 transition-colors text-gray-500 hover:text-gray-700"
             >
               <ArrowLeft className="w-5 h-5" />
             </Link>
@@ -263,8 +263,8 @@ export default function PreScreeningSettingsPage() {
                 className="flex items-center justify-between p-4 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 transition-colors group"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
-                    <Mic className="w-5 h-5 text-blue-600" />
+                  <div className="w-10 h-10 rounded-lg bg-brand-dark-blue flex items-center justify-center">
+                    <Mic className="w-5 h-5 text-white" />
                   </div>
                   <div>
                     <p className="font-medium text-gray-900">Voice agent configuratie</p>
@@ -368,13 +368,13 @@ export default function PreScreeningSettingsPage() {
                           <div className="flex items-center justify-end gap-2">
                             <button
                               onClick={handleCancelConsent}
-                              className="p-1.5 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+                              className="p-1.5 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-50 transition-colors"
                             >
                               <X className="w-4 h-4" />
                             </button>
                             <button
                               onClick={handleSaveConsent}
-                              className="p-1.5 rounded-md text-teal-600 hover:text-teal-700 hover:bg-teal-100 transition-colors"
+                              className="p-1.5 rounded-md text-teal-600 hover:text-teal-700 hover:bg-gray-50 transition-colors"
                             >
                               <Check className="w-4 h-4" />
                             </button>
@@ -382,20 +382,20 @@ export default function PreScreeningSettingsPage() {
                         </div>
                       ) : (
                         <div
-                          className="rounded-lg bg-gray-50 p-3 flex items-start gap-3 group cursor-pointer hover:bg-gray-100 transition-colors"
+                          className="rounded-lg bg-gray-50 p-3 flex items-start gap-3 group cursor-pointer hover:bg-white transition-colors"
                           onClick={() => {
                             setTempConsent(consentMessage);
                             setEditingConsent(true);
                           }}
                         >
-                          <div className="w-8 h-8 rounded-full bg-teal-100 flex items-center justify-center shrink-0">
-                            <Mic className="w-4 h-4 text-teal-600" />
+                          <div className="w-8 h-8 rounded-full bg-brand-dark-blue flex items-center justify-center shrink-0">
+                            <Mic className="w-4 h-4 text-white" />
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="text-xs text-gray-500">&quot;{consentMessage}&quot;</p>
                           </div>
                           <button
-                            className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-200 opacity-0 group-hover:opacity-100 transition-all shrink-0"
+                            className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-50 opacity-0 group-hover:opacity-100 transition-all shrink-0"
                             onClick={(e) => {
                               e.stopPropagation();
                               setTempConsent(consentMessage);
@@ -529,8 +529,8 @@ export default function PreScreeningSettingsPage() {
                           onClick={() => toggleEscalationDay(day)}
                           className={`w-10 h-10 rounded-lg text-sm font-medium capitalize transition-colors ${
                             escalationDays.includes(day)
-                              ? 'bg-amber-100 text-amber-800 border border-amber-300'
-                              : 'bg-gray-50 text-gray-400 border border-gray-200 hover:bg-gray-100'
+                              ? 'bg-amber-500 text-white border border-amber-500'
+                              : 'bg-gray-50 text-gray-400 border border-gray-200 hover:bg-white'
                           }`}
                         >
                           {day}
@@ -647,8 +647,8 @@ export default function PreScreeningSettingsPage() {
                     {editingIntro ? (
                       <div className="rounded-lg border border-blue-300 bg-blue-50 p-3 space-y-2">
                         <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
-                            <MessageCircle className="w-4 h-4 text-blue-600" />
+                          <div className="w-8 h-8 rounded-full bg-brand-dark-blue flex items-center justify-center shrink-0">
+                            <MessageCircle className="w-4 h-4 text-white" />
                           </div>
                           <div>
                             <p className="font-medium text-gray-900 text-sm">Intro & begroeting</p>
@@ -664,13 +664,13 @@ export default function PreScreeningSettingsPage() {
                         <div className="flex items-center justify-end gap-2">
                           <button
                             onClick={handleCancelIntro}
-                            className="p-1.5 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+                            className="p-1.5 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-50 transition-colors"
                           >
                             <X className="w-4 h-4" />
                           </button>
                           <button
                             onClick={handleSaveIntro}
-                            className="p-1.5 rounded-md text-blue-600 hover:text-blue-700 hover:bg-blue-100 transition-colors"
+                            className="p-1.5 rounded-md text-blue-600 hover:text-blue-700 hover:bg-gray-50 transition-colors"
                           >
                             <Check className="w-4 h-4" />
                           </button>
@@ -678,21 +678,21 @@ export default function PreScreeningSettingsPage() {
                       </div>
                     ) : (
                       <div
-                        className="rounded-lg bg-gray-100 p-3 flex items-start gap-3 group cursor-pointer hover:bg-gray-50 transition-colors"
+                        className="rounded-lg bg-gray-50 p-3 flex items-start gap-3 group cursor-pointer hover:bg-white transition-colors"
                         onClick={() => {
                           setTempIntro(introMessage);
                           setEditingIntro(true);
                         }}
                       >
-                        <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
-                          <MessageCircle className="w-4 h-4 text-blue-600" />
+                        <div className="w-8 h-8 rounded-full bg-brand-dark-blue flex items-center justify-center shrink-0">
+                          <MessageCircle className="w-4 h-4 text-white" />
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="font-medium text-gray-900 text-sm">Intro & begroeting</p>
                           <p className="text-xs text-gray-500 mt-0.5">{introMessage}</p>
                         </div>
                         <button
-                          className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-200 opacity-0 group-hover:opacity-100 transition-all shrink-0"
+                          className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-50 opacity-0 group-hover:opacity-100 transition-all shrink-0"
                           onClick={(e) => {
                             e.stopPropagation();
                             setTempIntro(introMessage);
@@ -707,9 +707,9 @@ export default function PreScreeningSettingsPage() {
 
                   {/* Knockout Questions - Not editable */}
                   <TimelineNode animationDelay={80}>
-                    <div className="rounded-lg bg-gray-100 p-3 flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center">
-                        <ShieldQuestion className="w-4 h-4 text-red-600" />
+                    <div className="rounded-lg bg-gray-50 p-3 flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-brand-dark-blue flex items-center justify-center">
+                        <ShieldQuestion className="w-4 h-4 text-white" />
                       </div>
                       <div>
                         <p className="font-medium text-gray-900 text-sm">Knockout vragen</p>
@@ -720,9 +720,9 @@ export default function PreScreeningSettingsPage() {
 
                   {/* Open Questions - Not editable */}
                   <TimelineNode animationDelay={160}>
-                    <div className="rounded-lg bg-gray-100 p-3 flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center">
-                        <MessageSquare className="w-4 h-4 text-orange-600" />
+                    <div className="rounded-lg bg-gray-50 p-3 flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-brand-dark-blue flex items-center justify-center">
+                        <MessageSquare className="w-4 h-4 text-white" />
                       </div>
                       <div>
                         <p className="font-medium text-gray-900 text-sm">Open vragen</p>
@@ -735,8 +735,8 @@ export default function PreScreeningSettingsPage() {
                   <TimelineNode animationDelay={240} alignDot="top">
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center shrink-0">
-                          <Calendar className="w-4 h-4 text-purple-600" />
+                        <div className="w-8 h-8 rounded-full bg-brand-dark-blue flex items-center justify-center shrink-0">
+                          <Calendar className="w-4 h-4 text-white" />
                         </div>
                         <div>
                           <p className="font-medium text-gray-900 text-sm">Planning</p>
@@ -783,8 +783,8 @@ export default function PreScreeningSettingsPage() {
                     {editingSuccess ? (
                       <div className="rounded-lg border border-green-300 bg-green-50 p-3 space-y-2">
                         <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center shrink-0">
-                            <CheckCircle2 className="w-4 h-4 text-green-600" />
+                          <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center shrink-0">
+                            <CheckCircle2 className="w-4 h-4 text-white" />
                           </div>
                           <div>
                             <p className="font-medium text-gray-900 text-sm">Succes bericht</p>
@@ -800,13 +800,13 @@ export default function PreScreeningSettingsPage() {
                         <div className="flex items-center justify-end gap-2">
                           <button
                             onClick={handleCancelSuccess}
-                            className="p-1.5 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+                            className="p-1.5 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-50 transition-colors"
                           >
                             <X className="w-4 h-4" />
                           </button>
                           <button
                             onClick={handleSaveSuccess}
-                            className="p-1.5 rounded-md text-green-600 hover:text-green-700 hover:bg-green-100 transition-colors"
+                            className="p-1.5 rounded-md text-green-600 hover:text-green-700 hover:bg-gray-50 transition-colors"
                           >
                             <Check className="w-4 h-4" />
                           </button>
@@ -814,21 +814,21 @@ export default function PreScreeningSettingsPage() {
                       </div>
                     ) : (
                       <div
-                        className="rounded-lg bg-green-50 border border-green-100 p-3 flex items-start gap-3 group cursor-pointer hover:bg-green-100/50 transition-colors"
+                        className="rounded-lg bg-green-50 border border-green-100 p-3 flex items-start gap-3 group cursor-pointer hover:bg-white transition-colors"
                         onClick={() => {
                           setTempSuccess(successMessage);
                           setEditingSuccess(true);
                         }}
                       >
-                        <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center shrink-0">
-                          <CheckCircle2 className="w-4 h-4 text-green-600" />
+                        <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center shrink-0">
+                          <CheckCircle2 className="w-4 h-4 text-white" />
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="font-medium text-gray-900 text-sm">Succes bericht</p>
                           <p className="text-xs text-gray-600 mt-0.5">&quot;{successMessage}&quot;</p>
                         </div>
                         <button
-                          className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-green-200 opacity-0 group-hover:opacity-100 transition-all shrink-0"
+                          className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-50 opacity-0 group-hover:opacity-100 transition-all shrink-0"
                           onClick={(e) => {
                             e.stopPropagation();
                             setTempSuccess(successMessage);
@@ -844,7 +844,7 @@ export default function PreScreeningSettingsPage() {
               </section>
 
               {/* Info Section */}
-              <section className="rounded-xl bg-blue-50 border border-blue-100 p-5">
+              <section className="rounded-xl bg-gray-50 border border-gray-200 p-5">
                 <h3 className="font-medium text-gray-900 mb-2">Over Pre-screening</h3>
                 <p className="text-sm text-gray-600">
                   De pre-screening agent voert eerste gesprekken met kandidaten. Het gesprek volgt de
