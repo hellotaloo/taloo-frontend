@@ -76,7 +76,7 @@ export const pageConfigs: Record<string, PageConfig> = {
 
   // Other features
   '/insights': { title: 'Pattern Finder', description: 'Ontdek verborgen patronen en optimaliseer je hiring proces', icon: ScanSearch },
-  '/audit-trail': { title: 'Audit trail', description: 'Overzicht van alle agent interacties', icon: History },
+  '/audit-trail': { title: 'Audit trail', description: 'Volledige geschiedenis van alle agent gebeurtenissen', icon: History },
 
   // Admin section
   '/admin': { title: 'Settings', description: 'Beheer instellingen en configuraties', icon: Settings },
