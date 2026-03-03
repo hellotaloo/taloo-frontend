@@ -229,7 +229,7 @@ function TabsSection({
   applicants: APIApplicantSummary[];
   agents?: VacancyAgents;
 }) {
-  const [activeTab, setActiveTab] = useState<TabType>('candidates');
+  const [activeTab, setActiveTab] = useState<TabType>('timeline');
 
   // Count active agents
   const activeAgentsCount = agents
@@ -242,15 +242,15 @@ function TabsSection({
       <div className="shrink-0 border-b border-gray-200 px-6">
         <div className="flex gap-6">
           <button
-            onClick={() => setActiveTab('candidates')}
+            onClick={() => setActiveTab('timeline')}
             className={cn(
               'py-3 text-sm font-medium border-b-2 -mb-px transition-colors',
-              activeTab === 'candidates'
+              activeTab === 'timeline'
                 ? 'border-gray-900 text-gray-900'
                 : 'border-transparent text-gray-500 hover:text-gray-700'
             )}
           >
-            Kandidaten ({applicants.length})
+            Tijdlijn ({timeline.length})
           </button>
           <button
             onClick={() => setActiveTab('agents')}
@@ -264,15 +264,15 @@ function TabsSection({
             Agents ({activeAgentsCount})
           </button>
           <button
-            onClick={() => setActiveTab('timeline')}
+            onClick={() => setActiveTab('candidates')}
             className={cn(
               'py-3 text-sm font-medium border-b-2 -mb-px transition-colors',
-              activeTab === 'timeline'
+              activeTab === 'candidates'
                 ? 'border-gray-900 text-gray-900'
                 : 'border-transparent text-gray-500 hover:text-gray-700'
             )}
           >
-            Tijdlijn ({timeline.length})
+            Kandidaten ({applicants.length})
           </button>
         </div>
       </div>
