@@ -191,7 +191,7 @@ function HighlightedMarkdown({ text, snippet, questionText }: HighlightedMarkdow
       )}
       <Tooltip>
         <TooltipTrigger asChild>
-          <mark className="bg-blue-100 text-blue-900 px-0.5 rounded cursor-help transition-colors hover:bg-blue-200">
+          <mark className="bg-blue-50 text-blue-900 px-0.5 rounded cursor-help transition-colors hover:bg-blue-50">
             {matchedText}
           </mark>
         </TooltipTrigger>

@@ -177,10 +177,10 @@ const insights: Insight[] = [
 
 // Category styling - more muted, cohesive colors
 const categoryConfig: Record<string, { label: string; color: string; bgColor: string }> = {
-  conversion: { label: 'Conversie', color: 'text-gray-600', bgColor: 'bg-gray-100' },
-  retention: { label: 'Retentie', color: 'text-gray-600', bgColor: 'bg-gray-100' },
-  efficiency: { label: 'Efficiëntie', color: 'text-gray-600', bgColor: 'bg-gray-100' },
-  quality: { label: 'Kwaliteit', color: 'text-gray-600', bgColor: 'bg-gray-100' },
+  conversion: { label: 'Conversie', color: 'text-gray-600', bgColor: 'bg-gray-50' },
+  retention: { label: 'Retentie', color: 'text-gray-600', bgColor: 'bg-gray-50' },
+  efficiency: { label: 'Efficiëntie', color: 'text-gray-600', bgColor: 'bg-gray-50' },
+  quality: { label: 'Kwaliteit', color: 'text-gray-600', bgColor: 'bg-gray-50' },
 };
 
 // Impact styling
@@ -210,11 +210,11 @@ function InsightCard({ insight }: { insight: Insight }) {
         <div className="flex items-start gap-3">
           <div className={cn(
             'w-10 h-10 rounded-xl flex items-center justify-center',
-            insight.trend === 'down' ? 'bg-red-100' : 'bg-brand-dark-blue'
+            insight.trend === 'down' ? 'bg-red-500' : 'bg-brand-dark-blue'
           )}>
             <Icon className={cn(
               'w-5 h-5',
-              insight.trend === 'down' ? 'text-red-600' : 'text-white'
+              insight.trend === 'down' ? 'text-white' : 'text-white'
             )} />
           </div>
           <div className="flex flex-col gap-1">
@@ -508,7 +508,7 @@ Ik maak van data duidelijke inzichten, zonder ruis of dashboards-gedoe.`}
                 <p className="text-white/80 text-sm mb-6">
                   Ga naar Finetune om je agents automatisch te optimaliseren op basis van deze data-gedreven aanbevelingen.
                 </p>
-                <Button className="bg-white hover:bg-gray-100 text-brand-dark-blue font-medium">
+                <Button className="bg-white hover:bg-gray-50 text-brand-dark-blue font-medium">
                   Naar Finetune
                   <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>

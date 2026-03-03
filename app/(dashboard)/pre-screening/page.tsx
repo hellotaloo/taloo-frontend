@@ -229,7 +229,7 @@ function PreScreeningContent() {
               <TabsTrigger value="concept" data-testid="tab-concept-vacancies">
                 <FileEdit className="w-3.5 h-3.5" />
                 Concept
-                <span className="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-600">
+                <span className="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-500 text-white">
                   {conceptVacancies.length}
                 </span>
               </TabsTrigger>
@@ -237,14 +237,14 @@ function PreScreeningContent() {
             <TabsTrigger value="published" data-testid="tab-published-vacancies">
               <Send className="w-3.5 h-3.5" />
               Actief
-              <span className="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-600">
+              <span className="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-500 text-white">
                 {publishedVacancies.length}
               </span>
             </TabsTrigger>
             <TabsTrigger value="archived" data-testid="tab-archived-vacancies">
               <Archive className="w-3.5 h-3.5" />
               Gearchiveerd
-              <span className="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-600">
+              <span className="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-500 text-white">
                 {archivedVacancies.length}
               </span>
             </TabsTrigger>

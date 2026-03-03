@@ -601,7 +601,7 @@ export function EntityDetailView({
                 {belongsToCategory && (
                   <Badge
                     variant="secondary"
-                    className="text-xs bg-gray-100 text-gray-600 hover:opacity-80 cursor-pointer"
+                    className="text-xs bg-gray-50 text-gray-600 hover:opacity-80 cursor-pointer"
                     onClick={() => onEntityClick(belongsToCategory.target_entity_id)}
                   >
                     {belongsToCategory.target_entity_name}

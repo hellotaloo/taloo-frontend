@@ -15,14 +15,14 @@ import { cn } from '@/lib/utils';
 
 // Avatar color palette based on name hash
 const avatarColors = [
-  { bg: 'bg-blue-100', text: 'text-blue-700' },
-  { bg: 'bg-purple-100', text: 'text-purple-700' },
-  { bg: 'bg-pink-100', text: 'text-pink-700' },
-  { bg: 'bg-orange-100', text: 'text-orange-700' },
-  { bg: 'bg-emerald-100', text: 'text-emerald-700' },
-  { bg: 'bg-cyan-100', text: 'text-cyan-700' },
-  { bg: 'bg-rose-100', text: 'text-rose-700' },
-  { bg: 'bg-indigo-100', text: 'text-indigo-700' },
+  { bg: 'bg-blue-500', text: 'text-white' },
+  { bg: 'bg-purple-500', text: 'text-white' },
+  { bg: 'bg-pink-500', text: 'text-white' },
+  { bg: 'bg-orange-500', text: 'text-white' },
+  { bg: 'bg-emerald-500', text: 'text-white' },
+  { bg: 'bg-cyan-500', text: 'text-white' },
+  { bg: 'bg-rose-500', text: 'text-white' },
+  { bg: 'bg-indigo-500', text: 'text-white' },
 ];
 
 function getInitials(name: string): string {
@@ -67,21 +67,21 @@ const statusLabels: Partial<Record<VacancyStatus, string>> = {
 // Status badge styling - supports both legacy and new API status values
 const statusStyles: Partial<Record<VacancyStatus, { bg: string; text: string; dot: string }>> = {
   // New API statuses
-  concept: { bg: 'bg-gray-100', text: 'text-gray-700', dot: 'bg-gray-400' },
+  concept: { bg: 'bg-gray-50', text: 'text-gray-700', dot: 'bg-gray-400' },
   open: { bg: 'bg-white border border-green-200', text: 'text-green-700', dot: 'bg-green-500' },
   on_hold: { bg: 'bg-white border border-orange-200', text: 'text-orange-700', dot: 'bg-orange-500' },
   filled: { bg: 'bg-white border border-blue-200', text: 'text-blue-700', dot: 'bg-blue-500' },
-  closed: { bg: 'bg-gray-100', text: 'text-gray-500', dot: 'bg-gray-400' },
+  closed: { bg: 'bg-gray-50', text: 'text-gray-500', dot: 'bg-gray-400' },
   // Legacy statuses (mapped to appropriate styles)
-  new: { bg: 'bg-gray-100', text: 'text-gray-700', dot: 'bg-gray-400' },
-  draft: { bg: 'bg-gray-100', text: 'text-gray-700', dot: 'bg-gray-400' },
+  new: { bg: 'bg-gray-50', text: 'text-gray-700', dot: 'bg-gray-400' },
+  draft: { bg: 'bg-gray-50', text: 'text-gray-700', dot: 'bg-gray-400' },
   in_progress: { bg: 'bg-white border border-green-200', text: 'text-green-700', dot: 'bg-green-500' },
   agent_created: { bg: 'bg-white border border-green-200', text: 'text-green-700', dot: 'bg-green-500' },
   screening_active: { bg: 'bg-white border border-green-200', text: 'text-green-700', dot: 'bg-green-500' },
-  archived: { bg: 'bg-gray-100', text: 'text-gray-500', dot: 'bg-gray-400' },
+  archived: { bg: 'bg-gray-50', text: 'text-gray-500', dot: 'bg-gray-400' },
 };
 
-const defaultStyle = { bg: 'bg-gray-100', text: 'text-gray-700', dot: 'bg-gray-400' };
+const defaultStyle = { bg: 'bg-gray-50', text: 'text-gray-700', dot: 'bg-gray-400' };
 
 function VacancyStatusBadge({ status }: { status: VacancyStatus }) {
   const styles = statusStyles[status] || defaultStyle;

@@ -198,7 +198,7 @@ function BrowseModeSidebar({
               {onCreateEntity && (
                 <button
                   onClick={onCreateEntity}
-                  className="flex items-center gap-2 w-full px-3 py-2 text-xs text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                  className="flex items-center gap-2 w-full px-3 py-2 text-xs text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
                   data-testid="add-entity-btn"
                 >
                   <Plus className="w-3.5 h-3.5" />
@@ -261,7 +261,7 @@ function EntityModeSidebar({
         {onAddEntity && (
           <button
             onClick={onAddEntity}
-            className="flex items-center gap-2 w-full px-3 py-2 text-xs text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+            className="flex items-center gap-2 w-full px-3 py-2 text-xs text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
             data-testid="add-entity-detail-btn"
           >
             <Plus className="w-3.5 h-3.5" />
@@ -350,7 +350,7 @@ function SidebarBreadcrumb({
                     {/* Root (type list) */}
                     <button
                       onClick={() => onBreadcrumbJump(-1)}
-                      className="w-full text-left px-3 py-1.5 text-sm text-gray-500 hover:bg-gray-100 rounded-md transition-colors"
+                      className="w-full text-left px-3 py-1.5 text-sm text-gray-500 hover:bg-gray-50 rounded-md transition-colors"
                     >
                       {entityTypeName}
                     </button>
@@ -359,7 +359,7 @@ function SidebarBreadcrumb({
                       <button
                         key={entry.id}
                         onClick={() => onBreadcrumbJump(i)}
-                        className="w-full text-left px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-md transition-colors pl-5"
+                        className="w-full text-left px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50 rounded-md transition-colors pl-5"
                       >
                         {entry.name}
                       </button>

@@ -38,7 +38,7 @@ export function PopularVacancies({ vacancies, className }: PopularVacanciesProps
               </Link>
               <span className="text-sm font-semibold text-gray-900">{vacancy.count}</span>
             </div>
-            <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+            <div className="h-1.5 bg-gray-50 rounded-full overflow-hidden">
               <div 
                 className="h-full bg-gradient-to-r from-blue-400 to-blue-500 rounded-full transition-all"
                 style={{ width: `${(vacancy.count / maxCount) * 100}%` }}

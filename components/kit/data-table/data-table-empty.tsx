@@ -21,7 +21,7 @@ export function DataTableEmpty({
 }: DataTableEmptyProps) {
   return (
     <div className={cn('flex flex-col items-center justify-center py-12', className)}>
-      <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-3">
+      <div className="w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center mb-3">
         <Icon className="w-6 h-6 text-gray-400" />
       </div>
       <p className="text-sm font-medium text-gray-900 mb-1">{title}</p>

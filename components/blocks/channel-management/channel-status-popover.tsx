@@ -57,7 +57,7 @@ export function ChannelStatusPopover({
             disabled={disabled}
             className={cn(
               "inline-flex items-center gap-1 px-1.5 py-1 rounded-md transition-colors",
-              "hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              "hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring",
               disabled && "cursor-not-allowed"
             )}
           >
@@ -91,7 +91,7 @@ export function ChannelStatusPopover({
             <div className="flex items-center gap-3">
               <div className={cn(
                 "w-8 h-8 rounded-full flex items-center justify-center",
-                whatsappEnabled ? "bg-green-100" : "bg-gray-100"
+                whatsappEnabled ? "bg-green-50" : "bg-gray-50"
               )}>
                 <MessageCircle className={cn(
                   "w-4 h-4",
@@ -126,7 +126,7 @@ export function ChannelStatusPopover({
             <div className="flex items-center gap-3">
               <div className={cn(
                 "w-8 h-8 rounded-full flex items-center justify-center",
-                voiceEnabled ? "bg-blue-100" : "bg-gray-100"
+                voiceEnabled ? "bg-blue-50" : "bg-gray-50"
               )}>
                 <Phone className={cn(
                   "w-4 h-4",
@@ -161,7 +161,7 @@ export function ChannelStatusPopover({
             <div className="flex items-center gap-3">
               <div className={cn(
                 "w-8 h-8 rounded-full flex items-center justify-center",
-                cvEnabled ? "bg-purple-100" : "bg-gray-100"
+                cvEnabled ? "bg-purple-50" : "bg-gray-50"
               )}>
                 <FileText className={cn(
                   "w-4 h-4",

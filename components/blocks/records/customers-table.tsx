@@ -42,7 +42,7 @@ export function CustomersTable({ customers }: CustomersTableProps) {
       render: (item) => (
         <div className="flex items-center gap-2.5 min-w-0">
           {item.logo ? (
-            <div className="w-5 h-5 rounded bg-gray-100 flex items-center justify-center overflow-hidden shrink-0">
+            <div className="w-5 h-5 rounded bg-gray-50 flex items-center justify-center overflow-hidden shrink-0">
               <Image
                 src={item.logo}
                 alt={item.name}
@@ -52,7 +52,7 @@ export function CustomersTable({ customers }: CustomersTableProps) {
               />
             </div>
           ) : (
-            <div className="w-5 h-5 rounded bg-gray-100 flex items-center justify-center shrink-0">
+            <div className="w-5 h-5 rounded bg-gray-50 flex items-center justify-center shrink-0">
               <Building2 className="w-3 h-3 text-gray-400" />
             </div>
           )}

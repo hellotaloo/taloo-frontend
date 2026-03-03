@@ -113,21 +113,21 @@ export default function PreOnboardingPage() {
             <TabsTrigger value="new">
               <Plus className="w-3.5 h-3.5" />
               Nieuw
-              <span className="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-600">
+              <span className="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-500 text-white">
                 {newVacancies.length}
               </span>
             </TabsTrigger>
             <TabsTrigger value="generated">
               <FileText className="w-3.5 h-3.5" />
               Gegenereerd
-              <span className="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-600">
+              <span className="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-500 text-white">
                 {generatedVacancies.length}
               </span>
             </TabsTrigger>
             <TabsTrigger value="archived">
               <Archive className="w-3.5 h-3.5" />
               Gearchiveerd
-              <span className="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-600">
+              <span className="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-500 text-white">
                 {archivedVacancies.length}
               </span>
             </TabsTrigger>

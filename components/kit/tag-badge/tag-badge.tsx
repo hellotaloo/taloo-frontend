@@ -57,8 +57,8 @@ const variantStyles: Record<TagBadgeVariant, { bg: string; text: string }> = {
     text: 'text-white',
   },
   gray: {
-    bg: 'bg-gray-100',
-    text: 'text-gray-600',
+    bg: 'bg-gray-500',
+    text: 'text-white',
   },
 };
 

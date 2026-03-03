@@ -147,7 +147,7 @@ export function PublishedVacanciesTable({ vacancies }: PublishedVacanciesTablePr
   if (vacancies.length === 0) {
     return (
       <div className="text-center py-12">
-        <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-3">
+        <div className="w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center mx-auto mb-3">
           <Send className="w-6 h-6 text-gray-400" />
         </div>
         <p className="text-sm text-gray-500">Nog geen pre-screenings gepubliceerd.</p>

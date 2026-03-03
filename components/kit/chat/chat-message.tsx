@@ -15,7 +15,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
     <Flex gap="3" className={`${isAssistant ? '' : 'flex-row-reverse'}`}>
       <div className={`
         w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0
-        ${isAssistant ? 'bg-blue-100' : 'bg-gray-100'}
+        ${isAssistant ? 'bg-blue-50' : 'bg-gray-50'}
       `}>
         {isAssistant ? (
           <Bot className="w-4 h-4 text-blue-600" />

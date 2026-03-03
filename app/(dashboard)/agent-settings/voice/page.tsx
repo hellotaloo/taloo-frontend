@@ -113,7 +113,7 @@ export default function VoiceAgentSettingsPage() {
       <PageLayoutHeader />
       <PageLayoutContent
         sidebar={
-          <div className="flex flex-col items-center justify-center bg-gray-100 p-6 h-full">
+          <div className="flex flex-col items-center justify-center bg-gray-50 p-6 h-full">
             <IPhoneMockup size="compact">
               <VoiceCallMockup
                 callerName={selectedVoiceData?.name || 'Izzy'}
@@ -184,7 +184,7 @@ export default function VoiceAgentSettingsPage() {
                   <Label htmlFor={engine.id} className="flex-1 cursor-pointer">
                     <span className="font-medium text-gray-900">{engine.name}</span>
                     {engine.id === 'expression' && (
-                      <span className="ml-2 text-xs bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded">
+                      <span className="ml-2 text-xs bg-orange-500 text-white px-1.5 py-0.5 rounded">
                         Experimental
                       </span>
                     )}

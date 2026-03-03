@@ -349,7 +349,7 @@ export default function PreOnboardingEditPage({
         <div className="flex items-center gap-4">
           <button
             onClick={handleBack}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-2 hover:bg-gray-50 rounded-lg transition-colors"
           >
             <ArrowLeft className="w-5 h-5 text-gray-700" />
           </button>
@@ -369,7 +369,7 @@ export default function PreOnboardingEditPage({
             className={cn(
               'inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
               isGenerating
-                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                ? 'bg-gray-50 text-gray-400 cursor-not-allowed'
                 : 'bg-brand-lime-green hover:brightness-95 text-black'
             )}
           >
@@ -385,7 +385,7 @@ export default function PreOnboardingEditPage({
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-500 hover:text-gray-700">
+                <button className="p-2 hover:bg-gray-50 rounded-lg transition-colors text-gray-500 hover:text-gray-700">
                   <Info className="w-5 h-5" />
                 </button>
               </TooltipTrigger>
@@ -398,7 +398,7 @@ export default function PreOnboardingEditPage({
           </TooltipProvider>
 
           {/* View Mode Toggle */}
-          <div className="inline-flex items-center rounded-lg bg-gray-100 p-1">
+          <div className="inline-flex items-center rounded-lg bg-gray-50 p-1">
             <button
               onClick={() => setViewMode('dashboard')}
               className={cn(

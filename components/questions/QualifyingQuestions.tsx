@@ -17,8 +17,8 @@ export function QualifyingQuestions({ questions, onEdit, onDelete }: QualifyingQ
   return (
     <div className="space-y-4">
       <Flex align="center" gap="2">
-        <div className="p-1.5 bg-orange-100 rounded">
-          <Star className="w-4 h-4 text-orange-500" />
+        <div className="p-1.5 bg-brand-dark-blue rounded">
+          <Star className="w-4 h-4 text-white" />
         </div>
         <div>
           <Heading size="3" className="text-[var(--text-primary)]">

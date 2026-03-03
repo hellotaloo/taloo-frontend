@@ -19,7 +19,7 @@ export function QuestionCard({ question, onEdit, onDelete }: QuestionCardProps) 
     <Card className={`p-4 border-l-4 ${borderColor}`}>
       <Flex justify="between" align="start" className="mb-3">
         <Flex align="center" gap="3">
-          <button className="cursor-grab hover:bg-gray-100 p-1 rounded">
+          <button className="cursor-grab hover:bg-gray-50 p-1 rounded">
             <GripVertical className="w-4 h-4 text-[var(--text-secondary)]" />
           </button>
           <Flex align="center" gap="2">
@@ -36,7 +36,7 @@ export function QuestionCard({ question, onEdit, onDelete }: QuestionCardProps) 
         
         <Flex gap="1">
           <button 
-            className="p-1.5 rounded hover:bg-gray-100 transition-colors"
+            className="p-1.5 rounded hover:bg-gray-50 transition-colors"
             onClick={() => onEdit?.(question)}
           >
             <Pencil className="w-4 h-4 text-[var(--text-secondary)]" />

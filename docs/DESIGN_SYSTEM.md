@@ -23,9 +23,10 @@ A comprehensive guide to building consistent, high-quality UI in the Taloo front
 ### Brand Colors
 ```
 brand-dark-blue: #022641  — Icons, dark backgrounds, accents
+brand-blue: #015AD9       — Links, knockout badges
+brand-light-blue: #7BC9EE — Text on dark backgrounds
 brand-lime-green: #CDFE00 — CTAs, highlights, success states
-brand-light-blue: #7DD3FC — Text on dark backgrounds
-brand-blue: #015AD9       — Links (use sparingly)
+brand-pink: #E51399       — Accent, decorative elements
 ```
 
 ### Usage Guidelines
@@ -34,8 +35,10 @@ brand-blue: #015AD9       — Links (use sparingly)
 - **CTAs on dark backgrounds**: Use `bg-brand-lime-green text-brand-dark-blue`
 - **Links**: Prefer `text-gray-500 hover:text-gray-700` over blue
 
-### Forbidden
-Never use blue for primary action buttons. Blue is reserved for links only.
+### Forbidden Colors
+- Never use blue for primary action buttons. Blue is reserved for links only.
+- **Never use `bg-*-100` for badges/labels.** These are too washed out and lack contrast. Always use `bg-*-500 text-white` for filled badges (see Inline Badges below).
+- **Never use opacity on brand colors for badges** (e.g., `bg-brand-light-blue/30`). Use solid brand colors instead (e.g., `bg-brand-dark-blue text-white`).
 
 ---
 
@@ -557,7 +560,52 @@ interface TagBadgeProps {
 
 ---
 
-## 14. Tables
+## 14. Inline Metadata Badges
+
+Small inline badges for displaying scores, counts, and metadata within timeline items, table rows, or detail panes.
+
+### Design Rules
+- **Always** use `-500` backgrounds with `text-white` for contrast
+- **Never** use `-100` backgrounds with `-700` text (too washed out)
+- Use brand colors where appropriate (`bg-brand-blue`, `bg-brand-dark-blue`)
+
+### Standard Color Mapping
+```tsx
+// Score-based (dynamic by value)
+score >= 70 → 'bg-green-500 text-white'
+score >= 40 → 'bg-orange-500 text-white'
+score < 40  → 'bg-red-500 text-white'
+
+// Fixed category badges
+Knockout    → 'bg-brand-blue text-white'
+Duration    → 'bg-gray-500 text-white'
+Document    → 'bg-purple-500 text-white'
+Experience  → 'bg-gray-500 text-white'
+
+// Pass/fail
+Passed      → 'bg-green-500 text-white'
+Failed      → 'bg-red-500 text-white'
+```
+
+### Usage Pattern
+```tsx
+<span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-green-500 text-white">
+  <span className="opacity-70">Score:</span>
+  85%
+</span>
+```
+
+### Actor Type Badges (Monitor/Audit)
+```tsx
+agent:     { color: 'text-white', bgColor: 'bg-brand-dark-blue' }
+candidate: { color: 'text-gray-700', bgColor: 'bg-gray-50' }
+recruiter: { color: 'text-orange-700', bgColor: 'bg-orange-50' }
+system:    { color: 'text-gray-500', bgColor: 'bg-gray-50' }
+```
+
+---
+
+## 15. Tables
 
 Use the DataTable component for consistent table styling:
 
@@ -585,7 +633,23 @@ import {
 
 ---
 
-## 15. Best Practices
+## 16. Date Formatting
+
+Use centralized utilities from `lib/utils.ts` for consistent Dutch-style formatting:
+
+```tsx
+import { formatTime, formatDate, formatDateTime, formatTimestamp, formatRelativeDate } from '@/lib/utils';
+
+formatTime(date)         // "14u31" (NOT "14:31")
+formatDate(date)         // "15 feb 2026"
+formatDateTime(date)     // "15 feb 2026, 14u31"
+formatTimestamp(date)    // "15 feb, 14u31" (no year)
+formatRelativeDate(date) // "2u geleden"
+```
+
+---
+
+## 17. Best Practices
 
 ### Do
 - Use the 3-tier component architecture

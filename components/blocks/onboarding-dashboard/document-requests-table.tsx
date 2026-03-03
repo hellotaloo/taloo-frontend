@@ -37,28 +37,28 @@ function getStatusBadge(status: RequestStatus) {
   switch (status) {
     case 'pending':
       return (
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-gray-500 text-white">
           <Clock className="w-3 h-3" />
           Pending
         </span>
       );
     case 'collecting':
       return (
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-700">
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-blue-500 text-white">
           <FileText className="w-3 h-3" />
           Bezig
         </span>
       );
     case 'complete':
       return (
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-700">
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-green-500 text-white">
           <CheckCircle2 className="w-3 h-3" />
           Compleet
         </span>
       );
     case 'incomplete':
       return (
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-700">
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-orange-500 text-white">
           <AlertCircle className="w-3 h-3" />
           Incompleet
         </span>
@@ -74,7 +74,7 @@ export function DocumentRequestsTable({
   if (requests.length === 0) {
     return (
       <div className="text-center py-12">
-        <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-3">
+        <div className="w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center mx-auto mb-3">
           <FileText className="w-6 h-6 text-gray-400" />
         </div>
         <p className="text-sm text-gray-500">Nog geen documenten verzocht.</p>
@@ -105,7 +105,7 @@ export function DocumentRequestsTable({
           >
             <TableCell>
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
+                <div className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center shrink-0">
                   <User className="w-4 h-4 text-gray-600" />
                 </div>
                 <span className="font-medium text-gray-900">{request.candidateName}</span>

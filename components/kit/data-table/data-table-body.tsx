@@ -44,7 +44,7 @@ export function DataTableBody({
             onClick={() => onRowClick?.(item, index)}
             className={cn(
               onRowClick && 'cursor-pointer hover:bg-gray-50 transition-colors',
-              isSelected && 'bg-blue-50 hover:bg-blue-100',
+              isSelected && 'bg-blue-50 hover:bg-blue-50',
               resolvedRowClassName
             )}
           >
