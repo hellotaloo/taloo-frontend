@@ -39,7 +39,7 @@ import {
   ScanSearch,
   Settings,
   Users,
-  Workflow,
+  Activity,
   type LucideIcon,
 } from 'lucide-react';
 export type PageConfig = {
@@ -60,11 +60,11 @@ export const pageConfigs: Record<string, PageConfig> = {
   '/records/vacancies': { title: 'Vacatures', description: 'Bekijk en beheer al je vacatures', icon: Briefcase },
   '/records/candidates': { title: 'Kandidaten', description: 'Bekijk en beheer al je kandidaten', icon: Users },
   '/records/customers': { title: 'Klanten', description: 'Bekijk en beheer al je klanten', icon: Building2 },
-  '/activities': { title: 'Activiteiten', description: 'Overzicht van alle lopende en afgeronde agent activiteiten', icon: Workflow },
+  '/activities': { title: 'Activiteiten', description: 'Overzicht van alle lopende en afgeronde agent activiteiten', icon: Activity },
   '/agents': { title: 'Agents', description: 'Ontdek en activeer AI agents voor je workspace', icon: Boxes },
 
   // Pre-screening
-  '/pre-screening': { title: 'Pre-screening', description: 'Overzicht van je conversationele pre-screening', icon: Phone },
+  '/pre-screening': { title: 'Pre-screening', description: 'Overzicht en beheer van de pre-screening agents per vacature', icon: Phone },
   '/pre-screening/settings': { title: 'Pre-screening instellingen', icon: Settings },
   '/pre-screening/demo': { title: 'Pre-screening playground', icon: Play },
 

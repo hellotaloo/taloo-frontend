@@ -344,9 +344,11 @@ export default function ActivitiesPage() {
     }
   };
 
-  // Sort tasks
-  const sortedTasks = [...tasks].reverse().sort((a, b) => {
-    if (!sortKey || !sortDirection) return 0;
+  // Sort tasks (default: most recent first by updated_at)
+  const sortedTasks = [...tasks].sort((a, b) => {
+    if (!sortKey || !sortDirection) {
+      return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+    }
 
     let aValue: string | boolean = '';
     let bValue: string | boolean = '';
