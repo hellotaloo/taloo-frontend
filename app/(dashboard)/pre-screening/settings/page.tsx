@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Save, Calendar, MessageCircle, CheckCircle2, ShieldQuestion, MessageSquare, Pencil, Check, X, Phone, Info, Mic, SlidersHorizontal, ListOrdered } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Save, Calendar, MessageCircle, CheckCircle2, ShieldQuestion, MessageSquare, Pencil, Check, X, Phone, Info, Mic, SlidersHorizontal, ListOrdered } from 'lucide-react';
 import Link from 'next/link';
 import {
   PageLayout,
@@ -18,14 +18,14 @@ import { NavItem } from '@/components/kit/nav-item';
 import { toast } from 'sonner';
 import { getPreScreeningConfig, updatePreScreeningConfig } from '@/lib/interview-api';
 
-type SettingsSection = 'algemeen' | 'planning' | 'escalatie' | 'interview';
+type SettingsSection = 'voice' | 'algemeen' | 'planning' | 'escalatie' | 'interview';
 
 export default function PreScreeningSettingsPage() {
   const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [activeSection, setActiveSection] = useState<SettingsSection>('algemeen');
+  const [activeSection, setActiveSection] = useState<SettingsSection>('voice');
 
   // Exit thresholds
   const [maxUnrelatedAnswers, setMaxUnrelatedAnswers] = useState(2);
@@ -169,6 +169,13 @@ export default function PreScreeningSettingsPage() {
     <div className="flex flex-col h-full py-4">
       <div className="px-2 space-y-1">
         <NavItem
+          icon={Mic}
+          label="Voice"
+          active={activeSection === 'voice'}
+          onClick={() => setActiveSection('voice')}
+          testId="settings-voice"
+        />
+        <NavItem
           icon={SlidersHorizontal}
           label="Algemeen"
           active={activeSection === 'algemeen'}
@@ -241,6 +248,34 @@ export default function PreScreeningSettingsPage() {
           </div>
         ) : (
         <div className="max-w-2xl space-y-8">
+          {/* ── Voice ── */}
+          {activeSection === 'voice' && (
+            <section className="space-y-4">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">Voice instellingen</h2>
+                <p className="text-sm text-gray-500 mt-1">
+                  Configureer de stem, het stemmodel en expressieniveau van je voice agent
+                </p>
+              </div>
+
+              <Link
+                href="/admin/voice-settings"
+                className="flex items-center justify-between p-4 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 transition-colors group"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
+                    <Mic className="w-5 h-5 text-blue-600" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-gray-900">Voice agent configuratie</p>
+                    <p className="text-sm text-gray-500">Selecteer stem, stemmodel en expressieniveau</p>
+                  </div>
+                </div>
+                <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-gray-600 transition-colors" />
+              </Link>
+            </section>
+          )}
+
           {/* ── Algemeen ── */}
           {activeSection === 'algemeen' && (
             <>

@@ -23,20 +23,22 @@
  */
 
 import {
-  Activity,
   Boxes,
   Briefcase,
+  Building2,
   FileCheck,
   FileText,
   GitBranch,
+  History,
   Inbox,
+  LayoutDashboard,
   LayoutList,
   Mic,
   Phone,
   Play,
   ScanSearch,
   Settings,
-  SlidersHorizontal,
+  Users,
   Workflow,
   type LucideIcon,
 } from 'lucide-react';
@@ -54,11 +56,14 @@ export type PageConfig = {
  */
 export const pageConfigs: Record<string, PageConfig> = {
   // Main pages
+  '/dashboard': { title: 'Dashboard', description: 'Overzicht van agent activiteiten en prestaties', icon: LayoutDashboard },
   '/': { title: 'Nieuw gesprek', icon: PencilSquareIcon },
   '/inbox': { title: 'Inbox', icon: Inbox },
-  '/overviews': { title: 'Overzichten', description: 'Bekijk al je kandidaten, vacatures en klanten', icon: LayoutList },
   '/records': { title: 'Records', description: 'Bekijk en beheer al je gegevens', icon: LayoutList },
-  '/activities': { title: 'Activiteiten', description: 'Overzicht van alle actieve agent taken', icon: Workflow },
+  '/records/vacancies': { title: 'Vacatures', description: 'Bekijk en beheer al je vacatures', icon: Briefcase },
+  '/records/candidates': { title: 'Kandidaten', description: 'Bekijk en beheer al je kandidaten', icon: Users },
+  '/records/customers': { title: 'Klanten', description: 'Bekijk en beheer al je klanten', icon: Building2 },
+  '/activities': { title: 'Activiteiten', description: 'Overzicht van alle lopende en afgeronde agent activiteiten', icon: Workflow },
   '/agents': { title: 'Agents', description: 'Ontdek en activeer AI agents voor je workspace', icon: Boxes },
 
   // Pre-screening
@@ -71,12 +76,10 @@ export const pageConfigs: Record<string, PageConfig> = {
 
   // Other features
   '/insights': { title: 'Pattern Finder', description: 'Ontdek verborgen patronen en optimaliseer je hiring proces', icon: ScanSearch },
-  '/finetune': { title: 'Finetune', icon: SlidersHorizontal },
-  '/audit-trail': { title: 'Audit trail', description: 'Overzicht van alle agent interacties', icon: Workflow },
+  '/audit-trail': { title: 'Audit trail', description: 'Overzicht van alle agent interacties', icon: History },
 
   // Admin section
-  '/admin': { title: 'Admin', description: 'Beheer instellingen en configuraties', icon: Settings },
-  '/admin/monitor': { title: 'Monitor', icon: Activity },
+  '/admin': { title: 'Settings', description: 'Beheer instellingen en configuraties', icon: Settings },
   '/admin/voice-settings': { title: 'Voice instellingen', icon: Mic },
   '/admin/ontology': { title: 'Ontology', icon: Boxes },
   '/admin/ontology/graph': { title: 'Ontology Graph', icon: GitBranch },

@@ -30,7 +30,7 @@ import { PageLayout, PageLayoutHeader, PageLayoutContent } from '@/components/la
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { SearchInput } from '@/components/kit/search-input';
-import { CandidateDetailPane, VacancyDetailPane } from '@/components/blocks/overviews';
+import { CandidateDetailPane, VacancyDetailPane } from '@/components/blocks/records';
 import { getActivities, getCandidate, getVacancyDetail } from '@/lib/api';
 import type { GlobalActivity, ActivityActorType, ActivityChannel, APICandidateDetail, APIVacancyDetail } from '@/lib/types';
 

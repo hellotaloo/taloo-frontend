@@ -5,20 +5,22 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import {
+  Briefcase,
+  Building2,
   ChevronDown,
   ChevronRight,
   Settings,
-  SlidersHorizontal,
-  LayoutList,
   LogOut,
   User,
+  Users,
   Check,
   Phone,
   AlertCircle,
   Activity,
+  History,
+  LayoutDashboard,
   Plus,
 } from 'lucide-react';
-import { PencilSquareIcon } from '@heroicons/react/24/outline';
 
 import {
   Sidebar,
@@ -51,9 +53,15 @@ import { useAuth } from '@/contexts/auth-context';
 
 // Navigation data
 const primaryNavItems = [
-  { name: 'Nieuwe chat', href: '/', icon: PencilSquareIcon },
-  { name: 'Overzichten', href: '/overviews', icon: LayoutList },
+  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Activiteiten', href: '/activities', icon: Activity },
+  { name: 'Audit trail', href: '/audit-trail', icon: History },
+];
+
+const recordItems = [
+  { name: 'Vacatures', href: '/records/vacancies', icon: Briefcase },
+  { name: 'Kandidaten', href: '/records/candidates', icon: Users },
+  { name: 'Klanten', href: '/records/customers', icon: Building2 },
 ];
 
 const agentItems = [
@@ -61,8 +69,7 @@ const agentItems = [
 ];
 
 const footerNavItems = [
-  { name: 'Finetune', href: '/finetune', icon: SlidersHorizontal },
-  { name: 'Admin', href: '/admin', icon: Settings }
+  { name: 'Settings', href: '/admin', icon: Settings }
 ];
 
 function getInitials(name: string): string {
@@ -86,6 +93,7 @@ function getRoleBadge(role: 'owner' | 'admin' | 'member'): string {
 export function AppSidebar() {
   const pathname = usePathname();
   const { user, workspaces, currentWorkspace, switchWorkspace, logout } = useAuth();
+  const [recordsOpen, setRecordsOpen] = React.useState(true);
   const [agentsOpen, setAgentsOpen] = React.useState(true);
   const [prescreeningCount, setPrescreeningCount] = React.useState<number | null>(null);
   const [activitiesCount, setActivitiesCount] = React.useState<number | null>(null);
@@ -164,7 +172,7 @@ export function AppSidebar() {
                   Taloo Demo
                 </p>
                 <p className="text-xs text-sidebar-foreground/60">
-                  Control
+                  Agent control
                 </p>
               </div>
               <ChevronDown className="h-4 w-4 text-sidebar-foreground/60" />
@@ -272,6 +280,34 @@ export function AppSidebar() {
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </CollapsibleContent>
+          </SidebarGroup>
+        </Collapsible>
+
+        {/* Records Section */}
+        <Collapsible open={recordsOpen} onOpenChange={setRecordsOpen}>
+          <SidebarGroup className="py-0 mt-6">
+            <SidebarGroupLabel asChild>
+              <CollapsibleTrigger className="flex items-center gap-2 w-full group/label">
+                <span>Records</span>
+                <ChevronRight className="ml-auto h-4 w-4 transition-transform group-data-[state=open]/label:rotate-90" />
+              </CollapsibleTrigger>
+            </SidebarGroupLabel>
+            <CollapsibleContent>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {recordItems.map((item) => (
+                    <SidebarMenuItem key={item.name}>
+                      <SidebarMenuButton asChild isActive={isActive(item.href)}>
+                        <Link href={item.href}>
+                          <item.icon className="h-4 w-4" />
+                          <span>{item.name}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
                 </SidebarMenu>
               </SidebarGroupContent>
             </CollapsibleContent>

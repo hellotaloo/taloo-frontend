@@ -44,24 +44,24 @@ const agentCategories: AgentCategory[] = [
     title: 'Communiceren',
     agents: [
       {
-        name: 'Conversational job board',
+        name: 'Job Board Agent',
         description: 'Kandidaten vinden via conversationele vacatureplatforms',
         icon: MessageSquare,
       },
       {
-        name: 'Pre-screening & interview scheduling',
+        name: 'Pre-screening Agent',
         description: 'Automatische pre-screening gesprekken en planning',
         icon: Phone,
         active: true,
         href: '/pre-screening',
       },
       {
-        name: '24/7 support desk & instant answers',
+        name: 'Support Desk Agent',
         description: 'Directe antwoorden op vragen van kandidaten en klanten',
         icon: HeadphonesIcon,
       },
       {
-        name: 'Onboarding & document collection',
+        name: 'Onboarding Agent',
         description: 'Automatische onboarding en documenten verzamelen',
         icon: FileCheck,
       },
@@ -71,22 +71,22 @@ const agentCategories: AgentCategory[] = [
     title: 'Automatiseren',
     agents: [
       {
-        name: 'Reference & background checks',
+        name: 'Background Check Agent',
         description: 'Geautomatiseerde referentie- en achtergrondcontroles',
         icon: ShieldCheck,
       },
       {
-        name: 'Absence handling',
+        name: 'Absence Agent',
         description: 'Automatisch afwezigheden verwerken en shifts dekken',
         icon: CalendarOff,
       },
       {
-        name: 'Payroll supervision',
+        name: 'Payroll Agent',
         description: 'Verloning monitoren en afwijkingen detecteren',
         icon: Receipt,
       },
       {
-        name: 'Talent pool management',
+        name: 'Talent Pool Agent',
         description: 'Talentpools beheren en GDPR-compliance waarborgen',
         icon: UsersRound,
       },
@@ -96,22 +96,22 @@ const agentCategories: AgentCategory[] = [
     title: 'Begeleiden',
     agents: [
       {
-        name: 'Client intake assistance',
+        name: 'Client Intake Agent',
         description: 'Klantaanvragen analyseren en actieplannen opstellen',
         icon: ClipboardList,
       },
       {
-        name: 'Interview prep and brief',
+        name: 'Interview Prep Agent',
         description: 'Interview voorbereiding en kandidaat briefings',
         icon: BookOpen,
       },
       {
-        name: 'Real-time assistance',
+        name: 'Real-time Assist Agent',
         description: 'Live ondersteuning tijdens gesprekken en interviews',
         icon: Radio,
       },
       {
-        name: 'AI Notes & summaries',
+        name: 'Notes & Summary Agent',
         description: 'Automatische notities en samenvattingen van gesprekken',
         icon: FileText,
       },
@@ -121,22 +121,22 @@ const agentCategories: AgentCategory[] = [
     title: 'Opvolgen',
     agents: [
       {
-        name: 'Bottleneck detection',
+        name: 'Bottleneck Agent',
         description: 'Knelpunten in processen detecteren en melden',
         icon: SearchX,
       },
       {
-        name: 'Smart nudges & reminders',
+        name: 'Nudge & Reminder Agent',
         description: 'Slimme herinneringen en actiepunten voor recruiters',
         icon: Bell,
       },
       {
-        name: 'Reply drafts',
+        name: 'Reply Draft Agent',
         description: 'Automatisch antwoorden opstellen voor e-mails',
         icon: MailOpen,
       },
       {
-        name: 'Next best action detection',
+        name: 'Next Action Agent',
         description: 'Optimale vervolgacties suggereren per vacature',
         icon: Crosshair,
       },
@@ -156,7 +156,7 @@ function AgentCard({
   const content = (
     <>
       <div className="flex items-start justify-between mb-4">
-        <div className="w-10 h-10 rounded-lg bg-brand-dark-blue flex items-center justify-center">
+        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${agent.active ? 'bg-green-500' : 'bg-brand-dark-blue'}`}>
           <Icon className="w-5 h-5 text-white" />
         </div>
         {agent.active ? (
@@ -175,10 +175,10 @@ function AgentCard({
     </>
   );
 
-  const className = `block rounded-xl border bg-white p-5 transition-all ${
+  const className = `block rounded-xl border p-5 transition-all ${
     agent.active
-      ? 'border-green-200 hover:border-green-300 hover:shadow-sm'
-      : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'
+      ? 'bg-white border-green-200 hover:border-green-300 hover:shadow-sm'
+      : 'bg-white border-gray-200 hover:border-gray-300 hover:shadow-sm'
   }`;
 
   if (agent.href) {
@@ -218,10 +218,10 @@ export default function AgentsPage() {
     <PageLayout>
       <PageLayoutHeader />
       <PageLayoutContent>
-        <div className="max-w-5xl space-y-8">
+        <div className="space-y-8">
           {agentCategories.map((category) => (
             <section key={category.title} className="space-y-4">
-              <h2 className="text-lg font-semibold text-gray-900">{category.title}</h2>
+              <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide">{category.title}</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {category.agents.map((agent) => {
                   const delay = ++globalIndex * 50;

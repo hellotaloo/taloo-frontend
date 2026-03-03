@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Phone, MessageSquare, Settings, Users, Network, Activity } from 'lucide-react';
+import { Settings, Users, Network } from 'lucide-react';
 import {
   PageLayout,
   PageLayoutHeader,
@@ -15,6 +15,7 @@ interface AdminCardProps {
   icon: React.ElementType;
   animationDelay?: number;
   testId?: string;
+  comingSoon?: boolean;
 }
 
 function AdminCard({
@@ -24,7 +25,39 @@ function AdminCard({
   icon: Icon,
   animationDelay = 0,
   testId,
+  comingSoon,
 }: AdminCardProps) {
+  const content = (
+    <>
+      <div className="w-10 h-10 rounded-lg bg-brand-dark-blue flex items-center justify-center mb-4">
+        <Icon className="w-5 h-5 text-white" />
+      </div>
+      <div className="flex items-center gap-2 mb-1">
+        <h3 className="font-semibold text-gray-900">{title}</h3>
+        {comingSoon && (
+          <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">coming soon</span>
+        )}
+      </div>
+      <p className="text-sm text-gray-500">{description}</p>
+    </>
+  );
+
+  if (comingSoon) {
+    return (
+      <div
+        data-testid={testId}
+        className="block rounded-xl border border-gray-200 bg-white p-5 opacity-60 cursor-not-allowed"
+        style={
+          animationDelay > 0
+            ? { animation: `fade-in-up 0.3s ease-out ${animationDelay}ms backwards` }
+            : undefined
+        }
+      >
+        {content}
+      </div>
+    );
+  }
+
   return (
     <Link
       href={href}
@@ -36,11 +69,7 @@ function AdminCard({
           : undefined
       }
     >
-      <div className="w-10 h-10 rounded-lg bg-brand-dark-blue flex items-center justify-center mb-4">
-        <Icon className="w-5 h-5 text-white" />
-      </div>
-      <h3 className="font-semibold text-gray-900 mb-1">{title}</h3>
-      <p className="text-sm text-gray-500">{description}</p>
+      {content}
     </Link>
   );
 }
@@ -52,28 +81,6 @@ export default function AdminPage() {
       <PageLayoutContent>
         <div className="max-w-4xl">
           <section className="space-y-4">
-            <h2 className="text-lg font-semibold text-gray-900">Agent Settings</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              <AdminCard
-                title="Voice instellingen"
-                description="Configureer voice agent instellingen"
-                href="/admin/voice-settings"
-                icon={Phone}
-                animationDelay={50}
-                testId="admin-card-voice"
-              />
-              <AdminCard
-                title="WhatsApp instellingen"
-                description="Configureer WhatsApp agent instellingen"
-                href="/admin/whatsapp-settings"
-                icon={MessageSquare}
-                animationDelay={100}
-                testId="admin-card-whatsapp"
-              />
-            </div>
-          </section>
-
-          <section className="space-y-4 mt-8">
             <h2 className="text-lg font-semibold text-gray-900">Data Management</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <AdminCard
@@ -91,28 +98,22 @@ export default function AdminPage() {
             <h2 className="text-lg font-semibold text-gray-900">System</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <AdminCard
-                title="Monitor"
-                description="Bekijk alle systeem events"
-                href="/admin/monitor"
-                icon={Activity}
-                animationDelay={200}
-                testId="admin-card-monitor"
-              />
-              <AdminCard
                 title="General Settings"
                 description="Configure general application settings"
                 href="/admin"
                 icon={Settings}
                 animationDelay={250}
                 testId="admin-card-settings"
+                comingSoon
               />
               <AdminCard
-                title="Team Members"
-                description="Manage team access and permissions"
+                title="Workspace Members"
+                description="Manage workspace access and permissions"
                 href="/admin"
                 icon={Users}
                 animationDelay={300}
                 testId="admin-card-team"
+                comingSoon
               />
             </div>
           </section>
