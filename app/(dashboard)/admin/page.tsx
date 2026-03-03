@@ -48,10 +48,7 @@ function AdminCard({
 export default function AdminPage() {
   return (
     <PageLayout>
-      <PageLayoutHeader
-        title="Admin"
-        description="Beheer instellingen en configuraties"
-      />
+      <PageLayoutHeader />
       <PageLayoutContent>
         <div className="max-w-4xl">
           <section className="space-y-4">

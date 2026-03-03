@@ -44,6 +44,7 @@ import { PencilSquareIcon } from '@heroicons/react/24/outline';
 
 export type PageConfig = {
   title: string;
+  description?: string;
   icon: LucideIcon | typeof PencilSquareIcon;
 };
 
@@ -55,30 +56,33 @@ export const pageConfigs: Record<string, PageConfig> = {
   // Main pages
   '/': { title: 'Nieuw gesprek', icon: PencilSquareIcon },
   '/inbox': { title: 'Inbox', icon: Inbox },
-  '/overviews': { title: 'Overzichten', icon: LayoutList },
-  '/activities': { title: 'Activiteiten', icon: Workflow },
+  '/overviews': { title: 'Overzichten', description: 'Bekijk al je kandidaten, vacatures en klanten', icon: LayoutList },
+  '/records': { title: 'Records', description: 'Bekijk en beheer al je gegevens', icon: LayoutList },
+  '/activities': { title: 'Activiteiten', description: 'Overzicht van alle actieve agent taken', icon: Workflow },
+  '/agents': { title: 'Agents', description: 'Ontdek en activeer AI agents voor je workspace', icon: Boxes },
 
   // Pre-screening
-  '/pre-screening': { title: 'Pre-screening', icon: Phone },
+  '/pre-screening': { title: 'Pre-screening', description: 'Overzicht van je conversationele pre-screening', icon: Phone },
   '/pre-screening/settings': { title: 'Pre-screening instellingen', icon: Settings },
   '/pre-screening/demo': { title: 'Pre-screening playground', icon: Play },
 
   // Pre-onboarding
-  '/pre-onboarding': { title: 'Pre-onboarding', icon: FileCheck },
+  '/pre-onboarding': { title: 'Pre-onboarding', description: 'Verzamel documenten voor nieuwe medewerkers', icon: FileCheck },
 
   // Other features
-  '/insights': { title: 'Pattern Finder', icon: ScanSearch },
+  '/insights': { title: 'Pattern Finder', description: 'Ontdek verborgen patronen en optimaliseer je hiring proces', icon: ScanSearch },
   '/finetune': { title: 'Finetune', icon: SlidersHorizontal },
+  '/audit-trail': { title: 'Audit trail', description: 'Overzicht van alle agent interacties', icon: Workflow },
 
   // Admin section
-  '/admin': { title: 'Admin', icon: Settings },
+  '/admin': { title: 'Admin', description: 'Beheer instellingen en configuraties', icon: Settings },
   '/admin/monitor': { title: 'Monitor', icon: Activity },
   '/admin/voice-settings': { title: 'Voice instellingen', icon: Mic },
   '/admin/ontology': { title: 'Ontology', icon: Boxes },
   '/admin/ontology/graph': { title: 'Ontology Graph', icon: GitBranch },
 
   // Agent settings
-  '/agent-settings/voice': { title: 'Voice Agent', icon: Mic },
+  '/agent-settings/voice': { title: 'Voice Agent', description: 'Configure voice settings and test demo calls', icon: Mic },
 
   // Legacy routes (keep for backwards compatibility)
   '/metrics': { title: 'Pre-screening Metrics', icon: Phone },

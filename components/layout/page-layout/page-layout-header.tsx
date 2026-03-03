@@ -1,55 +1,42 @@
+'use client';
+
 import { cn } from '@/lib/utils';
+import { usePageConfig } from '@/hooks/use-page-config';
 
 /**
- * Page layout header with optional title, description, custom content, and action slot.
+ * Page layout header with automatic title from page registry.
  *
- * Supports two modes:
- * 1. Simple mode: Pass `title` and `description` props for basic headers
- * 2. Custom mode: Pass `children` for complex header content
+ * Title and description are automatically resolved from `lib/page-registry.ts`
+ * based on the current pathname. You can override them with explicit props.
  *
- * Always renders a full-width divider after the header content.
- *
- * @example Simple header
+ * @example Auto header (title/description from registry)
  * ```tsx
- * <PageLayoutHeader
- *   title="Pre-screening"
- *   description="Overzicht van je conversationele pre-screening"
- * />
+ * <PageLayoutHeader />
  * ```
  *
- * @example Header with action
+ * @example Auto header with action
  * ```tsx
  * <PageLayoutHeader
- *   title="Insights"
- *   description="Ontdek verborgen patronen"
- *   action={
- *     <div className="flex items-center gap-2">
- *       <Users className="w-4 h-4" />
- *       <span>Gebaseerd op 2.4k screenings</span>
- *     </div>
- *   }
+ *   action={<Button>Settings</Button>}
  * />
  * ```
  *
  * @example Custom header
  * ```tsx
  * <PageLayoutHeader>
- *   <div className="flex items-center justify-between">
- *     <div className="flex items-center gap-2">
- *       <h1>{vacancy.title}</h1>
- *       <StatusBadge />
- *     </div>
- *     <Switch />
+ *   <div className="flex items-center gap-2">
+ *     <h1>{vacancy.title}</h1>
+ *     <StatusBadge />
  *   </div>
  * </PageLayoutHeader>
  * ```
  */
 export interface PageLayoutHeaderProps {
-  /** Page title (simple mode) */
+  /** Page title (overrides registry title) */
   title?: string;
-  /** Page description (simple mode) */
+  /** Page description (overrides registry description) */
   description?: string;
-  /** Custom header content (overrides title/description) */
+  /** Custom header content (overrides title/description entirely) */
   children?: React.ReactNode;
   /** Right-aligned action element (button, toggle, info, etc.) */
   action?: React.ReactNode;
@@ -64,6 +51,11 @@ export function PageLayoutHeader({
   action,
   className,
 }: PageLayoutHeaderProps) {
+  const pageConfig = usePageConfig();
+
+  const resolvedTitle = title ?? pageConfig.title;
+  const resolvedDescription = description ?? pageConfig.description;
+
   return (
     <>
       <div className={cn("px-6 py-4", className)}>
@@ -72,11 +64,11 @@ export function PageLayoutHeader({
         ) : (
           <div className="flex items-center justify-between">
             <div>
-              {title && (
-                <h1 className="text-lg font-semibold text-gray-900">{title}</h1>
+              {resolvedTitle && (
+                <h1 className="text-lg font-semibold text-gray-900">{resolvedTitle}</h1>
               )}
-              {description && (
-                <p className="text-sm text-gray-500">{description}</p>
+              {resolvedDescription && (
+                <p className="text-sm text-gray-500">{resolvedDescription}</p>
               )}
             </div>
             {action && <div>{action}</div>}

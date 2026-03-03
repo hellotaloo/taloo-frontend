@@ -64,8 +64,6 @@ export default function PreOnboardingPage() {
   return (
     <PageLayout>
       <PageLayoutHeader
-        title="Pre-onboarding"
-        description="Verzamel documenten voor nieuwe medewerkers"
         action={
           <Link href="/pre-onboarding/settings">
             <Button variant="outline" size="sm" className="gap-2">

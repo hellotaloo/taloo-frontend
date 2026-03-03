@@ -417,8 +417,6 @@ export default function InsightsPage() {
   return (
     <PageLayout>
       <PageLayoutHeader
-        title="Insights"
-        description="Ontdek verborgen patronen en optimaliseer je hiring proces"
         action={
           <div className="flex items-center gap-2 text-sm text-gray-500">
             <Users className="w-4 h-4" />

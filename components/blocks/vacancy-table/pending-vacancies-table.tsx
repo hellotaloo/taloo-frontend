@@ -139,7 +139,7 @@ export function ConceptVacanciesTable({ vacancies, generationStatus, isImporting
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="w-full">Vacature</TableHead>
+            <TableHead className="w-full">Vacatures</TableHead>
             <TableHead>Bron</TableHead>
             <TableHead>Geïmporteerd</TableHead>
             <TableHead className="w-[280px] text-right">Acties</TableHead>
@@ -181,7 +181,7 @@ export function ConceptVacanciesTable({ vacancies, generationStatus, isImporting
       <TableHeader>
         <TableRow>
           <SortableHeader
-            label="Vacature"
+            label="Vacatures"
             sortKey="title"
             currentSortKey={sortKey}
             sortDirection={sortDirection}

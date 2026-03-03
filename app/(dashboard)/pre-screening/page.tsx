@@ -135,7 +135,7 @@ function PreScreeningContent() {
     return (
       <div className="flex items-center justify-center py-24">
         <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
-        <span className="ml-2 text-gray-500">Vacatures laden...</span>
+        <span className="ml-2 text-gray-500">Pre-screenings laden...</span>
       </div>
     );
   }
@@ -157,8 +157,6 @@ function PreScreeningContent() {
   return (
     <PageLayout>
       <PageLayoutHeader
-        title="Pre-screening"
-        description="Overzicht van je conversationele pre-screening"
         action={
           <div className="flex items-center gap-2">
             {atsImport.isImporting && (
@@ -238,7 +236,7 @@ function PreScreeningContent() {
             )}
             <TabsTrigger value="published" data-testid="tab-published-vacancies">
               <Send className="w-3.5 h-3.5" />
-              Gepubliceerd
+              Actief
               <span className="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-600">
                 {publishedVacancies.length}
               </span>

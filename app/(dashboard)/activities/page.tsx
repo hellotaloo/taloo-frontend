@@ -426,10 +426,7 @@ export default function ActivitiesPage() {
 
   return (
     <PageLayout>
-      <PageLayoutHeader
-        title="Activiteiten"
-        description="Overzicht van alle actieve agent taken"
-      />
+      <PageLayoutHeader />
       <PageLayoutContent>
         <Tabs value={activeFilter} onValueChange={handleFilterChange} className="space-y-2">
           {/* Filters */}

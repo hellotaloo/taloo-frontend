@@ -9,14 +9,14 @@ import {
   ChevronRight,
   Settings,
   SlidersHorizontal,
-  FileCheck,
   LayoutList,
   LogOut,
   User,
   Check,
   Phone,
   AlertCircle,
-  Workflow,
+  Activity,
+  Plus,
 } from 'lucide-react';
 import { PencilSquareIcon } from '@heroicons/react/24/outline';
 
@@ -53,12 +53,11 @@ import { useAuth } from '@/contexts/auth-context';
 const primaryNavItems = [
   { name: 'Nieuwe chat', href: '/', icon: PencilSquareIcon },
   { name: 'Overzichten', href: '/overviews', icon: LayoutList },
-  { name: 'Activiteiten', href: '/activities', icon: Workflow },
+  { name: 'Activiteiten', href: '/activities', icon: Activity },
 ];
 
 const agentItems = [
   { name: 'Pre-screening', href: '/pre-screening', icon: Phone, badgeKey: 'prescreening' as const },
-  { name: 'Pre-onboarding', href: '/pre-onboarding', icon: FileCheck, badgeKey: 'preonboarding' as const },
 ];
 
 const footerNavItems = [
@@ -89,7 +88,6 @@ export function AppSidebar() {
   const { user, workspaces, currentWorkspace, switchWorkspace, logout } = useAuth();
   const [agentsOpen, setAgentsOpen] = React.useState(true);
   const [prescreeningCount, setPrescreeningCount] = React.useState<number | null>(null);
-  const [preonboardingCount, setPreonboardingCount] = React.useState<number | null>(null);
   const [activitiesCount, setActivitiesCount] = React.useState<number | null>(null);
   const [hasStuckActivities, setHasStuckActivities] = React.useState(false);
 
@@ -101,7 +99,6 @@ export function AppSidebar() {
         .then((counts) => {
           if (cancelled) return;
           setPrescreeningCount(counts.prescreening.new);
-          setPreonboardingCount(counts.preonboarding.new);
           if (counts.activities) {
             setActivitiesCount(counts.activities.active);
             setHasStuckActivities(counts.activities.stuck > 0);
@@ -110,7 +107,6 @@ export function AppSidebar() {
         .catch(() => {
           if (!cancelled) {
             setPrescreeningCount(null);
-            setPreonboardingCount(null);
             setActivitiesCount(null);
             setHasStuckActivities(false);
           }
@@ -135,9 +131,6 @@ export function AppSidebar() {
 
     if (item.badgeKey === 'prescreening' && prescreeningCount !== null && prescreeningCount > 0) {
       return prescreeningCount;
-    }
-    if (item.badgeKey === 'preonboarding' && preonboardingCount !== null && preonboardingCount > 0) {
-      return preonboardingCount;
     }
     return undefined;
   };
@@ -171,7 +164,7 @@ export function AppSidebar() {
                   Taloo Demo
                 </p>
                 <p className="text-xs text-sidebar-foreground/60">
-                  Enterprise
+                  Control
                 </p>
               </div>
               <ChevronDown className="h-4 w-4 text-sidebar-foreground/60" />
@@ -271,6 +264,14 @@ export function AppSidebar() {
                       </SidebarMenuItem>
                     );
                   })}
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild className="text-sidebar-foreground/60">
+                      <Link href="/agents">
+                        <Plus className="h-4 w-4" />
+                        <span>Voeg agent toe</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
                 </SidebarMenu>
               </SidebarGroupContent>
             </CollapsibleContent>

@@ -205,10 +205,7 @@ export default function DesignSystemPage() {
 
   return (
     <PageLayout>
-      <PageLayoutHeader
-        title="Design System"
-        description="Visual reference for all UI components and patterns"
-      />
+      <PageLayoutHeader />
       <PageLayoutContent
         sidebar={<ShowcaseNav sections={navSections} />}
         sidebarPosition="left"

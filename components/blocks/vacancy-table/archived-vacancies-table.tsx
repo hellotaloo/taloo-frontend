@@ -146,7 +146,7 @@ export function ArchivedVacanciesTable({ vacancies }: ArchivedVacanciesTableProp
       <TableHeader>
         <TableRow>
           <SortableHeader
-            label="Vacature"
+            label="Vacatures"
             sortKey="title"
             currentSortKey={sortKey}
             sortDirection={sortDirection}

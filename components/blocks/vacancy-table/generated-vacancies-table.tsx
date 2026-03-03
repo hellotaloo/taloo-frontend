@@ -160,7 +160,7 @@ export function PublishedVacanciesTable({ vacancies }: PublishedVacanciesTablePr
       <TableHeader>
         <TableRow>
           <SortableHeader
-            label="Vacature"
+            label="Vacatures"
             sortKey="title"
             currentSortKey={sortKey}
             sortDirection={sortDirection}

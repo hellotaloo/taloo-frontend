@@ -110,10 +110,7 @@ export default function VoiceAgentSettingsPage() {
 
   return (
     <PageLayout>
-      <PageLayoutHeader
-        title="Voice Agent"
-        description="Configure voice settings and test demo calls"
-      />
+      <PageLayoutHeader />
       <PageLayoutContent
         sidebar={
           <div className="flex flex-col items-center justify-center bg-gray-100 p-6 h-full">

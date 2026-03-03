@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Loader2, Users, Briefcase, Building2 } from 'lucide-react';
+import { Loader2, Archive, List } from 'lucide-react';
 import { PageLayout, PageLayoutHeader, PageLayoutContent } from '@/components/layout/page-layout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
@@ -13,7 +13,7 @@ import {
   CustomersTable,
   CandidateDetailPane,
   VacancyDetailPane,
-} from '@/components/blocks/overviews';
+} from '@/components/blocks/records';
 import {
   APICandidateListItem,
   APICandidateDetail,
@@ -29,6 +29,7 @@ function OverviewsContent() {
 
   const activeTab = searchParams.get('tab') || 'vacancies';
   const [searchQuery, setSearchQuery] = useState('');
+  const [subTab, setSubTab] = useState<'active' | 'archived'>('active');
 
   // API candidates state
   const [apiCandidates, setApiCandidates] = useState<APICandidateListItem[]>([]);
@@ -137,8 +138,9 @@ function OverviewsContent() {
   const handleTabChange = (value: string) => {
     const params = new URLSearchParams(searchParams.toString());
     params.set('tab', value);
-    router.replace(`/overviews?${params.toString()}`, { scroll: false });
-    setSearchQuery(''); // Reset search on tab change
+    router.replace(`/records?${params.toString()}`, { scroll: false });
+    setSearchQuery('');
+    setSubTab('active');
     setSelectedCandidateId(null); // Close detail pane on tab change
     setSelectedCandidateDetail(null);
     setSelectedVacancyId(null); // Close vacancy detail pane on tab change
@@ -163,32 +165,48 @@ function OverviewsContent() {
     setSelectedVacancyDetail(null);
   };
 
-  // Filter API candidates based on search query (inline search)
-  const filteredCandidates = useMemo(() => {
-    if (!searchQuery) return apiCandidates;
-    const query = searchQuery.toLowerCase();
-    return apiCandidates.filter(
-      (c) =>
-        c.full_name.toLowerCase().includes(query) ||
-        (c.email && c.email.toLowerCase().includes(query)) ||
-        (c.phone && c.phone.includes(query)) ||
-        c.skills.some((s) => s.skill_name.toLowerCase().includes(query))
-    );
-  }, [searchQuery, apiCandidates]);
+  // Archived status sets per entity type
+  const archivedVacancyStatuses = new Set(['archived', 'closed', 'filled']);
+  const archivedCandidateStatuses = new Set(['inactive', 'placed']);
 
-  // Filter API vacancies based on search query (inline search)
+  // Filter vacancies based on sub-tab and search query
   const filteredVacancies = useMemo(() => {
-    if (!searchQuery) return apiVacancies;
-    const query = searchQuery.toLowerCase();
-    return apiVacancies.filter(
-      (v) =>
-        v.title.toLowerCase().includes(query) ||
-        v.company.toLowerCase().includes(query) ||
-        (v.location && v.location.toLowerCase().includes(query))
-    );
-  }, [searchQuery, apiVacancies]);
+    let result = subTab === 'archived'
+      ? apiVacancies.filter((v) => archivedVacancyStatuses.has(v.status))
+      : apiVacancies;
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(
+        (v) =>
+          v.title.toLowerCase().includes(query) ||
+          v.company.toLowerCase().includes(query) ||
+          (v.location && v.location.toLowerCase().includes(query))
+      );
+    }
+    return result;
+  }, [searchQuery, apiVacancies, subTab]);
 
+  // Filter candidates based on sub-tab and search query
+  const filteredCandidates = useMemo(() => {
+    let result = subTab === 'archived'
+      ? apiCandidates.filter((c) => archivedCandidateStatuses.has(c.status))
+      : apiCandidates;
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(
+        (c) =>
+          c.full_name.toLowerCase().includes(query) ||
+          (c.email && c.email.toLowerCase().includes(query)) ||
+          (c.phone && c.phone.includes(query)) ||
+          c.skills.some((s) => s.skill_name.toLowerCase().includes(query))
+      );
+    }
+    return result;
+  }, [searchQuery, apiCandidates, subTab]);
+
+  // Filter customers — no archived status, so 'archived' sub-tab returns empty
   const filteredCustomers = useMemo(() => {
+    if (subTab === 'archived') return [];
     if (!searchQuery) return mockClients;
     const query = searchQuery.toLowerCase();
     return mockClients.filter(
@@ -199,39 +217,53 @@ function OverviewsContent() {
         (c.industry && c.industry.toLowerCase().includes(query)) ||
         (c.location && c.location.toLowerCase().includes(query))
     );
-  }, [searchQuery]);
+  }, [searchQuery, subTab]);
+
+  // Counts for sub-tab badges
+  const allCounts: Record<string, number> = {
+    vacancies: apiVacancies.length,
+    candidates: apiCandidates.length,
+    customers: mockClients.length,
+  };
+  const archivedCounts: Record<string, number> = {
+    vacancies: apiVacancies.filter(v => archivedVacancyStatuses.has(v.status)).length,
+    candidates: apiCandidates.filter(c => archivedCandidateStatuses.has(c.status)).length,
+    customers: 0,
+  };
+  const isLoading = activeTab === 'vacancies' ? vacanciesLoading : activeTab === 'candidates' ? candidatesLoading : false;
 
   return (
     <>
       <PageLayout>
         <PageLayoutHeader />
         <PageLayoutContent>
-          <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4">
-            <div className="flex items-center justify-between gap-4">
+          <Tabs value={activeTab} onValueChange={handleTabChange}>
+            {/* Shared sub-tab bar */}
+            <div className="flex items-center justify-between gap-4 mb-4">
               <TabsList variant="line">
-                <TabsTrigger value="vacancies" data-testid="tab-vacancies">
-                  <Briefcase className="w-3.5 h-3.5" />
-                  Vacatures
+                <TabsTrigger
+                  value="active"
+                  data-state={subTab === 'active' ? 'active' : 'inactive'}
+                  onClick={() => setSubTab('active')}
+                >
+                  <List className="w-3.5 h-3.5" />
+                  Alle
                   <span className="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-600">
-                    {vacanciesLoading ? '...' : apiVacancies.length}
+                    {isLoading ? '...' : allCounts[activeTab] ?? 0}
                   </span>
                 </TabsTrigger>
-                <TabsTrigger value="candidates" data-testid="tab-candidates">
-                  <Users className="w-3.5 h-3.5" />
-                  Kandidaten
+                <TabsTrigger
+                  value="archived"
+                  data-state={subTab === 'archived' ? 'active' : 'inactive'}
+                  onClick={() => setSubTab('archived')}
+                >
+                  <Archive className="w-3.5 h-3.5" />
+                  Gearchiveerd
                   <span className="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-600">
-                    {candidatesLoading ? '...' : apiCandidates.length}
-                  </span>
-                </TabsTrigger>
-                <TabsTrigger value="customers" data-testid="tab-customers">
-                  <Building2 className="w-3.5 h-3.5" />
-                  Klanten
-                  <span className="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-600">
-                    {mockClients.length}
+                    {isLoading ? '...' : archivedCounts[activeTab] ?? 0}
                   </span>
                 </TabsTrigger>
               </TabsList>
-
               <SearchInput
                 value={searchQuery}
                 onChange={setSearchQuery}
