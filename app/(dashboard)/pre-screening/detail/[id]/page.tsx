@@ -962,6 +962,7 @@ export default function EditPreScreeningPage({ params }: PageProps) {
     await startSession({
       vacancy_id: id,
       candidate_name: 'Anna',
+      persona_name: 'Anna',
       candidate_known: false,
     });
   }, [startSession, id]);

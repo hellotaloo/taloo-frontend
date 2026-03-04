@@ -267,6 +267,7 @@ export default function PreScreeningDemoPage() {
     await startSession({
       vacancy_id: selectedVacancy,
       candidate_name: selectedCandidateContextData.candidateName,
+      persona_name: selectedVoiceData?.name ?? 'Anna',
       start_agent: startAgent,
       require_consent: askConsent,
       candidate_known: isKnown,

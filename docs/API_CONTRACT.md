@@ -2339,6 +2339,7 @@ Creates a LiveKit access token with embedded agent dispatch. When the browser co
 interface PlaygroundStartRequest {
   vacancy_id: string;
   candidate_name?: string;     // Default: "Playground Kandidaat"
+  persona_name?: string;       // Default: "Anna" — voice persona name used in prompts and voicemail (e.g. "Eva", "Sophie")
   start_agent?: string;        // Skip to specific step: "greeting" | "screening" | "open_questions" | "scheduling"
   require_consent?: boolean;   // Default: false
   candidate_known?: boolean;   // Default: false — known candidate with existing data

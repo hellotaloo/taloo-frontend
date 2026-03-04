@@ -8,6 +8,7 @@ const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:808
 interface PlaygroundStartRequest {
   vacancy_id: string;
   candidate_name?: string;
+  persona_name?: string;
   start_agent?: 'greeting' | 'screening' | 'open_questions' | 'scheduling' | null;
   require_consent?: boolean;
   candidate_known?: boolean;
