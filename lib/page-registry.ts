@@ -60,7 +60,7 @@ export const pageConfigs: Record<string, PageConfig> = {
   '/records/vacancies': { title: 'Vacatures', description: 'Bekijk en beheer al je vacatures', icon: Briefcase },
   '/records/candidates': { title: 'Kandidaten', description: 'Bekijk en beheer al je kandidaten', icon: Users },
   '/records/customers': { title: 'Klanten', description: 'Bekijk en beheer al je klanten', icon: Building2 },
-  '/activities': { title: 'Activiteiten', description: 'Overzicht van alle lopende en afgeronde agent activiteiten', icon: Activity },
+  '/activities': { title: 'Activiteiten', description: 'Status van alle lopende en afgeronde agent activiteiten', icon: Activity },
   '/agents': { title: 'Agents', description: 'Ontdek en activeer AI agents voor je workspace', icon: Boxes },
 
   // Pre-screening
@@ -73,7 +73,7 @@ export const pageConfigs: Record<string, PageConfig> = {
 
   // Other features
   '/insights': { title: 'Pattern Finder', description: 'Ontdek verborgen patronen en optimaliseer je hiring proces', icon: ScanSearch },
-  '/audit-trail': { title: 'Audit trail', description: 'Volledige geschiedenis van alle agent gebeurtenissen', icon: History },
+  '/audit-trail': { title: 'Audit trail', description: 'Geschiedenis van alle agent en systeem gebeurtenissen', icon: History },
 
   // Admin section
   '/admin': { title: 'Settings', description: 'Beheer instellingen en configuraties', icon: Settings },
