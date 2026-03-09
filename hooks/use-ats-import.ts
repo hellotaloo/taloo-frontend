@@ -29,7 +29,17 @@ interface ImportStartResponse {
   message: string;
 }
 
-export function useAtsImport(onRefetch?: () => void) {
+export interface UseAtsImportOptions {
+  module?: 'pre_screening' | 'document_collection';
+  onRefetch?: () => void;
+}
+
+export function useAtsImport(onRefetchOrOptions?: (() => void) | UseAtsImportOptions) {
+  // Support both legacy (callback) and new (options object) signatures
+  const options = typeof onRefetchOrOptions === 'function'
+    ? { onRefetch: onRefetchOrOptions }
+    : onRefetchOrOptions ?? {};
+  const { module: importModule, onRefetch } = options;
   const [phase, setPhase] = useState<ImportStatus>('idle');
   const [statusMessage, setStatusMessage] = useState('');
   const [vacancies, setVacancies] = useState<Map<string, ImportVacancy>>(new Map());
@@ -80,12 +90,16 @@ export function useAtsImport(onRefetch?: () => void) {
     }
   }, [stopPolling]);
 
+  const statusUrl = importModule
+    ? `${BACKEND_URL}/demo/import-ats/status?module=${importModule}`
+    : `${BACKEND_URL}/demo/import-ats/status`;
+
   const pollOnce = useCallback(async () => {
-    const res = await fetch(`${BACKEND_URL}/demo/import-ats/status`);
+    const res = await fetch(statusUrl);
     const progress: ImportProgress = await res.json();
     handleProgress(progress);
     return progress;
-  }, [handleProgress]);
+  }, [handleProgress, statusUrl]);
 
   const startPolling = useCallback(() => {
     stopPolling();
@@ -107,7 +121,10 @@ export function useAtsImport(onRefetch?: () => void) {
     setTotalCount(0);
 
     try {
-      const res = await fetch(`${BACKEND_URL}/demo/import-ats`, { method: 'POST' });
+      const importUrl = importModule
+        ? `${BACKEND_URL}/demo/import-ats?module=${importModule}`
+        : `${BACKEND_URL}/demo/import-ats`;
+      const res = await fetch(importUrl, { method: 'POST' });
       const data: ImportStartResponse = await res.json();
 
       if (data.status === 'already_running') {
@@ -121,7 +138,7 @@ export function useAtsImport(onRefetch?: () => void) {
       setPhase('error');
       setError(err instanceof Error ? err.message : 'Sync mislukt');
     }
-  }, [startPolling, pollOnce]);
+  }, [startPolling, pollOnce, importModule]);
 
   const reset = useCallback(() => {
     stopPolling();
@@ -138,7 +155,7 @@ export function useAtsImport(onRefetch?: () => void) {
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch(`${BACKEND_URL}/demo/import-ats/status`);
+        const res = await fetch(statusUrl);
         const progress: ImportProgress = await res.json();
         if (cancelled) return;
 

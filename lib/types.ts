@@ -411,6 +411,81 @@ export interface PreOnboardingRequest {
 }
 
 // =============================================================================
+// Document Collection v2 Types (Workspace-Scoped)
+// =============================================================================
+
+export type CollectionStatus = 'active' | 'completed' | 'needs_review' | 'abandoned';
+export type CollectionProgress = 'pending' | 'started' | 'in_progress';
+
+export interface DocumentCollectionResponse {
+  id: string;
+  config_id: string;
+  workspace_id: string;
+  vacancy_id?: string;
+  vacancy_title?: string;
+  application_id?: string;
+  candidate_name: string;
+  candidate_phone?: string;
+  status: CollectionStatus;
+  progress: CollectionProgress;
+  channel: string;
+  retry_count: number;
+  message_count: number;
+  documents_collected: number;
+  documents_total: number;
+  started_at: string;
+  updated_at: string;
+  completed_at?: string;
+}
+
+export interface PaginatedCollectionsResponse {
+  items: DocumentCollectionResponse[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export type UploadStatus = 'pending' | 'verified' | 'rejected' | 'needs_review';
+
+export interface CollectionMessageResponse {
+  role: 'user' | 'agent' | 'system';
+  message: string;
+  created_at: string;
+}
+
+export interface CollectionUploadResponse {
+  id: string;
+  document_type_id?: string;
+  document_side: 'front' | 'back' | 'single';
+  verification_passed?: boolean;
+  status: UploadStatus;
+  uploaded_at: string;
+}
+
+export interface DocumentTypeResponse {
+  id: string;
+  workspace_id: string;
+  slug: string;
+  name: string;
+  description?: string;
+  category: string;
+  requires_front_back: boolean;
+  is_verifiable: boolean;
+  icon?: string;
+  is_default: boolean;
+  is_active: boolean;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DocumentCollectionDetailResponse extends DocumentCollectionResponse {
+  messages: CollectionMessageResponse[];
+  uploads: CollectionUploadResponse[];
+  documents_required: DocumentTypeResponse[];
+}
+
+// =============================================================================
 // Client Types (for Overviews)
 // =============================================================================
 

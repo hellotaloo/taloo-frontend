@@ -143,33 +143,35 @@ export function AppSidebar() {
   return (
     <Sidebar className="border-r-0">
       {/* Header - Workspace Switcher */}
-      <SidebarHeader className="p-4">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button className="flex items-center gap-3 w-full hover:bg-sidebar-accent rounded-lg p-2 -m-2 transition-colors">
-              {currentWorkspace?.logo_url ? (
-                <Image
-                  src={currentWorkspace.logo_url}
-                  alt={currentWorkspace.name}
-                  width={40}
-                  height={40}
-                  className="w-10 h-10 rounded-lg object-contain"
-                />
-              ) : (
-                <div className="w-10 h-10 rounded-lg bg-gray-800 flex items-center justify-center text-white text-sm font-semibold">
-                  {currentWorkspace ? getInitials(currentWorkspace.name) : 'W'}
-                </div>
-              )}
-              <div className="flex-1 text-left">
-                <p className="text-sm font-semibold text-sidebar-foreground">
-                  {currentWorkspace?.name || 'Workspace'}
-                </p>
-                <p className="text-xs text-sidebar-foreground/60">
-                  Admin workspace
-                </p>
-              </div>
-              <ChevronDown className="h-4 w-4 text-sidebar-foreground/60" />
-            </button>
+      <SidebarHeader>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <SidebarMenuButton size="lg">
+                  {currentWorkspace?.logo_url ? (
+                    <Image
+                      src={currentWorkspace.logo_url}
+                      alt={currentWorkspace.name}
+                      width={32}
+                      height={32}
+                      className="w-8 h-8 rounded-lg object-contain"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 rounded-lg bg-gray-800 flex items-center justify-center text-white text-xs font-semibold">
+                      {currentWorkspace ? getInitials(currentWorkspace.name) : 'W'}
+                    </div>
+                  )}
+                  <div className="flex-1 text-left">
+                    <p className="text-sm font-semibold text-sidebar-foreground">
+                      {currentWorkspace?.name || 'Workspace'}
+                    </p>
+                    <p className="text-xs text-sidebar-foreground/60">
+                      Admin workspace
+                    </p>
+                  </div>
+                  <ChevronDown className="h-4 w-4 text-sidebar-foreground/60" />
+                </SidebarMenuButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-64">
             {workspaces.map((workspace) => (
@@ -200,8 +202,10 @@ export function AppSidebar() {
                 )}
               </DropdownMenuItem>
             ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </SidebarMenuItem>
+        </SidebarMenu>
       </SidebarHeader>
 
       <SidebarContent>

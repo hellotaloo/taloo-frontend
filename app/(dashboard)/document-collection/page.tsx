@@ -1,151 +1,217 @@
 'use client';
 
-import { FileCheck, CheckCircle2, Loader2, Plus, FileText, Archive, Users, Settings } from 'lucide-react';
-import { useState, useEffect } from 'react';
-import { Vacancy } from '@/lib/types';
-import { getPreOnboardingVacancies } from '@/lib/interview-api';
-import { getOnboardingStats } from '@/lib/pre-onboarding-api';
+import { FileCheck, CheckCircle2, Loader2, FileText, AlertCircle, Settings, List } from 'lucide-react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import type { CollectionStatus, DocumentCollectionDetailResponse, DocumentCollectionResponse } from '@/lib/types';
+import { getDocumentCollections, getDocumentCollection } from '@/lib/document-collection-api';
 import { MetricCard } from '@/components/kit/metric-card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  PendingOnboardingTable,
-  GeneratedOnboardingTable,
-  ArchivedOnboardingTable,
-} from '@/components/blocks/onboarding-table';
+import { CollectionTable, CollectionDetailPane } from '@/components/blocks/collection-table';
+import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { PageLayout, PageLayoutHeader, PageLayoutContent } from '@/components/layout/page-layout';
 import { Button } from '@/components/ui/button';
+import { useAtsImport } from '@/hooks/use-ats-import';
 import Link from 'next/link';
 
+type FilterTab = 'all' | CollectionStatus;
+
 export default function DocumentCollectionPage() {
-  const [newVacancies, setNewVacancies] = useState<Vacancy[]>([]);
-  const [generatedVacancies, setGeneratedVacancies] = useState<Vacancy[]>([]);
-  const [archivedVacancies, setArchivedVacancies] = useState<Vacancy[]>([]);
+  const [collections, setCollections] = useState<DocumentCollectionResponse[]>([]);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({
-    totalRequests: 0,
-    completionRate: 0,
-    fullyCollected: 0,
-    verificationPending: 0
-  });
+  const [activeTab, setActiveTab] = useState<FilterTab>('active');
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedDetail, setSelectedDetail] = useState<DocumentCollectionDetailResponse | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+
+  const fetchData = useCallback(async () => {
+    try {
+      const data = await getDocumentCollections({ limit: 200 });
+      setCollections(data.items);
+      setTotal(data.total);
+    } catch (error) {
+      console.error('Failed to load document collections:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    async function loadData() {
-      try {
-        const [newData, generatedData, archivedData, statsData] = await Promise.all([
-          getPreOnboardingVacancies('new'),
-          getPreOnboardingVacancies('generated'),
-          getPreOnboardingVacancies('archived'),
-          getOnboardingStats()
-        ]);
+    fetchData();
+  }, [fetchData]);
 
-        setNewVacancies(newData.vacancies);
-        setGeneratedVacancies(generatedData.vacancies);
-        setArchivedVacancies(archivedData.vacancies);
-        setStats(statsData);
-      } catch (error) {
-        console.error('Failed to load data:', error);
-      } finally {
-        setLoading(false);
-      }
+  useEffect(() => {
+    if (!selectedId) {
+      setSelectedDetail(null);
+      return;
     }
+    setDetailLoading(true);
+    getDocumentCollection(selectedId)
+      .then(setSelectedDetail)
+      .catch(() => setSelectedDetail(null))
+      .finally(() => setDetailLoading(false));
+  }, [selectedId]);
 
-    loadData();
+  const handleCloseDetail = useCallback(() => {
+    setSelectedId(null);
   }, []);
+
+  const atsImport = useAtsImport({
+    module: 'document_collection',
+    onRefetch: fetchData,
+  });
+
+  const stats = useMemo(() => {
+    const active = collections.filter(c => c.status === 'active').length;
+    const completed = collections.filter(c => c.status === 'completed').length;
+    const needsReview = collections.filter(c => c.status === 'needs_review').length;
+    const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+    return { active, completed, needsReview, completionRate };
+  }, [collections, total]);
+
+  const filtered = useMemo(() => {
+    if (activeTab === 'all') return collections;
+    return collections.filter(c => c.status === activeTab);
+  }, [collections, activeTab]);
+
+  const countByStatus = useMemo(() => ({
+    active: collections.filter(c => c.status === 'active').length,
+    completed: collections.filter(c => c.status === 'completed').length,
+    needs_review: collections.filter(c => c.status === 'needs_review').length,
+    abandoned: collections.filter(c => c.status === 'abandoned').length,
+  }), [collections]);
 
   if (loading) {
     return (
       <div className="flex items-center justify-center py-24">
         <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
-        <span className="ml-2 text-gray-500">Document collectie laden...</span>
+        <span className="ml-2 text-gray-500">Document collecties laden...</span>
       </div>
     );
   }
 
   return (
+  <>
     <PageLayout>
       <PageLayoutHeader
         action={
-          <Link href="/document-collection/settings">
-            <Button variant="outline" size="sm" className="gap-2">
-              <Settings className="w-4 h-4" />
-              Instellingen
-            </Button>
-          </Link>
+          <div className="flex items-center gap-2">
+            {atsImport.isImporting && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2"
+                disabled
+              >
+                <Loader2 className="w-4 h-4 animate-spin" />
+                {atsImport.phase === 'importing' ? 'Importeren...' : `${atsImport.publishedCount}/${atsImport.totalCount || '...'}`}
+              </Button>
+            )}
+            <Link href="/document-collection/settings">
+              <Button variant="outline" size="sm" className="gap-2">
+                <Settings className="w-4 h-4" />
+                Instellingen
+              </Button>
+            </Link>
+          </div>
         }
       />
       <PageLayoutContent>
-        {/* Metrics - 4 cards in a row */}
+        {/* Metrics */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           <MetricCard
-            title="Totaal verzoeken"
-            value={stats.totalRequests}
-            label="Deze week"
-            icon={FileCheck}
+            title="Actieve collecties"
+            value={stats.active}
+            label="Lopend"
+            icon={FileText}
             variant="blue"
           />
           <MetricCard
             title="Afrondingspercentage"
             value={`${stats.completionRate}%`}
-            label="Deze week"
+            label="Alle collecties"
             icon={CheckCircle2}
             variant="dark"
             progress={stats.completionRate}
           />
           <MetricCard
             title="Volledig verzameld"
-            value={stats.fullyCollected}
-            label="Deze week"
-            icon={Users}
+            value={stats.completed}
+            label="Afgerond"
+            icon={FileCheck}
             variant="lime"
           />
           <MetricCard
-            title="Verificatie pending"
-            value={stats.verificationPending}
+            title="Review nodig"
+            value={stats.needsReview}
             label="Wacht op verificatie"
-            icon={FileText}
+            icon={AlertCircle}
             variant="pink"
           />
         </div>
 
-        {/* Tabs */}
-        <Tabs defaultValue="new" className="space-y-2">
+        {/* Status filter tabs */}
+        <Tabs
+          defaultValue="active"
+          value={activeTab}
+          onValueChange={(v) => setActiveTab(v as FilterTab)}
+          className="space-y-2"
+        >
           <TabsList variant="line">
-            <TabsTrigger value="new">
-              <Plus className="w-3.5 h-3.5" />
-              Nieuw
-              <span className="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-500 text-white">
-                {newVacancies.length}
-              </span>
+            <TabsTrigger value="active">
+              Actief
+              <CountBadge count={countByStatus.active} />
             </TabsTrigger>
-            <TabsTrigger value="generated">
-              <FileText className="w-3.5 h-3.5" />
-              Gegenereerd
-              <span className="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-500 text-white">
-                {generatedVacancies.length}
-              </span>
+            <TabsTrigger value="completed">
+              Compleet
+              <CountBadge count={countByStatus.completed} />
             </TabsTrigger>
-            <TabsTrigger value="archived">
-              <Archive className="w-3.5 h-3.5" />
-              Gearchiveerd
-              <span className="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-500 text-white">
-                {archivedVacancies.length}
-              </span>
+            <TabsTrigger value="needs_review">
+              Review nodig
+              <CountBadge count={countByStatus.needs_review} />
+            </TabsTrigger>
+            <TabsTrigger value="abandoned">
+              Afgebroken
+              <CountBadge count={countByStatus.abandoned} />
+            </TabsTrigger>
+            <TabsTrigger value="all">
+              <List className="w-3.5 h-3.5" />
+              Alle
+              <CountBadge count={total} />
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="new">
-            <PendingOnboardingTable vacancies={newVacancies} />
-          </TabsContent>
-
-          <TabsContent value="generated">
-            <GeneratedOnboardingTable vacancies={generatedVacancies} />
-          </TabsContent>
-
-          <TabsContent value="archived">
-            <ArchivedOnboardingTable vacancies={archivedVacancies} />
+          <TabsContent value={activeTab}>
+            <CollectionTable
+              collections={filtered}
+              selectedId={selectedId}
+              onSelectCollection={setSelectedId}
+              isImporting={atsImport.isImporting}
+              onSync={atsImport.startImport}
+            />
           </TabsContent>
         </Tabs>
       </PageLayoutContent>
     </PageLayout>
+
+    <Sheet open={!!selectedId} onOpenChange={(open) => !open && handleCloseDetail()}>
+      <SheetContent side="right" className="w-full sm:max-w-xl p-0" showCloseButton={false}>
+        <CollectionDetailPane
+          collection={selectedDetail}
+          isLoading={detailLoading}
+          onClose={handleCloseDetail}
+        />
+      </SheetContent>
+    </Sheet>
+  </>
+  );
+}
+
+function CountBadge({ count }: { count: number }) {
+  return (
+    <span className="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-500 text-white">
+      {count}
+    </span>
   );
 }

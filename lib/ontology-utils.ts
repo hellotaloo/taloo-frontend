@@ -2,6 +2,7 @@ import {
   Briefcase,
   Boxes,
   FileText,
+  FileCheck,
   CheckCircle,
   Truck,
   Package,
@@ -21,6 +22,12 @@ import {
   GraduationCap,
   Wrench,
   HardHat,
+  IdCard,
+  Car,
+  Banknote,
+  Camera,
+  Award,
+  Stamp,
   type LucideIcon,
 } from 'lucide-react';
 import type {
@@ -58,6 +65,13 @@ const ICON_MAP: Record<string, LucideIcon> = {
   wrench: Wrench,
   'hard-hat': HardHat,
   circle: Circle,
+  'id-card': IdCard,
+  car: Car,
+  banknote: Banknote,
+  camera: Camera,
+  award: Award,
+  stamp: Stamp,
+  'file-check': FileCheck,
 };
 
 /**

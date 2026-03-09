@@ -128,7 +128,7 @@ export function ConceptVacanciesTable({ vacancies, generationStatus, isImporting
           onClick={() => onSync?.()}
         >
           <RefreshCw className="w-4 h-4" />
-          Sync ATS
+          Trigger demo ATS import
         </Button>
       </div>
     );

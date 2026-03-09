@@ -88,7 +88,6 @@ export default function AdminPage() {
                 icon={Network}
                 animationDelay={150}
                 testId="admin-card-ontology"
-                comingSoon
               />
             </div>
           </section>

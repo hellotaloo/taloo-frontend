@@ -106,8 +106,9 @@ function PreScreeningContent() {
     setShowAutoGenerateConfirm(false);
   };
 
-  // Get active tab from URL, default to 'published'
-  const activeTab = searchParams.get('tab') || 'published';
+  // Get active tab from URL; default to 'concept' if there are concept vacancies or everything is empty, otherwise 'published'
+  const defaultTab = (conceptVacancies.length > 0 || publishedVacancies.length === 0) ? 'concept' : 'published';
+  const activeTab = searchParams.get('tab') || defaultTab;
 
   const handleTabChange = (value: string) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -228,7 +229,7 @@ function PreScreeningContent() {
             {(conceptVacancies.length > 0 || (publishedVacancies.length === 0 && archivedVacancies.length === 0)) && (
               <TabsTrigger value="concept" data-testid="tab-concept-vacancies">
                 <FileEdit className="w-3.5 h-3.5" />
-                Concept
+                Geïmporteerd
                 <span className="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-500 text-white">
                   {conceptVacancies.length}
                 </span>
@@ -243,7 +244,7 @@ function PreScreeningContent() {
             </TabsTrigger>
             <TabsTrigger value="archived" data-testid="tab-archived-vacancies">
               <Archive className="w-3.5 h-3.5" />
-              Gearchiveerd
+              Archived
               <span className="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-500 text-white">
                 {archivedVacancies.length}
               </span>

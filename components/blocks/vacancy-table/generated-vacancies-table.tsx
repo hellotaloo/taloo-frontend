@@ -150,7 +150,7 @@ export function PublishedVacanciesTable({ vacancies }: PublishedVacanciesTablePr
         <div className="w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center mx-auto mb-3">
           <Send className="w-6 h-6 text-gray-400" />
         </div>
-        <p className="text-sm text-gray-500">Nog geen pre-screenings gepubliceerd.</p>
+        <p className="text-sm text-gray-500">Nog geen pre-screenings actief.</p>
       </div>
     );
   }
