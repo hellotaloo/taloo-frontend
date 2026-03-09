@@ -23,7 +23,7 @@ export function GeneratedOnboardingTable({ vacancies }: GeneratedOnboardingTable
           <FileCheck className="w-6 h-6 text-gray-400" />
         </div>
         <p className="text-sm text-gray-500">
-          Nog geen pre-onboarding ingesteld.
+          Nog geen document collectie ingesteld.
         </p>
       </div>
     );

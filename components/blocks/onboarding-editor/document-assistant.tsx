@@ -24,7 +24,7 @@ export function DocumentAssistant({ vacancy }: DocumentAssistantProps) {
 
   const dummyMessages = [
     {
-      content: 'Welkom! Ik help je met het configureren van pre-onboarding documenten. Deze functie komt binnenkort beschikbaar.',
+      content: 'Welkom! Ik help je met het configureren van document collectie. Deze functie komt binnenkort beschikbaar.',
     },
   ];
 

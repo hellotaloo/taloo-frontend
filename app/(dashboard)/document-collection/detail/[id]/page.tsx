@@ -250,7 +250,7 @@ const DUMMY_REQUEST_DETAILS: Record<string, RequestDetail> = {
 
 type ViewMode = 'edit' | 'preview' | 'dashboard';
 
-export default function PreOnboardingEditPage({
+export default function DocumentCollectionEditPage({
   params,
 }: {
   params: Promise<{ id: string }>;
@@ -287,7 +287,7 @@ export default function PreOnboardingEditPage({
   }, [vacancyId]);
 
   const handleBack = () => {
-    router.push('/pre-onboarding');
+    router.push('/document-collection');
   };
 
   const handleToggleDocument = (documentId: string, enabled: boolean) => {
@@ -315,7 +315,7 @@ export default function PreOnboardingEditPage({
     setPublishedAt(new Date().toISOString());
     // Navigate to dashboard view
     setViewMode('dashboard');
-    console.log('Publishing pre-onboarding documents...');
+    console.log('Publishing document collection...');
   };
 
   if (isLoading) {
@@ -323,7 +323,7 @@ export default function PreOnboardingEditPage({
       <div className="flex items-center justify-center min-h-screen">
         <div className="flex flex-col items-center gap-3">
           <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
-          <p className="text-sm text-gray-500">Pre-onboarding laden...</p>
+          <p className="text-sm text-gray-500">Document collectie laden...</p>
         </div>
       </div>
     );
@@ -391,7 +391,7 @@ export default function PreOnboardingEditPage({
               </TooltipTrigger>
               <TooltipContent side="bottom" className="max-w-xs">
                 <p className="text-xs">
-                  De AI analyseert de vacaturetekst en genereert automatisch de benodigde documenten voor pre-onboarding.
+                  De AI analyseert de vacaturetekst en genereert automatisch de benodigde documenten voor document collectie.
                 </p>
               </TooltipContent>
             </Tooltip>

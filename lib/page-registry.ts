@@ -68,8 +68,8 @@ export const pageConfigs: Record<string, PageConfig> = {
   '/pre-screening/settings': { title: 'Pre-screening instellingen', icon: Settings },
   '/pre-screening/demo': { title: 'Pre-screening playground', icon: Play },
 
-  // Pre-onboarding
-  '/pre-onboarding': { title: 'Pre-onboarding', description: 'Verzamel documenten voor nieuwe medewerkers', icon: FileCheck },
+  // Document collectie
+  '/document-collection': { title: 'Document collectie', description: 'Verzamel documenten voor nieuwe medewerkers', icon: FileCheck },
 
   // Other features
   '/insights': { title: 'Pattern Finder', description: 'Ontdek verborgen patronen en optimaliseer je hiring proces', icon: ScanSearch },
@@ -105,9 +105,9 @@ export const dynamicRoutes: Array<{ pattern: RegExp; config: PageConfig }> = [
   // Interview routes
   { pattern: /^\/interviews\/generate\//, config: { title: 'Interview vragen', icon: Phone } },
 
-  // Pre-onboarding dynamic routes
-  { pattern: /^\/pre-onboarding\/detail\//, config: { title: 'Pre-onboarding', icon: FileCheck } },
-  { pattern: /^\/pre-onboarding\/generate\//, config: { title: 'Pre-onboarding', icon: FileCheck } },
+  // Document collectie dynamic routes
+  { pattern: /^\/document-collection\/detail\//, config: { title: 'Document collectie', icon: FileCheck } },
+  { pattern: /^\/document-collection\/generate\//, config: { title: 'Document collectie', icon: FileCheck } },
 
 ];
 

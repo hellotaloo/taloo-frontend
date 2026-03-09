@@ -154,7 +154,7 @@ const agentTypeConfig: Record<string, { label: string; icon: typeof PhoneCall; d
     description: 'Voert telefonische en WhatsApp screenings uit'
   },
   preonboarding: {
-    label: 'Pre-onboarding',
+    label: 'Document collectie',
     icon: FileText,
     description: 'Verzamelt documenten van kandidaten'
   },

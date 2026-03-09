@@ -108,7 +108,7 @@ function getAgentName(eventType: string, metadata: Record<string, unknown>): str
     return 'Pre-screening';
   }
   if (onboardingEvents.includes(eventType)) {
-    return 'Pre-onboarding';
+    return 'Document collectie';
   }
   if (cvEvents.includes(eventType)) {
     return 'CV Analyse';

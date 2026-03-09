@@ -58,11 +58,11 @@ export function AgentIcons({ agents, vacancyId, className }: AgentIconsProps) {
       )}
       {preonboardingVariant && (
         vacancyId ? (
-          <Link href={`/pre-onboarding/detail/${vacancyId}`} className="hover:brightness-90 transition-all">
-            <TagBadge label="Pre-onboarding" variant={preonboardingVariant} icon={FileCheck} />
+          <Link href={`/document-collection/detail/${vacancyId}`} className="hover:brightness-90 transition-all">
+            <TagBadge label="Document collectie" variant={preonboardingVariant} icon={FileCheck} />
           </Link>
         ) : (
-          <TagBadge label="Pre-onboarding" variant={preonboardingVariant} icon={FileCheck} />
+          <TagBadge label="Document collectie" variant={preonboardingVariant} icon={FileCheck} />
         )
       )}
       {insightsVariant && (

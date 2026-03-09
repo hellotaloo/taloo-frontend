@@ -17,6 +17,7 @@ import {
   Phone,
   AlertCircle,
   Activity,
+  FileCheck,
   History,
   LayoutDashboard,
   Plus,
@@ -66,6 +67,7 @@ const recordItems = [
 
 const agentItems = [
   { name: 'Pre-screening', href: '/pre-screening', icon: Phone, badgeKey: 'prescreening' as const },
+  { name: 'Document collectie', href: '/document-collection', icon: FileCheck },
 ];
 
 const footerNavItems = [

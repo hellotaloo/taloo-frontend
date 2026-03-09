@@ -16,7 +16,7 @@ import { PageLayout, PageLayoutHeader, PageLayoutContent } from '@/components/la
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 
-export default function PreOnboardingPage() {
+export default function DocumentCollectionPage() {
   const [newVacancies, setNewVacancies] = useState<Vacancy[]>([]);
   const [generatedVacancies, setGeneratedVacancies] = useState<Vacancy[]>([]);
   const [archivedVacancies, setArchivedVacancies] = useState<Vacancy[]>([]);
@@ -56,7 +56,7 @@ export default function PreOnboardingPage() {
     return (
       <div className="flex items-center justify-center py-24">
         <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
-        <span className="ml-2 text-gray-500">Pre-onboarding laden...</span>
+        <span className="ml-2 text-gray-500">Document collectie laden...</span>
       </div>
     );
   }
@@ -65,7 +65,7 @@ export default function PreOnboardingPage() {
     <PageLayout>
       <PageLayoutHeader
         action={
-          <Link href="/pre-onboarding/settings">
+          <Link href="/document-collection/settings">
             <Button variant="outline" size="sm" className="gap-2">
               <Settings className="w-4 h-4" />
               Instellingen
