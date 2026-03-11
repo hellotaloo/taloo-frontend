@@ -37,6 +37,12 @@ export default function UploadPage() {
         <p className="mt-1 text-sm text-gray-500">
           Je kunt dit venster sluiten.
         </p>
+        <a
+          href="https://wa.me/32456820441"
+          className="mt-4 rounded-lg bg-gray-900 px-5 py-3 text-sm font-medium text-white active:bg-gray-800"
+        >
+          Terug naar WhatsApp
+        </a>
       </div>
     );
   }
