@@ -84,6 +84,9 @@ export default function SignaturePage() {
     const _dataUrl = canvas.toDataURL("image/png");
     // TODO: send dataUrl to API with token
     setSubmitted(true);
+    setTimeout(() => {
+      window.location.href = "https://wa.me/32456820441";
+    }, 3000);
   }
 
   if (submitted) {

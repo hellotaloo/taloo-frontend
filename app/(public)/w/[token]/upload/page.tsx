@@ -21,6 +21,9 @@ export default function UploadPage() {
     if (!file) return;
     // TODO: upload file to API with token
     setSubmitted(true);
+    setTimeout(() => {
+      window.location.href = "https://wa.me/32456820441";
+    }, 3000);
   }
 
   function reset() {
