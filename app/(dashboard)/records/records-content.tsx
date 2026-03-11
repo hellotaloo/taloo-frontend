@@ -21,6 +21,8 @@ import {
   APIVacancyDetail,
 } from '@/lib/types';
 import { getCandidates, getCandidate, getVacanciesFromAPI, getVacancyDetail } from '@/lib/api';
+import { getCandidacies } from '@/lib/candidacy-api';
+import type { Candidacy, LinkedVacancy } from '@/lib/types';
 import { mockClients } from './mock-data';
 
 export type RecordsTab = 'vacancies' | 'candidates' | 'customers';
@@ -34,6 +36,13 @@ export function RecordsContent({ activeTab }: RecordsContentProps) {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [subTab, setSubTab] = useState<'active' | 'archived'>('active');
+  const [candidatesView, setCandidatesView] = useState<'list' | 'archived'>(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('candidates_view') as string;
+      return stored === 'archived' ? 'archived' : 'list';
+    }
+    return 'list';
+  });
 
   // API candidates state
   const [apiCandidates, setApiCandidates] = useState<APICandidateListItem[]>([]);
@@ -49,6 +58,9 @@ export function RecordsContent({ activeTab }: RecordsContentProps) {
   const [apiVacancies, setApiVacancies] = useState<APIVacancyListItem[]>([]);
   const [vacanciesLoading, setVacanciesLoading] = useState(true);
   const [vacanciesError, setVacanciesError] = useState<string | null>(null);
+
+  // All workspace candidacies (for list view columns)
+  const [allCandidacies, setAllCandidacies] = useState<Candidacy[]>([]);
 
   // Selected vacancy detail state
   const [selectedVacancyId, setSelectedVacancyId] = useState<string | null>(null);
@@ -101,6 +113,19 @@ export function RecordsContent({ activeTab }: RecordsContentProps) {
     }
 
     fetchVacancies();
+  }, []);
+
+  // Fetch all workspace candidacies for list view columns
+  useEffect(() => {
+    async function fetchAllCandidacies() {
+      try {
+        const resp = await getCandidacies({});
+        setAllCandidacies(resp.items ?? []);
+      } catch {
+        // non-critical
+      }
+    }
+    fetchAllCandidacies();
   }, []);
 
   // Fetch candidate detail when selected
@@ -188,9 +213,9 @@ export function RecordsContent({ activeTab }: RecordsContentProps) {
     return result;
   }, [searchQuery, apiVacancies, subTab]);
 
-  // Filter candidates based on sub-tab and search query
+  // Filter candidates based on view and search query
   const filteredCandidates = useMemo(() => {
-    let result = subTab === 'archived'
+    let result = candidatesView === 'archived'
       ? apiCandidates.filter((c) => archivedCandidateStatuses.has(c.status))
       : apiCandidates;
     if (searchQuery) {
@@ -234,38 +259,89 @@ export function RecordsContent({ activeTab }: RecordsContentProps) {
   };
   const isLoading = activeTab === 'vacancies' ? vacanciesLoading : activeTab === 'candidates' ? candidatesLoading : false;
 
+  // Build vacancy chips per candidate using linked_vacancies (same as pipeline)
+  const candidaciesByCandidate = useMemo(() => {
+    const map = new Map<string, LinkedVacancy[]>();
+    for (const c of allCandidacies) {
+      if (map.has(c.candidate_id)) continue;
+      if (c.linked_vacancies?.length) {
+        map.set(c.candidate_id, c.linked_vacancies);
+      }
+    }
+    return map;
+  }, [allCandidacies]);
+
+  // Count candidates per vacancy via linked_vacancies (vacancy_id is null in workspace-wide fetch)
+  const candidacyCountByVacancy = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const c of allCandidacies) {
+      for (const lv of c.linked_vacancies ?? []) {
+        map.set(lv.vacancy_id, (map.get(lv.vacancy_id) ?? 0) + 1);
+      }
+    }
+    return map;
+  }, [allCandidacies]);
+
   return (
     <>
       <PageLayout>
         <PageLayoutHeader />
         <PageLayoutContent>
-          {/* Sub-tab bar (Alle / Gearchiveerd) */}
-          <Tabs value={subTab} onValueChange={(v) => setSubTab(v as 'active' | 'archived')}>
-            <div className="flex items-center justify-between gap-4 mb-4">
-              <TabsList variant="line">
-                <TabsTrigger value="active">
-                  <List className="w-3.5 h-3.5" />
-                  Alle
-                  <span className="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-500 text-white">
-                    {isLoading ? '...' : allCounts[activeTab] ?? 0}
-                  </span>
-                </TabsTrigger>
-                <TabsTrigger value="archived">
-                  <Archive className="w-3.5 h-3.5" />
-                  Gearchiveerd
-                  <span className="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-500 text-white">
-                    {isLoading ? '...' : archivedCounts[activeTab] ?? 0}
-                  </span>
-                </TabsTrigger>
-              </TabsList>
-              <SearchInput
-                value={searchQuery}
-                onChange={setSearchQuery}
-                placeholder="Zoeken..."
-                className="w-64"
-              />
-            </div>
-          </Tabs>
+          {/* Tab bar — candidates gets Pipeline/Lijst/Gearchiveerd; others get Alle/Gearchiveerd */}
+          <div className="flex items-center justify-between gap-4 mb-4">
+            {activeTab === 'candidates' ? (
+              <Tabs
+                value={candidatesView}
+                onValueChange={(v) => {
+                  const view = v as 'list' | 'archived';
+                  setCandidatesView(view);
+                  localStorage.setItem('candidates_view', view);
+                }}
+              >
+                <TabsList variant="line">
+                  <TabsTrigger value="list">
+                    <List className="w-3.5 h-3.5" />
+                    Lijst
+                    <span className="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-500 text-white">
+                      {candidatesLoading ? '...' : apiCandidates.length}
+                    </span>
+                  </TabsTrigger>
+                  <TabsTrigger value="archived">
+                    <Archive className="w-3.5 h-3.5" />
+                    Gearchiveerd
+                    <span className="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-500 text-white">
+                      {candidatesLoading ? '...' : archivedCounts.candidates}
+                    </span>
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+            ) : (
+              <Tabs value={subTab} onValueChange={(v) => setSubTab(v as 'active' | 'archived')}>
+                <TabsList variant="line">
+                  <TabsTrigger value="active">
+                    <List className="w-3.5 h-3.5" />
+                    Alle
+                    <span className="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-500 text-white">
+                      {isLoading ? '...' : allCounts[activeTab] ?? 0}
+                    </span>
+                  </TabsTrigger>
+                  <TabsTrigger value="archived">
+                    <Archive className="w-3.5 h-3.5" />
+                    Gearchiveerd
+                    <span className="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-500 text-white">
+                      {isLoading ? '...' : archivedCounts[activeTab] ?? 0}
+                    </span>
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+            )}
+            <SearchInput
+              value={searchQuery}
+              onChange={setSearchQuery}
+              placeholder="Zoeken..."
+              className="w-64"
+            />
+          </div>
 
           {/* Tab content */}
           {activeTab === 'vacancies' && (
@@ -283,6 +359,7 @@ export function RecordsContent({ activeTab }: RecordsContentProps) {
                   vacancies={filteredVacancies}
                   selectedId={selectedVacancyId}
                   onRowClick={handleVacancyClick}
+                  candidacyCountByVacancy={candidacyCountByVacancy}
                 />
               )}
             </>
@@ -303,6 +380,7 @@ export function RecordsContent({ activeTab }: RecordsContentProps) {
                   candidates={filteredCandidates}
                   selectedId={selectedCandidateId}
                   onRowClick={handleCandidateClick}
+                  candidaciesByCandidate={candidaciesByCandidate}
                 />
               )}
             </>
@@ -321,6 +399,7 @@ export function RecordsContent({ activeTab }: RecordsContentProps) {
             candidate={selectedCandidateDetail}
             isLoading={candidateDetailLoading}
             onClose={handleCloseCandidateDetail}
+            vacancies={apiVacancies}
           />
         </SheetContent>
       </Sheet>

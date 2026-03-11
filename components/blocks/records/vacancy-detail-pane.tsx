@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   X,
   Building2,
@@ -24,14 +24,21 @@ import {
   PhoneCall,
   User,
   ExternalLink,
+  Plus,
+  Search,
 } from 'lucide-react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { StatusBadge } from '@/components/kit/status-badge';
 import { CollapseBox } from '@/components/kit/collapse-box';
 import { MarkdownContent } from '@/components/kit/markdown-content';
 import { cn } from '@/lib/utils';
-import { APIVacancyDetail, APIActivityResponse, APIApplicantSummary, VacancyAgents, AgentStatusInfo } from '@/lib/types';
+import { getCandidates } from '@/lib/api';
+import { getCandidacies, createCandidacy } from '@/lib/candidacy-api';
+import { APIVacancyDetail, APIActivityResponse, APIApplicantSummary, VacancyAgents, AgentStatusInfo, Candidacy, CandidacyStage, APICandidateListItem } from '@/lib/types';
+import { toast } from 'sonner';
 
 export interface VacancyDetailPaneProps {
   vacancy: APIVacancyDetail | null;
@@ -220,18 +227,206 @@ function AgentCard({ type, agent }: { type: string; agent: AgentStatusInfo }) {
   );
 }
 
+// ─── Stage labels ─────────────────────────────────────────────────────────────
+
+const STAGE_LABELS: Record<CandidacyStage, string> = {
+  new: 'Nieuw',
+  pre_screening: 'Pre-screening',
+  qualified: 'Gekwalificeerd',
+  interview_planned: 'Interview gepland',
+  interview_done: 'Interview afgerond',
+  offer: 'Aanbod',
+  placed: 'Geplaatst',
+  rejected: 'Afgewezen',
+  withdrawn: 'Teruggetrokken',
+};
+
+// ─── Candidate avatar ─────────────────────────────────────────────────────────
+
+function CandidateAvatar({ name }: { name: string }) {
+  const initials = name
+    .split(' ')
+    .slice(0, 2)
+    .map((p) => p[0])
+    .join('')
+    .toUpperCase();
+  return (
+    <div className="w-8 h-8 rounded-full bg-brand-dark-blue text-white flex items-center justify-center text-[10px] font-semibold shrink-0">
+      {initials}
+    </div>
+  );
+}
+
+// ─── Candidacy row ────────────────────────────────────────────────────────────
+
+function CandidacyRow({ candidacy }: { candidacy: Candidacy }) {
+  return (
+    <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+      <CandidateAvatar name={candidacy.candidate.full_name} />
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium text-gray-900 truncate">{candidacy.candidate.full_name}</p>
+        {candidacy.candidate.email && (
+          <p className="text-xs text-gray-500 truncate">{candidacy.candidate.email}</p>
+        )}
+      </div>
+      <span className="text-xs text-gray-500 shrink-0 bg-gray-200 rounded px-1.5 py-0.5">
+        {STAGE_LABELS[candidacy.stage] ?? candidacy.stage}
+      </span>
+    </div>
+  );
+}
+
+// ─── Add candidate modal ──────────────────────────────────────────────────────
+
+interface AddCandidateModalProps {
+  vacancyId: string;
+  onSuccess: () => void;
+  onClose: () => void;
+}
+
+function AddCandidateModal({ vacancyId, onSuccess, onClose }: AddCandidateModalProps) {
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState<APICandidateListItem[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [adding, setAdding] = useState<string | null>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleSearch = useCallback((value: string) => {
+    setQuery(value);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (!value.trim()) {
+      setResults([]);
+      return;
+    }
+    debounceRef.current = setTimeout(async () => {
+      setSearching(true);
+      try {
+        const resp = await getCandidates({ search: value, limit: 10 });
+        setResults(resp.items);
+      } catch {
+        toast.error('Zoeken mislukt');
+      } finally {
+        setSearching(false);
+      }
+    }, 300);
+  }, []);
+
+  const handleAdd = async (candidate: APICandidateListItem) => {
+    setAdding(candidate.id);
+    try {
+      await createCandidacy({
+        candidate_id: candidate.id,
+        vacancy_id: vacancyId,
+        stage: 'new',
+        source: 'manual',
+      });
+      toast.success(`${candidate.full_name} toegevoegd aan pipeline`);
+      onSuccess();
+      onClose();
+    } catch (err) {
+      if (err instanceof Error && err.message === 'CONFLICT') {
+        toast.error('Kandidaat staat al in deze pipeline');
+      } else {
+        toast.error('Toevoegen mislukt');
+      }
+    } finally {
+      setAdding(null);
+    }
+  };
+
+  return (
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Kandidaat toevoegen</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Input
+              value={query}
+              onChange={(e) => handleSearch(e.target.value)}
+              placeholder="Zoek op naam, e-mail of telefoon..."
+              className="pl-9"
+              autoFocus
+            />
+          </div>
+
+          {searching && (
+            <div className="flex justify-center py-4">
+              <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
+            </div>
+          )}
+
+          {!searching && results.length > 0 && (
+            <div className="space-y-1 max-h-60 overflow-y-auto">
+              {results.map((c) => (
+                <button
+                  key={c.id}
+                  className="w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-gray-50 transition-colors text-left disabled:opacity-50"
+                  onClick={() => handleAdd(c)}
+                  disabled={!!adding}
+                >
+                  <CandidateAvatar name={c.full_name} />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900 truncate">{c.full_name}</p>
+                    {c.email && <p className="text-xs text-gray-500 truncate">{c.email}</p>}
+                  </div>
+                  {adding === c.id && (
+                    <Loader2 className="w-4 h-4 animate-spin text-gray-400 shrink-0" />
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {!searching && query.trim() && results.length === 0 && (
+            <p className="text-sm text-gray-400 text-center py-4">Geen kandidaten gevonden</p>
+          )}
+
+          {!query.trim() && (
+            <p className="text-xs text-gray-400 text-center py-2">Type om te zoeken...</p>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ─── Tabs section ─────────────────────────────────────────────────────────────
+
 function TabsSection({
+  vacancyId,
   timeline,
   applicants,
   agents
 }: {
+  vacancyId: string;
   timeline: APIActivityResponse[];
   applicants: APIApplicantSummary[];
   agents?: VacancyAgents;
 }) {
   const [activeTab, setActiveTab] = useState<TabType>('timeline');
+  const [candidacies, setCandidacies] = useState<Candidacy[]>([]);
+  const [candidaciesLoading, setCandidaciesLoading] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
 
-  // Count active agents
+  const fetchCandidacies = useCallback(async () => {
+    setCandidaciesLoading(true);
+    try {
+      const result = await getCandidacies({ vacancy_id: vacancyId });
+      setCandidacies(result.items);
+    } catch {
+      toast.error('Kon kandidaten niet laden');
+    } finally {
+      setCandidaciesLoading(false);
+    }
+  }, [vacancyId]);
+
+  useEffect(() => {
+    fetchCandidacies();
+  }, [fetchCandidacies]);
+
   const activeAgentsCount = agents
     ? Object.values(agents).filter((a) => a.exists).length
     : 0;
@@ -272,7 +467,7 @@ function TabsSection({
                 : 'border-transparent text-gray-500 hover:text-gray-700'
             )}
           >
-            Kandidaten ({applicants.length})
+            Kandidaten ({candidaciesLoading ? '…' : candidacies.length})
           </button>
         </div>
       </div>
@@ -281,10 +476,28 @@ function TabsSection({
       <div className="flex-1 overflow-y-auto">
         {activeTab === 'candidates' && (
           <div className="px-6 py-4">
-            {applicants.length > 0 ? (
-              <div className="space-y-3">
-                {applicants.map((applicant) => (
-                  <ApplicantRow key={applicant.id} applicant={applicant} />
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                Pipeline
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 text-xs gap-1"
+                onClick={() => setShowAddModal(true)}
+              >
+                <Plus className="w-3 h-3" />
+                Kandidaat toevoegen
+              </Button>
+            </div>
+            {candidaciesLoading ? (
+              <div className="flex justify-center py-8">
+                <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
+              </div>
+            ) : candidacies.length > 0 ? (
+              <div className="space-y-2">
+                {candidacies.map((c) => (
+                  <CandidacyRow key={c.id} candidacy={c} />
                 ))}
               </div>
             ) : (
@@ -329,6 +542,14 @@ function TabsSection({
           </div>
         )}
       </div>
+
+      {showAddModal && (
+        <AddCandidateModal
+          vacancyId={vacancyId}
+          onSuccess={fetchCandidacies}
+          onClose={() => setShowAddModal(false)}
+        />
+      )}
     </div>
   );
 }
@@ -549,13 +770,12 @@ export function VacancyDetailPane({ vacancy, isLoading, onClose }: VacancyDetail
       </div>
 
       {/* Tabs and scrollable content */}
-      {(timeline.length > 0 || (vacancy.applicants && vacancy.applicants.length > 0) || vacancy.agents) && (
-        <TabsSection
-          timeline={timeline}
-          applicants={vacancy.applicants || []}
-          agents={vacancy.agents}
-        />
-      )}
+      <TabsSection
+        vacancyId={vacancy.id}
+        timeline={timeline}
+        applicants={vacancy.applicants || []}
+        agents={vacancy.agents}
+      />
     </div>
   );
 }

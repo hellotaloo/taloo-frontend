@@ -922,6 +922,32 @@ export interface OntologyChildEntity {
   metadata: Record<string, unknown>;
 }
 
+export type ScanMode = 'single' | 'front_back' | 'multi_page';
+
+export interface ExtractField {
+  name: string;
+  description: string;
+}
+
+export interface VerificationConfig {
+  check_expiry?: boolean;
+  check_name?: boolean;
+  additional_instructions?: string;
+  extract_fields: ExtractField[];
+}
+
+export interface VerificationSchemaField {
+  key: string;
+  label: string;
+  description: string;
+  type: string;
+}
+
+export interface VerificationSchema {
+  extract_fields: VerificationSchemaField[];
+  config_fields: VerificationSchemaField[];
+}
+
 /** A parent entity from GET /ontology/entities */
 export interface OntologyEntity {
   id: string;
@@ -934,6 +960,10 @@ export interface OntologyEntity {
   is_default: boolean;
   is_active: boolean;
   sort_order: number;
+  parent_id: string | null;
+  is_verifiable: boolean;
+  scan_mode: ScanMode;
+  verification_config: VerificationConfig | null;
   metadata: Record<string, unknown>;
   children: OntologyChildEntity[];
   children_count: number;
@@ -945,4 +975,70 @@ export interface OntologyEntitiesResponse {
   items: OntologyEntity[];
   total: number;
   categories: string[];
+}
+
+// =============================================================================
+// ATS — Candidacy Types
+// =============================================================================
+
+export type CandidacyStage =
+  | 'new'
+  | 'pre_screening'
+  | 'qualified'
+  | 'interview_planned'
+  | 'interview_done'
+  | 'offer'
+  | 'placed'
+  | 'rejected'
+  | 'withdrawn';
+
+export interface CandidacyCandidate {
+  id: string;
+  full_name: string;
+  phone: string | null;
+  email: string | null;
+}
+
+export interface CandidacyVacancy {
+  id: string;
+  title: string;
+  company: string | null;
+  is_open_application?: boolean;
+}
+
+export interface CandidacyApplicationSummary {
+  id: string;
+  channel: 'voice' | 'whatsapp' | 'cv';
+  qualified: boolean | null;
+  open_questions_score: number | null; // 0–100
+  knockout_passed: number;
+  knockout_total: number;
+  completed_at: string | null;
+}
+
+export interface LinkedVacancy {
+  candidacy_id: string;
+  vacancy_id: string;
+  vacancy_title: string;
+  stage: CandidacyStage;
+}
+
+export interface Candidacy {
+  id: string;
+  vacancy_id: string | null; // null = talent pool
+  candidate_id: string;
+  stage: CandidacyStage;
+  source: string | null; // 'voice' | 'whatsapp' | 'cv' | 'manual' | 'import'
+  stage_updated_at: string;
+  created_at: string;
+  updated_at: string;
+  candidate: CandidacyCandidate;
+  vacancy: CandidacyVacancy | null;
+  latest_application: CandidacyApplicationSummary | null;
+  linked_vacancies?: LinkedVacancy[];
+}
+
+export interface CandidaciesResponse {
+  items: Candidacy[];
+  total: number;
 }

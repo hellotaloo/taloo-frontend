@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect, useCallback } from 'react';
 import {
   X,
   Mail,
@@ -13,19 +14,34 @@ import {
   CheckCircle,
   Clock,
   XCircle,
+  Award,
+  Calendar,
+  UserPlus,
+  Archive,
+  Plus,
+  Search,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { cn } from '@/lib/utils';
+import { createCandidacy, getCandidacies } from '@/lib/candidacy-api';
+import { toast } from 'sonner';
 import {
   APICandidateDetail,
   APICandidateStatus,
   APIAvailabilityStatus,
-  APICandidateApplicationSummary,
+  APIActivityResponse,
+  APIVacancyListItem,
+  Candidacy,
+  CandidacyStage,
 } from '@/lib/types';
 
 export interface CandidateDetailPaneProps {
   candidate: APICandidateDetail | null;
   isLoading?: boolean;
   onClose: () => void;
+  vacancies?: APIVacancyListItem[];
 }
 
 // Status badge styles
@@ -42,14 +58,6 @@ const availabilityLabels: Record<APIAvailabilityStatus, string> = {
   available: 'Beschikbaar',
   unavailable: 'Niet beschikbaar',
   unknown: 'Onbekend',
-};
-
-// Application status styles
-const applicationStatusStyles: Record<string, { bg: string; text: string; label: string }> = {
-  active: { bg: 'bg-blue-500', text: 'text-white', label: 'Actief' },
-  processing: { bg: 'bg-orange-500', text: 'text-white', label: 'Verwerken' },
-  completed: { bg: 'bg-green-500', text: 'text-white', label: 'Afgerond' },
-  abandoned: { bg: 'bg-gray-500', text: 'text-white', label: 'Verlaten' },
 };
 
 // Channel icons
@@ -100,65 +108,229 @@ function RatingDisplay({ rating }: { rating: number | undefined }) {
   );
 }
 
-function ApplicationCard({ application }: { application: APICandidateApplicationSummary }) {
-  const statusStyle = applicationStatusStyles[application.status] || applicationStatusStyles.active;
-  const ChannelIcon = channelIcons[application.channel] || FileText;
+
+// ─── Timeline event ───────────────────────────────────────────────────────────
+
+const timelineEventConfig: Record<string, { icon: typeof Clock; color: string }> = {
+  candidate_applied: { icon: UserPlus, color: 'text-blue-500' },
+  screening_started: { icon: Clock, color: 'text-orange-500' },
+  screening_completed: { icon: CheckCircle, color: 'text-green-500' },
+  qualified: { icon: Award, color: 'text-green-500' },
+  candidate_qualified: { icon: Award, color: 'text-green-500' },
+  disqualified: { icon: XCircle, color: 'text-red-500' },
+  candidate_rejected: { icon: XCircle, color: 'text-red-500' },
+  interview_scheduled: { icon: Calendar, color: 'text-blue-500' },
+  interview_completed: { icon: CheckCircle, color: 'text-green-500' },
+  note_added: { icon: MessageSquare, color: 'text-gray-500' },
+  archived: { icon: Archive, color: 'text-gray-500' },
+  default: { icon: Clock, color: 'text-gray-400' },
+};
+
+function CandidateTimelineEvent({ activity, isLast }: { activity: APIActivityResponse; isLast: boolean }) {
+  const config = timelineEventConfig[activity.event_type] ?? timelineEventConfig.default;
+  const Icon = config.icon;
+  const ChannelIcon = activity.channel ? channelIcons[activity.channel] : null;
 
   return (
-    <div className="bg-gray-50 rounded-lg p-3 hover:bg-gray-50 transition-colors">
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <Briefcase className="w-4 h-4 text-gray-400 shrink-0" />
-            <p className="text-sm font-medium text-gray-900 truncate">{application.vacancy_title}</p>
-          </div>
-          <p className="text-xs text-gray-500 mt-0.5 ml-6">{application.vacancy_company}</p>
-        </div>
-        <span
-          className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium ${statusStyle.bg} ${statusStyle.text}`}
-        >
-          {statusStyle.label}
-        </span>
+    <div className="relative flex gap-3">
+      {!isLast && (
+        <div className="absolute left-[15px] top-8 w-[2px] h-[calc(100%+8px)] bg-gray-200" />
+      )}
+      <div className="relative z-10 flex items-center justify-center w-8 h-8 rounded-full bg-gray-50 shrink-0">
+        <Icon className={`w-4 h-4 ${config.color}`} />
       </div>
-
-      <div className="flex items-center gap-3 mt-2 ml-6">
-        <span className="inline-flex items-center gap-1 text-xs text-gray-500">
-          <ChannelIcon className="w-3 h-3" />
-          {application.channel === 'whatsapp' ? 'WhatsApp' : application.channel === 'voice' ? 'Voice' : 'CV'}
-        </span>
-        {/* Show "Bezig" for active/processing applications */}
-        {(application.status === 'active' || application.status === 'processing') && (
-          <span className="inline-flex items-center gap-1 text-xs text-blue-600">
-            <Clock className="w-3 h-3" />
-            Bezig
-          </span>
-        )}
-        {/* Only show qualified/not qualified for completed applications */}
-        {application.status === 'completed' && application.qualified !== undefined && (
-          <span className={`inline-flex items-center gap-1 text-xs ${application.qualified ? 'text-green-600' : 'text-red-500'}`}>
-            {application.qualified ? (
-              <>
-                <CheckCircle className="w-3 h-3" />
-                Gekwalificeerd
-              </>
-            ) : (
-              <>
-                <XCircle className="w-3 h-3" />
-                Niet gekwalificeerd
-              </>
+      <div className="flex-1 pb-4">
+        <div className="flex items-start justify-between gap-2">
+          <div>
+            <p className="text-sm font-medium text-gray-900">
+              {activity.summary || activity.event_type.replace(/_/g, ' ')}
+            </p>
+            {activity.channel && ChannelIcon && (
+              <span className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
+                <ChannelIcon className="w-3 h-3" />
+                {activity.channel === 'whatsapp' ? 'WhatsApp' : activity.channel === 'voice' ? 'Voice' : activity.channel}
+              </span>
             )}
+          </div>
+          <span className="text-[10px] text-gray-400 whitespace-nowrap">
+            {formatDateTime(activity.created_at)}
           </span>
-        )}
-        <span className="inline-flex items-center gap-1 text-xs text-gray-400">
-          <Clock className="w-3 h-3" />
-          {formatDateTime(application.started_at)}
-        </span>
+        </div>
       </div>
     </div>
   );
 }
 
-export function CandidateDetailPane({ candidate, isLoading, onClose }: CandidateDetailPaneProps) {
+// ─── Stage labels ─────────────────────────────────────────────────────────────
+
+const STAGE_LABELS: Record<CandidacyStage, string> = {
+  new: 'Nieuw',
+  pre_screening: 'Pre-screening',
+  qualified: 'Gekwalificeerd',
+  interview_planned: 'Interview gepland',
+  interview_done: 'Interview afgerond',
+  offer: 'Aanbod',
+  placed: 'Geplaatst',
+  rejected: 'Afgewezen',
+  withdrawn: 'Teruggetrokken',
+};
+
+// ─── Candidacy vacancy row ────────────────────────────────────────────────────
+
+function CandidacyVacancyRow({ candidacy }: { candidacy: Candidacy }) {
+  const isManual = candidacy.source === 'manual';
+  const channelIcon = !isManual && candidacy.source
+    ? channelIcons[candidacy.source as keyof typeof channelIcons]
+    : null;
+  const ChannelIcon = channelIcon || null;
+
+  return (
+    <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+      <div className="w-8 h-8 rounded-lg bg-brand-dark-blue flex items-center justify-center shrink-0">
+        <Briefcase className="w-4 h-4 text-white" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium text-gray-900 truncate">
+          {candidacy.vacancy?.title ?? 'Onbekende vacature'}
+        </p>
+        <div className="flex items-center gap-2 mt-0.5 text-xs text-gray-500">
+          {candidacy.vacancy?.company && (
+            <span className="truncate">{candidacy.vacancy.company}</span>
+          )}
+          {ChannelIcon && (
+            <span className="flex items-center gap-1 shrink-0">
+              <ChannelIcon className="w-3 h-3" />
+            </span>
+          )}
+          {isManual && <span className="shrink-0">Manueel</span>}
+        </div>
+      </div>
+      <span className="text-xs text-gray-500 shrink-0 bg-gray-200 rounded px-1.5 py-0.5">
+        {STAGE_LABELS[candidacy.stage] ?? candidacy.stage}
+      </span>
+    </div>
+  );
+}
+
+// ─── Add vacancy modal ────────────────────────────────────────────────────────
+
+interface AddVacancyModalProps {
+  candidateId: string;
+  vacancies: APIVacancyListItem[];
+  onSuccess: () => void;
+  onClose: () => void;
+}
+
+function AddVacancyModal({ candidateId, vacancies, onSuccess, onClose }: AddVacancyModalProps) {
+  const [query, setQuery] = useState('');
+  const [adding, setAdding] = useState<string | null>(null);
+
+  const filtered = query.trim()
+    ? vacancies.filter(
+        (v) =>
+          v.title.toLowerCase().includes(query.toLowerCase()) ||
+          v.company.toLowerCase().includes(query.toLowerCase())
+      )
+    : vacancies;
+
+  const handleAdd = async (vacancy: APIVacancyListItem) => {
+    setAdding(vacancy.id);
+    try {
+      await createCandidacy({
+        candidate_id: candidateId,
+        vacancy_id: vacancy.id,
+        stage: 'new',
+        source: 'manual',
+      });
+      toast.success(`Toegevoegd aan "${vacancy.title}"`);
+      onSuccess();
+      onClose();
+    } catch (err) {
+      if (err instanceof Error && err.message === 'CONFLICT') {
+        toast.error('Kandidaat staat al in deze pipeline');
+      } else {
+        toast.error('Toevoegen mislukt');
+      }
+    } finally {
+      setAdding(null);
+    }
+  };
+
+  return (
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Vacature toevoegen</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Zoek op titel of bedrijf..."
+              className="pl-9"
+              autoFocus
+            />
+          </div>
+
+          {filtered.length > 0 ? (
+            <div className="space-y-1 max-h-60 overflow-y-auto">
+              {filtered.map((v) => (
+                <button
+                  key={v.id}
+                  className="w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-gray-50 transition-colors text-left disabled:opacity-50"
+                  onClick={() => handleAdd(v)}
+                  disabled={!!adding}
+                >
+                  <div className="w-8 h-8 rounded-lg bg-brand-dark-blue flex items-center justify-center shrink-0">
+                    <Briefcase className="w-4 h-4 text-white" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900 truncate">{v.title}</p>
+                    <p className="text-xs text-gray-500 truncate">{v.company}</p>
+                  </div>
+                  {adding === v.id && (
+                    <Loader2 className="w-4 h-4 animate-spin text-gray-400 shrink-0" />
+                  )}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-gray-400 text-center py-4">Geen vacatures gevonden</p>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ─── Main component ───────────────────────────────────────────────────────────
+
+export function CandidateDetailPane({ candidate, isLoading, onClose, vacancies = [] }: CandidateDetailPaneProps) {
+  const [activeTab, setActiveTab] = useState<'vacatures' | 'tijdlijn'>('vacatures');
+  const [showAddVacancyModal, setShowAddVacancyModal] = useState(false);
+  const [candidacies, setCandidacies] = useState<Candidacy[]>([]);
+  const [candidaciesLoading, setCandidaciesLoading] = useState(false);
+
+  const fetchCandidacies = useCallback(async (candidateId: string) => {
+    setCandidaciesLoading(true);
+    try {
+      const result = await getCandidacies({ candidate_id: candidateId });
+      // Filter out talent pool entries (no linked vacancy)
+      setCandidacies(result.items.filter((c) => c.vacancy !== null));
+    } catch {
+      toast.error('Kon vacatures niet laden');
+    } finally {
+      setCandidaciesLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (candidate?.id) fetchCandidacies(candidate.id);
+    else setCandidacies([]);
+  }, [candidate?.id, fetchCandidacies]);
+
   if (isLoading) {
     return (
       <div className="flex flex-col h-full bg-white">
@@ -181,10 +353,7 @@ export function CandidateDetailPane({ candidate, isLoading, onClose }: Candidate
   const skills = candidate.skills.filter(s => s.skill_category !== 'certificates');
   const certificates = candidate.skills.filter(s => s.skill_category === 'certificates');
 
-  // Sort applications by date (newest first)
-  const sortedApplications = [...candidate.applications].sort(
-    (a, b) => new Date(b.started_at).getTime() - new Date(a.started_at).getTime()
-  );
+  const timeline = candidate.timeline ?? [];
 
   return (
     <div className="flex flex-col h-full bg-white">
@@ -246,13 +415,13 @@ export function CandidateDetailPane({ candidate, isLoading, onClose }: Candidate
             </p>
           </div>
 
-          {/* Applications Count */}
+          {/* Vacancies Count */}
           <div className="bg-gray-50 rounded-lg p-3">
             <p className="text-[10px] font-medium text-gray-500 uppercase tracking-wide mb-1">
-              Sollicitaties
+              Vacatures
             </p>
             <p className="text-sm font-medium text-gray-900">
-              {candidate.applications.length} totaal
+              {candidaciesLoading ? '…' : candidacies.length} totaal
             </p>
           </div>
         </div>
@@ -285,26 +454,100 @@ export function CandidateDetailPane({ candidate, isLoading, onClose }: Candidate
         )}
       </div>
 
-      {/* Scrollable content */}
-      <div className="flex-1 overflow-y-auto">
-        {/* Applications */}
-        <div className="px-6 py-4">
-          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
-            Sollicitaties ({candidate.applications.length})
-          </h3>
-          {sortedApplications.length > 0 ? (
-            <div className="space-y-2">
-              {sortedApplications.map((application) => (
-                <ApplicationCard key={application.id} application={application} />
-              ))}
+      {/* Tabs */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="shrink-0 border-b border-gray-200 px-6">
+          <div className="flex gap-6">
+            <button
+              onClick={() => setActiveTab('vacatures')}
+              className={cn(
+                'py-3 text-sm font-medium border-b-2 -mb-px transition-colors',
+                activeTab === 'vacatures'
+                  ? 'border-gray-900 text-gray-900'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              )}
+            >
+              Vacatures ({candidaciesLoading ? '…' : candidacies.length})
+            </button>
+            <button
+              onClick={() => setActiveTab('tijdlijn')}
+              className={cn(
+                'py-3 text-sm font-medium border-b-2 -mb-px transition-colors',
+                activeTab === 'tijdlijn'
+                  ? 'border-gray-900 text-gray-900'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              )}
+            >
+              Tijdlijn ({timeline.length})
+            </button>
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto">
+          {activeTab === 'vacatures' && (
+            <div className="px-6 py-4">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                  Pipeline
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-xs gap-1"
+                  onClick={() => setShowAddVacancyModal(true)}
+                >
+                  <Plus className="w-3 h-3" />
+                  Vacature toevoegen
+                </Button>
+              </div>
+              {candidaciesLoading ? (
+                <div className="flex justify-center py-8">
+                  <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
+                </div>
+              ) : candidacies.length > 0 ? (
+                <div className="space-y-2">
+                  {candidacies.map((c) => (
+                    <CandidacyVacancyRow key={c.id} candidacy={c} />
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-400 text-center py-8">
+                  Geen vacatures
+                </p>
+              )}
             </div>
-          ) : (
-            <p className="text-sm text-gray-400 text-center py-8">
-              Nog geen sollicitaties
-            </p>
+          )}
+
+          {activeTab === 'tijdlijn' && (
+            <div className="px-6 py-4">
+              {timeline.length > 0 ? (
+                <div className="space-y-0">
+                  {timeline.map((event, index) => (
+                    <CandidateTimelineEvent
+                      key={event.id}
+                      activity={event}
+                      isLast={index === timeline.length - 1}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-400 text-center py-8">
+                  Geen activiteit
+                </p>
+              )}
+            </div>
           )}
         </div>
       </div>
+
+      {showAddVacancyModal && (
+        <AddVacancyModal
+          candidateId={candidate.id}
+          vacancies={vacancies}
+          onSuccess={() => fetchCandidacies(candidate.id)}
+          onClose={() => setShowAddVacancyModal(false)}
+        />
+      )}
     </div>
   );
 }

@@ -28,9 +28,9 @@ import {
   Building2,
   FileCheck,
   FileText,
-
   History,
   Inbox,
+  Kanban,
   LayoutDashboard,
   LayoutList,
   Mic,
@@ -59,6 +59,7 @@ export const pageConfigs: Record<string, PageConfig> = {
   '/records': { title: 'Records', description: 'Bekijk en beheer al je gegevens', icon: LayoutList },
   '/records/vacancies': { title: 'Vacatures', description: 'Bekijk en beheer al je vacatures', icon: Briefcase },
   '/records/candidates': { title: 'Kandidaten', description: 'Bekijk en beheer al je kandidaten', icon: Users },
+  '/records/pipeline': { title: 'Pipeline', description: 'Overzicht van alle actieve sollicitaties per fase', icon: Kanban },
   '/records/customers': { title: 'Klanten', description: 'Bekijk en beheer al je klanten', icon: Building2 },
   '/activities': { title: 'Activiteiten', description: 'Status van alle lopende en afgeronde agent activiteiten', icon: Activity },
   '/agents': { title: 'Agents', description: 'Ontdek en activeer AI agents voor je workspace', icon: Boxes },
@@ -103,6 +104,9 @@ export const dynamicRoutes: Array<{ pattern: RegExp; config: PageConfig }> = [
 
   // Interview routes
   { pattern: /^\/interviews\/generate\//, config: { title: 'Interview vragen', icon: Phone } },
+
+  // Vacancy pipeline
+  { pattern: /^\/records\/vacancies\/[^/]+\/pipeline/, config: { title: 'Pipeline', icon: Briefcase } },
 
   // Documentcollectie dynamic routes
   { pattern: /^\/document-collection\/detail\//, config: { title: 'Documentcollectie', icon: FileCheck } },

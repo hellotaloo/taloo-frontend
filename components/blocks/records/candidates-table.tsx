@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import { Users } from 'lucide-react';
-import { APICandidateListItem } from '@/lib/types';
+import { APICandidateListItem, LinkedVacancy } from '@/lib/types';
 import {
   DataTable,
   DataTableHeader,
@@ -15,6 +15,7 @@ export interface CandidatesTableProps {
   candidates: APICandidateListItem[];
   selectedId?: string | null;
   onRowClick?: (candidate: APICandidateListItem) => void;
+  candidaciesByCandidate?: Map<string, LinkedVacancy[]>;
 }
 
 function formatRelativeDate(dateString: string | null | undefined) {
@@ -33,7 +34,7 @@ function formatRelativeDate(dateString: string | null | undefined) {
   return date.toLocaleDateString('nl-BE', { day: 'numeric', month: 'short' });
 }
 
-export function CandidatesTable({ candidates, selectedId, onRowClick }: CandidatesTableProps) {
+export function CandidatesTable({ candidates, selectedId, onRowClick, candidaciesByCandidate }: CandidatesTableProps) {
   const columns: Column<APICandidateListItem>[] = [
     {
       key: 'name',
@@ -43,10 +44,43 @@ export function CandidatesTable({ candidates, selectedId, onRowClick }: Candidat
       accessor: (item) => item.full_name,
       render: (item) => (
         <div className="min-w-0">
-          <span className="font-medium text-gray-900">{item.full_name}</span>
+          <div className="flex items-center gap-2">
+            <span className="font-medium text-gray-900">{item.full_name}</span>
+            {item.is_test && (
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-100 text-amber-700 border border-amber-200 shrink-0">
+                Test
+              </span>
+            )}
+          </div>
           {item.phone && <div className="text-xs text-gray-400 mt-0.5">{item.phone}</div>}
         </div>
       ),
+    },
+    {
+      key: 'vacancies',
+      header: 'Vacatures',
+      sortable: false,
+      className: 'min-w-[200px]',
+      accessor: () => '',
+      render: (item) => {
+        const linkedVacancies = candidaciesByCandidate?.get(item.id) ?? [];
+        if (linkedVacancies.length === 0) {
+          return <span className="text-xs text-gray-400">-</span>;
+        }
+        return (
+          <div className="flex flex-wrap gap-1">
+            {linkedVacancies.map((lv) => (
+              <span
+                key={lv.candidacy_id}
+                className="inline-flex items-center px-2 py-0.5 rounded-md bg-gray-100 text-xs text-gray-600 truncate max-w-[160px]"
+                title={lv.vacancy_title}
+              >
+                {lv.vacancy_title}
+              </span>
+            ))}
+          </div>
+        );
+      },
     },
     {
       key: 'source',

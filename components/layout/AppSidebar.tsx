@@ -14,6 +14,7 @@ import {
   User,
   Users,
   Check,
+  Kanban,
   Phone,
   AlertCircle,
   Activity,
@@ -61,6 +62,7 @@ const primaryNavItems = [
 ];
 
 const recordItems = [
+  { name: 'Pipeline', href: '/records/pipeline', icon: Kanban },
   { name: 'Vacatures', href: '/records/vacancies', icon: Briefcase },
   { name: 'Kandidaten', href: '/records/candidates', icon: Users },
   { name: 'Klanten', href: '/records/customers', icon: Building2 },

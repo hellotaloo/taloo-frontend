@@ -45,6 +45,7 @@ export interface VacanciesTableProps {
   vacancies: APIVacancyListItem[];
   selectedId?: string | null;
   onRowClick?: (vacancy: APIVacancyListItem) => void;
+  candidacyCountByVacancy?: Map<string, number>;
 }
 
 // Status display labels (Dutch) - supports both legacy and new API status values
@@ -115,7 +116,7 @@ function formatRelativeDate(dateString: string | null | undefined) {
   return date.toLocaleDateString('nl-BE', { day: 'numeric', month: 'short' });
 }
 
-export function VacanciesTable({ vacancies, selectedId, onRowClick }: VacanciesTableProps) {
+export function VacanciesTable({ vacancies, selectedId, onRowClick, candidacyCountByVacancy }: VacanciesTableProps) {
   const columns: Column<APIVacancyListItem>[] = [
     {
       key: 'title',
@@ -140,6 +141,24 @@ export function VacanciesTable({ vacancies, selectedId, onRowClick }: VacanciesT
           </div>
         </div>
       ),
+    },
+    {
+      key: 'kandidaten',
+      header: 'Kandidaten',
+      sortable: true,
+      className: 'w-[110px]',
+      accessor: (item) => candidacyCountByVacancy?.get(item.id) ?? 0,
+      render: (item) => {
+        const count = candidacyCountByVacancy?.get(item.id) ?? 0;
+        return (
+          <span className={cn(
+            'inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-medium',
+            count > 0 ? 'bg-brand-dark-blue text-white' : 'bg-gray-100 text-gray-400'
+          )}>
+            {count}
+          </span>
+        );
+      },
     },
     {
       key: 'agents',
