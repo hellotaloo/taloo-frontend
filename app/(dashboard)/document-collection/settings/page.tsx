@@ -19,7 +19,7 @@ export default function DocumentCollectionSettingsPage() {
           >
             <ArrowLeft className="w-5 h-5" />
           </Link>
-          <h1 className="text-lg font-semibold text-gray-900">Document collectie instellingen</h1>
+          <h1 className="text-lg font-semibold text-gray-900">Documentcollectie instellingen</h1>
         </div>
       </PageLayoutHeader>
       <PageLayoutContent>

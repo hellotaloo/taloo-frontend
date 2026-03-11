@@ -1469,14 +1469,32 @@ Get the global pre-screening agent configuration (single row, applies to all scr
 ```typescript
 interface PreScreeningConfigResponse {
   id: string;                    // Config row UUID
-  max_unrelated_answers: number; // Max off-topic answers before ending (default: 2)
-  schedule_days_ahead: number;   // Days ahead to offer for scheduling (default: 3)
-  schedule_start_offset: number; // Days offset before first available slot (default: 1)
-  planning_mode: string;         // "funnel" | "direct" | "calendar"
-  intro_message: string | null;  // Custom intro message
-  success_message: string | null;// Custom success message
-  require_consent: boolean;      // Ask candidate consent before screening
-  allow_escalation: boolean;     // Allow candidates to request a human
+  config_type: string;           // "pre_screening"
+  version: number;               // Config version
+  settings: {
+    voice: {
+      model_id: string;          // ElevenLabs model ID (e.g. "eleven_flash_v2_5")
+      voice_id: string;          // ElevenLabs voice ID
+      stability: number;         // Voice stability (0-1)
+      similarity_boost: number;  // Voice similarity boost (0-1)
+    };
+    general: {
+      intro_message: string | null;  // Custom intro message
+      success_message: string | null;// Custom success message
+      max_unrelated_answers: number; // Max off-topic answers before ending (default: 3)
+    };
+    planning: {
+      planning_mode: string;         // "funnel" | "direct" | "calendar"
+      schedule_days_ahead: number;   // Days ahead to offer for scheduling (default: 3)
+      schedule_start_offset: number; // Days offset before first available slot (default: 1)
+    };
+    interview: {
+      require_consent: boolean;      // Ask candidate consent before screening
+    };
+    escalation: {
+      allow_escalation: boolean;     // Allow candidates to request a human
+    };
+  };
 }
 ```
 
@@ -1498,14 +1516,13 @@ Update the global pre-screening agent configuration. All fields optional.
 
 ```typescript
 interface PreScreeningConfigUpdateRequest {
-  max_unrelated_answers?: number;
-  schedule_days_ahead?: number;
-  schedule_start_offset?: number;
-  planning_mode?: string;         // "funnel" | "direct" | "calendar"
-  intro_message?: string;
-  success_message?: string;
-  require_consent?: boolean;
-  allow_escalation?: boolean;
+  settings: {
+    voice?: Partial<PreScreeningConfigResponse['settings']['voice']>;
+    general?: Partial<PreScreeningConfigResponse['settings']['general']>;
+    planning?: Partial<PreScreeningConfigResponse['settings']['planning']>;
+    interview?: Partial<PreScreeningConfigResponse['settings']['interview']>;
+    escalation?: Partial<PreScreeningConfigResponse['settings']['escalation']>;
+  };
 }
 ```
 

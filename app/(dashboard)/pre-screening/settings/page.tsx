@@ -78,19 +78,20 @@ export default function PreScreeningSettingsPage() {
     async function loadConfig() {
       try {
         const config = await getPreScreeningConfig();
-        setMaxUnrelatedAnswers(config.max_unrelated_answers);
-        setScheduleDaysAhead(config.schedule_days_ahead);
-        setScheduleStartOffset(config.schedule_start_offset);
-        setConsentEnabled(config.require_consent);
-        setEscalationEnabled(config.allow_escalation);
-        setSchedulingOption(config.planning_mode as 'funnel' | 'direct');
-        if (config.intro_message) {
-          setIntroMessage(config.intro_message);
-          setTempIntro(config.intro_message);
+        const { general, planning, interview, escalation } = config.settings;
+        setMaxUnrelatedAnswers(general.max_unrelated_answers);
+        setScheduleDaysAhead(planning.schedule_days_ahead);
+        setScheduleStartOffset(planning.schedule_start_offset);
+        setConsentEnabled(interview.require_consent);
+        setEscalationEnabled(escalation.allow_escalation);
+        setSchedulingOption(planning.planning_mode as 'funnel' | 'direct');
+        if (general.intro_message) {
+          setIntroMessage(general.intro_message);
+          setTempIntro(general.intro_message);
         }
-        if (config.success_message) {
-          setSuccessMessage(config.success_message);
-          setTempSuccess(config.success_message);
+        if (general.success_message) {
+          setSuccessMessage(general.success_message);
+          setTempSuccess(general.success_message);
         }
       } catch (error) {
         console.error('Failed to load pre-screening config:', error);
@@ -136,14 +137,24 @@ export default function PreScreeningSettingsPage() {
     setIsSaving(true);
     try {
       await updatePreScreeningConfig({
-        max_unrelated_answers: maxUnrelatedAnswers,
-        schedule_days_ahead: scheduleDaysAhead,
-        schedule_start_offset: scheduleStartOffset,
-        planning_mode: schedulingOption,
-        intro_message: introMessage,
-        success_message: successMessage,
-        require_consent: consentEnabled,
-        allow_escalation: escalationEnabled,
+        settings: {
+          general: {
+            max_unrelated_answers: maxUnrelatedAnswers,
+            intro_message: introMessage,
+            success_message: successMessage,
+          },
+          planning: {
+            schedule_days_ahead: scheduleDaysAhead,
+            schedule_start_offset: scheduleStartOffset,
+            planning_mode: schedulingOption,
+          },
+          interview: {
+            require_consent: consentEnabled,
+          },
+          escalation: {
+            allow_escalation: escalationEnabled,
+          },
+        },
       });
       toast.success('Instellingen opgeslagen');
       router.refresh();

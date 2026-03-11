@@ -68,15 +68,15 @@ export const pageConfigs: Record<string, PageConfig> = {
   '/pre-screening/settings': { title: 'Pre-screening instellingen', icon: Settings },
   '/pre-screening/demo': { title: 'Pre-screening playground', icon: Play },
 
-  // Document collectie
-  '/document-collection': { title: 'Document collectie', description: 'Verzamel documenten voor nieuwe medewerkers', icon: FileCheck },
+  // Documentcollectie
+  '/document-collection': { title: 'Documentcollectie', description: 'Verzamel documenten voor nieuwe medewerkers', icon: FileCheck },
 
   // Other features
   '/insights': { title: 'Pattern Finder', description: 'Ontdek verborgen patronen en optimaliseer je hiring proces', icon: ScanSearch },
   '/audit-trail': { title: 'Audit trail', description: 'Geschiedenis van alle agent en systeem gebeurtenissen', icon: History },
 
   // Admin section
-  '/admin': { title: 'Settings', description: 'Beheer instellingen en configuraties', icon: Settings },
+  '/admin': { title: 'Instellingen', description: 'Beheer instellingen en configuraties', icon: Settings },
   '/admin/voice-settings': { title: 'Voice instellingen', icon: Mic },
   '/admin/ontology': { title: 'Ontology', icon: Boxes },
   '/admin/ontology/graph': { title: 'Ontology Graph', icon: GitBranch },
@@ -105,9 +105,9 @@ export const dynamicRoutes: Array<{ pattern: RegExp; config: PageConfig }> = [
   // Interview routes
   { pattern: /^\/interviews\/generate\//, config: { title: 'Interview vragen', icon: Phone } },
 
-  // Document collectie dynamic routes
-  { pattern: /^\/document-collection\/detail\//, config: { title: 'Document collectie', icon: FileCheck } },
-  { pattern: /^\/document-collection\/generate\//, config: { title: 'Document collectie', icon: FileCheck } },
+  // Documentcollectie dynamic routes
+  { pattern: /^\/document-collection\/detail\//, config: { title: 'Documentcollectie', icon: FileCheck } },
+  { pattern: /^\/document-collection\/generate\//, config: { title: 'Documentcollectie', icon: FileCheck } },
 
 ];
 

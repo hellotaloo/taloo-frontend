@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Loader2, AlertCircle, Inbox, Play, CheckCircle2, List, ArrowUp, ArrowDown, ChevronsUpDown, Eye, Check, Circle, AlertTriangle, PauseCircle, Clock, Trash2 } from 'lucide-react';
+import { Loader2, AlertCircle, Play, CheckCircle2, List, ArrowUp, ArrowDown, ChevronsUpDown, Eye, Check, Circle, AlertTriangle, PauseCircle, Clock } from 'lucide-react';
 import { cn, formatRelativeDate } from '@/lib/utils';
 import { PageLayout, PageLayoutHeader, PageLayoutContent } from '@/components/layout/page-layout';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -33,14 +33,15 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Timeline } from '@/components/kit/timeline/timeline';
 import { TimelineNode } from '@/components/kit/timeline/timeline-node';
-import { getActivityTasks, completeTask, deleteTask, type TaskRow, type GetActivityTasksParams } from '@/lib/api';
+import { getActivityTasks, completeTask, type TaskRow, type GetActivityTasksParams } from '@/lib/api';
 import { TagBadge, type TagBadgeVariant } from '@/components/kit/tag-badge';
 import { useAuth } from '@/contexts';
+import { useRealtimeTable } from '@/hooks/use-realtime-table';
 
 // Activity status badge using TagBadge
 function ActivityStatusBadge({ status, isStuck, currentStep }: { status: string; isStuck: boolean; currentStep: string }) {
   if (isStuck || status === 'stuck') {
-    return <TagBadge label="Vast" variant="orange" />;
+    return <TagBadge label="Geblokkeerd" variant="orange" />;
   }
   if (status === 'completed') {
     // Manually completed tasks show a different label with outline style
@@ -208,9 +209,6 @@ export default function ActivitiesPage() {
   const [completeDialogTask, setCompleteDialogTask] = useState<TaskRow | null>(null);
   const [completionNotes, setCompletionNotes] = useState('');
   const [isCompleting, setIsCompleting] = useState(false);
-  // Delete task dialog state
-  const [deleteDialogTask, setDeleteDialogTask] = useState<TaskRow | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
 
   // Fetch counts separately (always from active tasks)
   const fetchCounts = useCallback(async () => {
@@ -277,22 +275,6 @@ export default function ActivitiesPage() {
     }
   };
 
-  // Handle delete task (from dialog)
-  const handleDeleteTask = async () => {
-    if (!deleteDialogTask) return;
-
-    setIsDeleting(true);
-    try {
-      await deleteTask(deleteDialogTask.id);
-      setDeleteDialogTask(null);
-      fetchTasks();
-    } catch (err) {
-      console.error('Failed to delete task:', err);
-    } finally {
-      setIsDeleting(false);
-    }
-  };
-
   // Initial fetch
   useEffect(() => {
     setIsLoading(true);
@@ -304,15 +286,15 @@ export default function ActivitiesPage() {
     fetchCounts();
   }, [activeFilter, fetchCounts]);
 
-  // Polling every 5 seconds
-  useEffect(() => {
-    const interval = setInterval(() => {
+  // Re-fetch when workflows change in the database (replaces 5s polling)
+  useRealtimeTable({
+    schema: 'agents',
+    table: 'workflows',
+    onUpdate: () => {
       fetchTasks();
       fetchCounts();
-    }, 5000);
-
-    return () => clearInterval(interval);
-  }, [fetchTasks, fetchCounts, activeFilter]);
+    },
+  });
 
   // Handle filter change
   const handleFilterChange = (value: string) => {
@@ -442,7 +424,7 @@ export default function ActivitiesPage() {
             </TabsTrigger>
             <TabsTrigger value="stuck" data-testid="filter-stuck">
               <PauseCircle className="w-3.5 h-3.5" />
-              Vast
+              Geblokkeerd
               <span className="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-500 text-white">
                 {isLoading && stuckCount === 0 ? '...' : stuckCount}
               </span>
@@ -551,7 +533,6 @@ export default function ActivitiesPage() {
                       <TableCell>
                         <div className="flex items-center justify-end gap-1">
                           {task.is_stuck && (
-                            <>
                               <Button
                                 variant="ghost"
                                 size="sm"
@@ -562,17 +543,6 @@ export default function ActivitiesPage() {
                               >
                                 <CheckCircle2 className="w-4 h-4 text-green-600" />
                               </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                                onClick={() => setDeleteDialogTask(task)}
-                                data-testid={`delete-task-${task.id}`}
-                                title="Verwijderen"
-                              >
-                                <Trash2 className="w-4 h-4 text-red-600" />
-                              </Button>
-                            </>
                           )}
                           <Button
                             variant="ghost"
@@ -734,45 +704,6 @@ export default function ActivitiesPage() {
           </AlertDialogContent>
         </AlertDialog>
 
-        {/* Delete Task Dialog */}
-        <AlertDialog open={!!deleteDialogTask} onOpenChange={(open) => {
-          if (!open) {
-            setDeleteDialogTask(null);
-          }
-        }}>
-          <AlertDialogContent className="sm:max-w-md">
-            <AlertDialogHeader>
-              <AlertDialogTitle>Taak verwijderen</AlertDialogTitle>
-              <AlertDialogDescription>
-                Weet je zeker dat je deze taak wilt verwijderen? Dit kan niet ongedaan worden gemaakt.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-
-            {/* Task info summary */}
-            <div className="py-2 px-3 bg-gray-50 rounded-lg text-sm">
-              <p className="font-medium">{deleteDialogTask?.candidate_name || 'Onbekend'}</p>
-              <p className="text-gray-500">{deleteDialogTask?.vacancy_title || 'Geen vacature'}</p>
-            </div>
-
-            <AlertDialogFooter>
-              <AlertDialogCancel disabled={isDeleting}>Annuleren</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={(e: React.MouseEvent) => { e.preventDefault(); handleDeleteTask(); }}
-                disabled={isDeleting}
-                className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
-              >
-                {isDeleting ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Verwijderen...
-                  </>
-                ) : (
-                  'Verwijderen'
-                )}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
       </PageLayoutContent>
     </PageLayout>
   );

@@ -51,6 +51,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { getNavigationCounts } from '@/lib/interview-api';
 import { useAuth } from '@/contexts/auth-context';
+import { useRealtimeTable } from '@/hooks/use-realtime-table';
 
 // Navigation data
 const primaryNavItems = [
@@ -67,11 +68,11 @@ const recordItems = [
 
 const agentItems = [
   { name: 'Pre-screening', href: '/pre-screening', icon: Phone, badgeKey: 'prescreening' as const },
-  { name: 'Document collectie', href: '/document-collection', icon: FileCheck },
+  { name: 'Documentcollectie', href: '/document-collection', icon: FileCheck },
 ];
 
 const footerNavItems = [
-  { name: 'Settings', href: '/admin', icon: Settings }
+  { name: 'Instellingen', href: '/admin', icon: Settings }
 ];
 
 function getInitials(name: string): string {
@@ -92,36 +93,40 @@ export function AppSidebar() {
   const [activitiesCount, setActivitiesCount] = React.useState<number | null>(null);
   const [hasStuckActivities, setHasStuckActivities] = React.useState(false);
 
-  React.useEffect(() => {
-    let cancelled = false;
-
-    const fetchCounts = () => {
-      getNavigationCounts()
-        .then((counts) => {
-          if (cancelled) return;
-          setPrescreeningCount(counts.prescreening.new);
-          if (counts.activities) {
-            setActivitiesCount(counts.activities.active);
-            setHasStuckActivities(counts.activities.stuck > 0);
-          }
-        })
-        .catch(() => {
-          if (!cancelled) {
-            setPrescreeningCount(null);
-            setActivitiesCount(null);
-            setHasStuckActivities(false);
-          }
-        });
-    };
-
-    fetchCounts();
-    const interval = setInterval(fetchCounts, 10_000);
-
-    return () => {
-      cancelled = true;
-      clearInterval(interval);
-    };
+  const fetchCounts = React.useCallback(() => {
+    getNavigationCounts()
+      .then((counts) => {
+        setPrescreeningCount(counts.prescreening.new);
+        if (counts.activities) {
+          setActivitiesCount(counts.activities.active);
+          setHasStuckActivities(counts.activities.stuck > 0);
+        }
+      })
+      .catch(() => {
+        setPrescreeningCount(null);
+        setActivitiesCount(null);
+        setHasStuckActivities(false);
+      });
   }, []);
+
+  // Initial fetch
+  React.useEffect(() => {
+    fetchCounts();
+  }, [fetchCounts]);
+
+  // Re-fetch counts when workflows change (activities badges)
+  useRealtimeTable({
+    schema: 'agents',
+    table: 'workflows',
+    onUpdate: fetchCounts,
+  });
+
+  // Re-fetch counts when pre-screenings change (pre-screening badge)
+  useRealtimeTable({
+    schema: 'agents',
+    table: 'pre_screenings',
+    onUpdate: fetchCounts,
+  });
 
   const isActive = (href: string) => {
     return pathname === href || (href !== '/' && pathname.startsWith(href));

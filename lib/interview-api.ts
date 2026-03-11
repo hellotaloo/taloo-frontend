@@ -1179,27 +1179,56 @@ export async function triggerRtsSync(): Promise<{ status: string; synced: number
 // Pre-Screening Config API (Global Settings)
 // =============================================================================
 
-export interface PreScreeningConfig {
-  id: string;
-  max_unrelated_answers: number;
-  schedule_days_ahead: number;
-  schedule_start_offset: number;
-  planning_mode: string;
+export interface PreScreeningVoiceSettings {
+  model_id: string;
+  voice_id: string;
+  stability: number;
+  similarity_boost: number;
+}
+
+export interface PreScreeningGeneralSettings {
   intro_message: string | null;
   success_message: string | null;
+  max_unrelated_answers: number;
+}
+
+export interface PreScreeningPlanningSettings {
+  planning_mode: string;
+  schedule_days_ahead: number;
+  schedule_start_offset: number;
+}
+
+export interface PreScreeningInterviewSettings {
   require_consent: boolean;
+}
+
+export interface PreScreeningEscalationSettings {
   allow_escalation: boolean;
 }
 
+export interface PreScreeningSettings {
+  voice: PreScreeningVoiceSettings;
+  general: PreScreeningGeneralSettings;
+  planning: PreScreeningPlanningSettings;
+  interview: PreScreeningInterviewSettings;
+  escalation: PreScreeningEscalationSettings;
+}
+
+export interface PreScreeningConfig {
+  id: string;
+  config_type: string;
+  version: number;
+  settings: PreScreeningSettings;
+}
+
 export interface PreScreeningConfigUpdate {
-  max_unrelated_answers?: number;
-  schedule_days_ahead?: number;
-  schedule_start_offset?: number;
-  planning_mode?: string;
-  intro_message?: string;
-  success_message?: string;
-  require_consent?: boolean;
-  allow_escalation?: boolean;
+  settings: {
+    voice?: Partial<PreScreeningVoiceSettings>;
+    general?: Partial<PreScreeningGeneralSettings>;
+    planning?: Partial<PreScreeningPlanningSettings>;
+    interview?: Partial<PreScreeningInterviewSettings>;
+    escalation?: Partial<PreScreeningEscalationSettings>;
+  };
 }
 
 /**

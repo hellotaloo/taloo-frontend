@@ -93,7 +93,7 @@ export function TriggerOnboardingDialog({
         documents: requiredDocTypes
       });
 
-      toast.success('Document collectie gestart!', {
+      toast.success('Documentcollectie gestart!', {
         description: `WhatsApp bericht verzonden naar ${firstName} ${lastName}`
       });
 
@@ -132,7 +132,7 @@ export function TriggerOnboardingDialog({
           <div className="flex items-center justify-between">
             <AlertDialogTitle className="flex items-center gap-2">
               <FileCheck className="w-5 h-5" />
-              Document collectie starten
+              Documentcollectie starten
             </AlertDialogTitle>
             <button
               onClick={() => handleDialogClose(false)}

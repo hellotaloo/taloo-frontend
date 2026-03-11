@@ -45,16 +45,16 @@ const sparklineTrend = activityChartData.map(d => ({ value: d.prescreening + d.o
 const recentActivities = [
   { id: 1, agent: 'Pre-screening', candidate: 'Anna de Vries', vacancy: 'Frontend Developer', status: 'completed' as const, time: new Date(Date.now() - 1000 * 60 * 12).toISOString() },
   { id: 2, agent: 'Pre-screening', candidate: 'Bram Jansen', vacancy: 'UX Designer', status: 'active' as const, time: new Date(Date.now() - 1000 * 60 * 34).toISOString() },
-  { id: 3, agent: 'Document collectie', candidate: 'Claudia Bakker', vacancy: 'Product Manager', status: 'completed' as const, time: new Date(Date.now() - 1000 * 60 * 58).toISOString() },
+  { id: 3, agent: 'Documentcollectie', candidate: 'Claudia Bakker', vacancy: 'Product Manager', status: 'completed' as const, time: new Date(Date.now() - 1000 * 60 * 58).toISOString() },
   { id: 4, agent: 'Pre-screening', candidate: 'Dennis Smit', vacancy: 'Backend Developer', status: 'stuck' as const, time: new Date(Date.now() - 1000 * 60 * 120).toISOString() },
   { id: 5, agent: 'Pre-screening', candidate: 'Eva Mulder', vacancy: 'Data Engineer', status: 'completed' as const, time: new Date(Date.now() - 1000 * 60 * 180).toISOString() },
-  { id: 6, agent: 'Document collectie', candidate: 'Floris de Boer', vacancy: 'DevOps Engineer', status: 'active' as const, time: new Date(Date.now() - 1000 * 60 * 240).toISOString() },
+  { id: 6, agent: 'Documentcollectie', candidate: 'Floris de Boer', vacancy: 'DevOps Engineer', status: 'active' as const, time: new Date(Date.now() - 1000 * 60 * 240).toISOString() },
 ];
 
 const agents = [
   { id: 1, name: 'Pre-screening Voice', type: 'Pre-screening', status: 'online' as const, activeTasks: 3, completedToday: 24 },
   { id: 2, name: 'Pre-screening WhatsApp', type: 'Pre-screening', status: 'online' as const, activeTasks: 1, completedToday: 18 },
-  { id: 3, name: 'Document collectie', type: 'Onboarding', status: 'online' as const, activeTasks: 2, completedToday: 12 },
+  { id: 3, name: 'Documentcollectie', type: 'Onboarding', status: 'online' as const, activeTasks: 2, completedToday: 12 },
   { id: 4, name: 'Document Collector', type: 'Onboarding', status: 'offline' as const, activeTasks: 0, completedToday: 0 },
 ];
 
