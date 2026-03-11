@@ -28,7 +28,7 @@ import {
   Building2,
   FileCheck,
   FileText,
-  GitBranch,
+
   History,
   Inbox,
   LayoutDashboard,
@@ -79,7 +79,6 @@ export const pageConfigs: Record<string, PageConfig> = {
   '/admin': { title: 'Instellingen', description: 'Beheer instellingen en configuraties', icon: Settings },
   '/admin/voice-settings': { title: 'Voice instellingen', icon: Mic },
   '/admin/ontology': { title: 'Ontology', icon: Boxes },
-  '/admin/ontology/graph': { title: 'Ontology Graph', icon: GitBranch },
 
   // Agent settings
   '/agent-settings/voice': { title: 'Voice Agent', description: 'Configure voice settings and test demo calls', icon: Mic },

@@ -210,7 +210,7 @@ function PreScreeningContent() {
           <MetricCard
             title="Gekwalificeerd"
             value={weeklyMetrics.qualified}
-            label={`${weeklyMetrics.qualificationRate}% van afgerond`}
+            label="Deze week"
             icon={Users}
             variant="lime"
             sparklineData={weeklyMetrics.dailyData}
