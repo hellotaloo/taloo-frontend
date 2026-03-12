@@ -116,21 +116,29 @@ export function ConceptVacanciesTable({ vacancies, generationStatus, isImporting
 
   if (vacancies.length === 0 && !isImporting) {
     return (
-      <div className="text-center py-12">
-        <div className="w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center mx-auto mb-3">
-          <FileEdit className="w-6 h-6 text-gray-400" />
+      <>
+        <div className="flex flex-col items-center justify-center py-24">
+          <div className="relative mb-6">
+            <div className="w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center">
+              <div className="w-3 h-3 rounded-full bg-gray-400" />
+            </div>
+            <div className="absolute inset-0 w-12 h-12 rounded-full border-2 border-gray-300 animate-ping [animation-duration:2s]" />
+            <div className="absolute inset-0 w-12 h-12 rounded-full border border-gray-200 animate-ping [animation-duration:2s] [animation-delay:500ms]" />
+          </div>
+          <p className="text-sm text-gray-500">Luisteren naar nieuwe vacatures</p>
         </div>
-        <p className="text-sm text-gray-500">Geen concepten. Alle vacatures zijn gepubliceerd.</p>
-        <Button
-          variant="outline"
-          size="sm"
-          className="mt-4 gap-2"
-          onClick={() => onSync?.()}
-        >
-          <RefreshCw className="w-4 h-4" />
-          Trigger demo ATS import
-        </Button>
-      </div>
+        <div className="fixed bottom-6 right-6">
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            onClick={() => onSync?.()}
+          >
+            <RefreshCw className="w-4 h-4" />
+            Trigger demo ATS import
+          </Button>
+        </div>
+      </>
     );
   }
 

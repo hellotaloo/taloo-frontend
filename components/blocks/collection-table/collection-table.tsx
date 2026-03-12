@@ -1,8 +1,7 @@
 'use client';
 
-import { FileText, User, RefreshCw } from 'lucide-react';
+import { User } from 'lucide-react';
 import { cn, formatTimestamp, formatRelativeDate } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
 import {
   Table,
   TableBody,
@@ -23,34 +22,24 @@ interface CollectionTableProps {
   collections: DocumentCollectionResponse[];
   onSelectCollection?: (id: string) => void;
   selectedId?: string | null;
-  isImporting?: boolean;
-  onSync?: () => void;
 }
 
 export function CollectionTable({
   collections,
   onSelectCollection,
   selectedId,
-  isImporting,
-  onSync,
 }: CollectionTableProps) {
   if (collections.length === 0) {
     return (
-      <div className="text-center py-12">
-        <div className="w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center mx-auto mb-3">
-          <FileText className="w-6 h-6 text-gray-400" />
+      <div className="flex flex-col items-center py-12">
+        <div className="relative mb-6">
+          <div className="w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center">
+            <div className="w-3 h-3 rounded-full bg-gray-400" />
+          </div>
+          <div className="absolute inset-0 w-12 h-12 rounded-full border-2 border-gray-300 animate-ping [animation-duration:2s]" />
+          <div className="absolute inset-0 w-12 h-12 rounded-full border border-gray-200 animate-ping [animation-duration:2s] [animation-delay:500ms]" />
         </div>
-        <p className="text-sm text-gray-500">Nog geen document collecties actief.</p>
-        <Button
-          variant="outline"
-          size="sm"
-          className="mt-4 gap-2"
-          onClick={() => onSync?.()}
-          disabled={isImporting}
-        >
-          <RefreshCw className="w-4 h-4" />
-          Trigger demo ATS import
-        </Button>
+        <p className="text-sm text-gray-500">Luisteren naar nieuwe collecties</p>
       </div>
     );
   }

@@ -10,7 +10,6 @@ import { CollectionTable, CollectionDetailPane } from '@/components/blocks/colle
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { PageLayout, PageLayoutHeader, PageLayoutContent } from '@/components/layout/page-layout';
 import { Button } from '@/components/ui/button';
-import { useAtsImport } from '@/hooks/use-ats-import';
 import Link from 'next/link';
 
 type FilterTab = 'all' | CollectionStatus;
@@ -56,11 +55,6 @@ export default function DocumentCollectionPage() {
     setSelectedId(null);
   }, []);
 
-  const atsImport = useAtsImport({
-    module: 'document_collection',
-    onRefetch: fetchData,
-  });
-
   const stats = useMemo(() => {
     const active = collections.filter(c => c.status === 'active').length;
     const completed = collections.filter(c => c.status === 'completed').length;
@@ -96,25 +90,12 @@ export default function DocumentCollectionPage() {
     <PageLayout>
       <PageLayoutHeader
         action={
-          <div className="flex items-center gap-2">
-            {atsImport.isImporting && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-2"
-                disabled
-              >
-                <Loader2 className="w-4 h-4 animate-spin" />
-                {atsImport.phase === 'importing' ? 'Importeren...' : `${atsImport.publishedCount}/${atsImport.totalCount || '...'}`}
-              </Button>
-            )}
-            <Link href="/document-collection/settings">
-              <Button variant="outline" size="sm" className="gap-2">
-                <Settings className="w-4 h-4" />
-                Instellingen
-              </Button>
-            </Link>
-          </div>
+          <Link href="/document-collection/settings">
+            <Button variant="outline" size="sm" className="gap-2">
+              <Settings className="w-4 h-4" />
+              Instellingen
+            </Button>
+          </Link>
         }
       />
       <PageLayoutContent>
@@ -187,8 +168,6 @@ export default function DocumentCollectionPage() {
               collections={filtered}
               selectedId={selectedId}
               onSelectCollection={setSelectedId}
-              isImporting={atsImport.isImporting}
-              onSync={atsImport.startImport}
             />
           </TabsContent>
         </Tabs>
