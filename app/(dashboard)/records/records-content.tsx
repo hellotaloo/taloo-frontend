@@ -21,8 +21,6 @@ import {
   APIVacancyDetail,
 } from '@/lib/types';
 import { getCandidates, getCandidate, getVacanciesFromAPI, getVacancyDetail } from '@/lib/api';
-import { getCandidacies } from '@/lib/candidacy-api';
-import type { Candidacy, LinkedVacancy } from '@/lib/types';
 import { mockClients } from './mock-data';
 
 export type RecordsTab = 'vacancies' | 'candidates' | 'customers';
@@ -58,9 +56,6 @@ export function RecordsContent({ activeTab }: RecordsContentProps) {
   const [apiVacancies, setApiVacancies] = useState<APIVacancyListItem[]>([]);
   const [vacanciesLoading, setVacanciesLoading] = useState(true);
   const [vacanciesError, setVacanciesError] = useState<string | null>(null);
-
-  // All workspace candidacies (for list view columns)
-  const [allCandidacies, setAllCandidacies] = useState<Candidacy[]>([]);
 
   // Selected vacancy detail state
   const [selectedVacancyId, setSelectedVacancyId] = useState<string | null>(null);
@@ -113,19 +108,6 @@ export function RecordsContent({ activeTab }: RecordsContentProps) {
     }
 
     fetchVacancies();
-  }, []);
-
-  // Fetch all workspace candidacies for list view columns
-  useEffect(() => {
-    async function fetchAllCandidacies() {
-      try {
-        const resp = await getCandidacies({});
-        setAllCandidacies(resp.items ?? []);
-      } catch {
-        // non-critical
-      }
-    }
-    fetchAllCandidacies();
   }, []);
 
   // Fetch candidate detail when selected
@@ -259,29 +241,6 @@ export function RecordsContent({ activeTab }: RecordsContentProps) {
   };
   const isLoading = activeTab === 'vacancies' ? vacanciesLoading : activeTab === 'candidates' ? candidatesLoading : false;
 
-  // Build vacancy chips per candidate using linked_vacancies (same as pipeline)
-  const candidaciesByCandidate = useMemo(() => {
-    const map = new Map<string, LinkedVacancy[]>();
-    for (const c of allCandidacies) {
-      if (map.has(c.candidate_id)) continue;
-      if (c.linked_vacancies?.length) {
-        map.set(c.candidate_id, c.linked_vacancies);
-      }
-    }
-    return map;
-  }, [allCandidacies]);
-
-  // Count candidates per vacancy via linked_vacancies (vacancy_id is null in workspace-wide fetch)
-  const candidacyCountByVacancy = useMemo(() => {
-    const map = new Map<string, number>();
-    for (const c of allCandidacies) {
-      for (const lv of c.linked_vacancies ?? []) {
-        map.set(lv.vacancy_id, (map.get(lv.vacancy_id) ?? 0) + 1);
-      }
-    }
-    return map;
-  }, [allCandidacies]);
-
   return (
     <>
       <PageLayout>
@@ -359,7 +318,6 @@ export function RecordsContent({ activeTab }: RecordsContentProps) {
                   vacancies={filteredVacancies}
                   selectedId={selectedVacancyId}
                   onRowClick={handleVacancyClick}
-                  candidacyCountByVacancy={candidacyCountByVacancy}
                 />
               )}
             </>
@@ -380,7 +338,6 @@ export function RecordsContent({ activeTab }: RecordsContentProps) {
                   candidates={filteredCandidates}
                   selectedId={selectedCandidateId}
                   onRowClick={handleCandidateClick}
-                  candidaciesByCandidate={candidaciesByCandidate}
                 />
               )}
             </>

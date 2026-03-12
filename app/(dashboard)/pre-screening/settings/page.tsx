@@ -2,21 +2,55 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, ArrowRight, Save, Calendar, MessageCircle, CheckCircle2, ShieldQuestion, MessageSquare, Pencil, Check, X, Phone, Info, Mic, SlidersHorizontal, ListOrdered } from 'lucide-react';
+import { ArrowLeft, Save, Calendar, MessageCircle, CheckCircle2, ShieldQuestion, MessageSquare, Pencil, Check, X, Phone, Info, Mic, SlidersHorizontal, ListOrdered, ChevronDown, User } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 import {
   PageLayout,
   PageLayoutHeader,
   PageLayoutContent,
 } from '@/components/layout/page-layout';
+import { type VoiceOption } from '@/components/blocks/voice-settings';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { Timeline, TimelineNode } from '@/components/kit/timeline';
 import { NavItem } from '@/components/kit/nav-item';
 import { toast } from 'sonner';
 import { getPreScreeningConfig, updatePreScreeningConfig } from '@/lib/interview-api';
+import { getElevenLabsVoiceConfig } from '@/lib/api';
+
+const ELEVENLABS_AGENT_ID = process.env.NEXT_PUBLIC_ELEVENLABS_DEMO_AGENT_ID || '';
+
+// Voice options with ElevenLabs voice IDs
+const VOICE_OPTIONS: VoiceOption[] = [
+  {
+    id: 'bob',
+    name: 'Bob',
+    description: 'Zelfverzekerd en helder',
+    gender: 'male',
+    voiceId: "s7Z6uboUuE4Nd8Q2nye6",
+    avatar: '/avatars/large/male_2.png',
+  },
+  {
+    id: 'emma',
+    name: 'Louise',
+    description: 'Warm en professioneel',
+    gender: 'female',
+    voiceId: 'v3V1d2rk6528UrLKRuy8',
+    avatar: '/avatars/large/female_6.png',
+  },
+  {
+    id: 'luc',
+    name: 'Luc',
+    description: 'Energiek en vriendelijk',
+    gender: 'male',
+    voiceId: "IPgYtHTNLjC7Bq7IPHrm",
+    avatar: '/avatars/large/male_1.png',
+  }
+];
 
 type SettingsSection = 'voice' | 'algemeen' | 'planning' | 'escalatie' | 'interview';
 
@@ -26,6 +60,11 @@ export default function PreScreeningSettingsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [activeSection, setActiveSection] = useState<SettingsSection>('voice');
+
+  // Voice settings state
+  const [selectedVoice, setSelectedVoice] = useState<string>('emma');
+  const [isVoiceLoading, setIsVoiceLoading] = useState(true);
+  const [voiceSelectOpen, setVoiceSelectOpen] = useState(false);
 
   // Exit thresholds
   const [maxUnrelatedAnswers, setMaxUnrelatedAnswers] = useState(2);
@@ -102,6 +141,38 @@ export default function PreScreeningSettingsPage() {
     }
     loadConfig();
   }, []);
+
+  // Load voice config on mount
+  useEffect(() => {
+    async function loadVoiceConfig() {
+      try {
+        const config = await getElevenLabsVoiceConfig(ELEVENLABS_AGENT_ID);
+        if (config) {
+          const savedVoiceOptionId = localStorage.getItem(`voice-option-${ELEVENLABS_AGENT_ID}`);
+          if (savedVoiceOptionId && VOICE_OPTIONS.some((v) => v.id === savedVoiceOptionId)) {
+            setSelectedVoice(savedVoiceOptionId);
+          } else {
+            const voice = VOICE_OPTIONS.find((v) => v.voiceId === config.voice_id);
+            if (voice) setSelectedVoice(voice.id);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load voice config:', error);
+      } finally {
+        setIsVoiceLoading(false);
+      }
+    }
+    loadVoiceConfig();
+  }, []);
+
+  // Handle voice selection
+  const handleSelectVoice = useCallback((voiceId: string) => {
+    setSelectedVoice(voiceId);
+    localStorage.setItem(`voice-option-${ELEVENLABS_AGENT_ID}`, voiceId);
+  }, []);
+
+  // Get selected voice for display
+  const selectedVoiceData = VOICE_OPTIONS.find((v) => v.id === selectedVoice);
 
   const handleSaveConsent = () => {
     setConsentMessage(tempConsent);
@@ -263,27 +334,99 @@ export default function PreScreeningSettingsPage() {
           {activeSection === 'voice' && (
             <section className="space-y-4">
               <div>
-                <h2 className="text-lg font-semibold text-gray-900">Voice instellingen</h2>
+                <h2 className="text-lg font-semibold text-gray-900">Selecteer stem</h2>
                 <p className="text-sm text-gray-500 mt-1">
-                  Configureer de stem, het stemmodel en expressieniveau van je voice agent
+                  Kies een stem voor je AI-agent
                 </p>
               </div>
 
-              <Link
-                href="/admin/voice-settings"
-                className="flex items-center justify-between p-4 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 transition-colors group"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-brand-dark-blue flex items-center justify-center">
-                    <Mic className="w-5 h-5 text-white" />
-                  </div>
-                  <div>
-                    <p className="font-medium text-gray-900">Voice agent configuratie</p>
-                    <p className="text-sm text-gray-500">Selecteer stem, stemmodel en expressieniveau</p>
-                  </div>
+              {isVoiceLoading ? (
+                <div className="flex items-center justify-center h-32">
+                  <div className="text-gray-500">Voice instellingen laden...</div>
                 </div>
-                <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-gray-600 transition-colors" />
-              </Link>
+              ) : (
+                <Popover open={voiceSelectOpen} onOpenChange={setVoiceSelectOpen}>
+                  <PopoverTrigger asChild>
+                    <button
+                      type="button"
+                      className="w-full flex items-center justify-between rounded-lg border border-gray-200 p-4 hover:bg-gray-50 transition-colors text-left"
+                    >
+                      <div className="flex items-center gap-3">
+                        {selectedVoiceData?.avatar ? (
+                          <Image
+                            src={selectedVoiceData.avatar}
+                            alt={selectedVoiceData.name}
+                            width={40}
+                            height={40}
+                            className="w-10 h-10 rounded-full object-cover"
+                          />
+                        ) : (
+                          <div
+                            className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                              selectedVoiceData?.gender === 'female'
+                                ? 'bg-gradient-to-br from-pink-400 to-purple-500'
+                                : 'bg-gradient-to-br from-blue-400 to-indigo-500'
+                            }`}
+                          >
+                            <User className="w-5 h-5 text-white" />
+                          </div>
+                        )}
+                        <div>
+                          <span className="font-medium text-gray-900">{selectedVoiceData?.name}</span>
+                          <p className="text-sm text-gray-500">{selectedVoiceData?.description}</p>
+                        </div>
+                      </div>
+                      <ChevronDown className="w-5 h-5 text-gray-400" />
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-2" align="start">
+                    <div className="space-y-1">
+                      {VOICE_OPTIONS.map((voice) => (
+                        <button
+                          key={voice.id}
+                          type="button"
+                          onClick={() => {
+                            handleSelectVoice(voice.id);
+                            setVoiceSelectOpen(false);
+                          }}
+                          className={`w-full flex items-center gap-3 rounded-lg p-3 text-left transition-colors ${
+                            selectedVoice === voice.id
+                              ? 'bg-blue-50 border border-blue-200'
+                              : 'hover:bg-gray-50'
+                          }`}
+                        >
+                          {voice.avatar ? (
+                            <Image
+                              src={voice.avatar}
+                              alt={voice.name}
+                              width={40}
+                              height={40}
+                              className="w-10 h-10 rounded-full object-cover"
+                            />
+                          ) : (
+                            <div
+                              className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                                voice.gender === 'female'
+                                  ? 'bg-gradient-to-br from-pink-400 to-purple-500'
+                                  : 'bg-gradient-to-br from-blue-400 to-indigo-500'
+                              }`}
+                            >
+                              <User className="w-5 h-5 text-white" />
+                            </div>
+                          )}
+                          <div className="flex-1">
+                            <span className="font-medium text-gray-900">{voice.name}</span>
+                            <p className="text-sm text-gray-500">{voice.description}</p>
+                          </div>
+                          {selectedVoice === voice.id && (
+                            <Check className="w-5 h-5 text-blue-600" />
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              )}
             </section>
           )}
 

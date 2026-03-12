@@ -286,30 +286,32 @@ interface AddCandidateModalProps {
 
 function AddCandidateModal({ vacancyId, onSuccess, onClose }: AddCandidateModalProps) {
   const [query, setQuery] = useState('');
-  const [results, setResults] = useState<APICandidateListItem[]>([]);
-  const [searching, setSearching] = useState(false);
+  const [allCandidates, setAllCandidates] = useState<APICandidateListItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState<string | null>(null);
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const handleSearch = useCallback((value: string) => {
-    setQuery(value);
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    if (!value.trim()) {
-      setResults([]);
-      return;
-    }
-    debounceRef.current = setTimeout(async () => {
-      setSearching(true);
+  useEffect(() => {
+    async function fetchCandidates() {
       try {
-        const resp = await getCandidates({ search: value, limit: 10 });
-        setResults(resp.items);
+        const resp = await getCandidates({ limit: 100 });
+        setAllCandidates(resp.items);
       } catch {
-        toast.error('Zoeken mislukt');
+        toast.error('Kon kandidaten niet laden');
       } finally {
-        setSearching(false);
+        setLoading(false);
       }
-    }, 300);
+    }
+    fetchCandidates();
   }, []);
+
+  const filtered = query.trim()
+    ? allCandidates.filter(
+        (c) =>
+          c.full_name.toLowerCase().includes(query.toLowerCase()) ||
+          (c.email && c.email.toLowerCase().includes(query.toLowerCase())) ||
+          (c.phone && c.phone.includes(query))
+      )
+    : allCandidates;
 
   const handleAdd = async (candidate: APICandidateListItem) => {
     setAdding(candidate.id);
@@ -345,22 +347,20 @@ function AddCandidateModal({ vacancyId, onSuccess, onClose }: AddCandidateModalP
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <Input
               value={query}
-              onChange={(e) => handleSearch(e.target.value)}
+              onChange={(e) => setQuery(e.target.value)}
               placeholder="Zoek op naam, e-mail of telefoon..."
               className="pl-9"
               autoFocus
             />
           </div>
 
-          {searching && (
+          {loading ? (
             <div className="flex justify-center py-4">
               <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
             </div>
-          )}
-
-          {!searching && results.length > 0 && (
+          ) : filtered.length > 0 ? (
             <div className="space-y-1 max-h-60 overflow-y-auto">
-              {results.map((c) => (
+              {filtered.map((c) => (
                 <button
                   key={c.id}
                   className="w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-gray-50 transition-colors text-left disabled:opacity-50"
@@ -378,14 +378,8 @@ function AddCandidateModal({ vacancyId, onSuccess, onClose }: AddCandidateModalP
                 </button>
               ))}
             </div>
-          )}
-
-          {!searching && query.trim() && results.length === 0 && (
+          ) : (
             <p className="text-sm text-gray-400 text-center py-4">Geen kandidaten gevonden</p>
-          )}
-
-          {!query.trim() && (
-            <p className="text-xs text-gray-400 text-center py-2">Type om te zoeken...</p>
           )}
         </div>
       </DialogContent>

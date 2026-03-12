@@ -59,7 +59,7 @@ export const pageConfigs: Record<string, PageConfig> = {
   '/records': { title: 'Records', description: 'Bekijk en beheer al je gegevens', icon: LayoutList },
   '/records/vacancies': { title: 'Vacatures', description: 'Bekijk en beheer al je vacatures', icon: Briefcase },
   '/records/candidates': { title: 'Kandidaten', description: 'Bekijk en beheer al je kandidaten', icon: Users },
-  '/records/pipeline': { title: 'Pipeline', description: 'Overzicht van alle actieve sollicitaties per fase', icon: Kanban },
+  '/records/pipeline': { title: 'Pipelines', description: 'Overzicht van alle actieve sollicitaties per fase', icon: Kanban },
   '/records/customers': { title: 'Klanten', description: 'Bekijk en beheer al je klanten', icon: Building2 },
   '/activities': { title: 'Activiteiten', description: 'Status van alle lopende en afgeronde agent activiteiten', icon: Activity },
   '/agents': { title: 'Agents', description: 'Ontdek en activeer AI agents voor je workspace', icon: Boxes },
@@ -78,8 +78,7 @@ export const pageConfigs: Record<string, PageConfig> = {
 
   // Admin section
   '/admin': { title: 'Instellingen', description: 'Beheer instellingen en configuraties', icon: Settings },
-  '/admin/voice-settings': { title: 'Voice instellingen', icon: Mic },
-  '/admin/ontology': { title: 'Ontology', icon: Boxes },
+'/admin/ontology': { title: 'Ontology', icon: Boxes },
 
   // Agent settings
   '/agent-settings/voice': { title: 'Voice Agent', description: 'Configure voice settings and test demo calls', icon: Mic },

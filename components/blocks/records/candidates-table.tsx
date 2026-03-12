@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import { Users } from 'lucide-react';
-import { APICandidateListItem, LinkedVacancy } from '@/lib/types';
+import { APICandidateListItem } from '@/lib/types';
 import {
   DataTable,
   DataTableHeader,
@@ -15,7 +15,6 @@ export interface CandidatesTableProps {
   candidates: APICandidateListItem[];
   selectedId?: string | null;
   onRowClick?: (candidate: APICandidateListItem) => void;
-  candidaciesByCandidate?: Map<string, LinkedVacancy[]>;
 }
 
 function formatRelativeDate(dateString: string | null | undefined) {
@@ -34,7 +33,7 @@ function formatRelativeDate(dateString: string | null | undefined) {
   return date.toLocaleDateString('nl-BE', { day: 'numeric', month: 'short' });
 }
 
-export function CandidatesTable({ candidates, selectedId, onRowClick, candidaciesByCandidate }: CandidatesTableProps) {
+export function CandidatesTable({ candidates, selectedId, onRowClick }: CandidatesTableProps) {
   const columns: Column<APICandidateListItem>[] = [
     {
       key: 'name',
@@ -63,19 +62,19 @@ export function CandidatesTable({ candidates, selectedId, onRowClick, candidacie
       className: 'min-w-[200px]',
       accessor: () => '',
       render: (item) => {
-        const linkedVacancies = candidaciesByCandidate?.get(item.id) ?? [];
-        if (linkedVacancies.length === 0) {
+        const vacancies = item.vacancies ?? [];
+        if (vacancies.length === 0) {
           return <span className="text-xs text-gray-400">-</span>;
         }
         return (
           <div className="flex flex-wrap gap-1">
-            {linkedVacancies.map((lv) => (
+            {vacancies.map((v) => (
               <span
-                key={lv.candidacy_id}
+                key={v.id}
                 className="inline-flex items-center px-2 py-0.5 rounded-md bg-gray-100 text-xs text-gray-600 truncate max-w-[160px]"
-                title={lv.vacancy_title}
+                title={v.title}
               >
-                {lv.vacancy_title}
+                {v.title}
               </span>
             ))}
           </div>

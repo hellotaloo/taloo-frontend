@@ -1,8 +1,10 @@
 'use client';
 
 import { useState } from 'react';
+import { List } from 'lucide-react';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { PageLayout, PageLayoutHeader, PageLayoutContent } from '@/components/layout/page-layout';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { SearchInput } from '@/components/kit/search-input';
 import { CandidatesPipeline } from '@/components/blocks/candidates-pipeline';
 import { CandidateDetailPane } from '@/components/blocks/records';
@@ -34,7 +36,15 @@ export default function PipelinePage() {
       <PageLayout>
         <PageLayoutHeader />
         <PageLayoutContent>
-          <div className="flex items-center justify-end mb-4">
+          <div className="flex items-center justify-between gap-4 mb-4">
+            <Tabs value="alles">
+              <TabsList variant="line">
+                <TabsTrigger value="alles">
+                  <List className="w-3.5 h-3.5" />
+                  Alles
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
             <SearchInput
               value={searchQuery}
               onChange={setSearchQuery}

@@ -665,6 +665,13 @@ export interface APICandidateSkill {
   created_at: string;
 }
 
+export interface APICandidateVacancyLink {
+  id: string;
+  title: string;
+  company?: string;
+  is_open_application: boolean;
+}
+
 export interface APICandidateListItem {
   id: string;
   phone?: string;
@@ -681,6 +688,7 @@ export interface APICandidateListItem {
   created_at: string;
   updated_at: string;
   skills: APICandidateSkill[];
+  vacancies: APICandidateVacancyLink[];
   vacancy_count: number;
   last_activity?: string;
   source_url?: string;
