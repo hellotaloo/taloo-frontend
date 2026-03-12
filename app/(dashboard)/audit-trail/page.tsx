@@ -479,7 +479,7 @@ export default function AuditTrailPage() {
           actor_type: actorType as ActivityActorType | undefined,
           limit: 100,
         });
-        setActivities(response.activities);
+        setActivities(response.activities ?? []);
       } catch (err) {
         console.error('Failed to fetch activities:', err);
         setError('Kon activiteiten niet laden');

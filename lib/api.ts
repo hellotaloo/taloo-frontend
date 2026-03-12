@@ -166,25 +166,7 @@ export async function getCandidates(params: GetCandidatesParams = {}): Promise<C
     throw new Error('Failed to fetch candidates');
   }
 
-  const data = await response.json();
-
-  // Handle both array response and paginated response
-  if (Array.isArray(data)) {
-    return {
-      items: data,
-      total: data.length,
-      limit: params.limit || 50,
-      offset: params.offset || 0,
-    };
-  }
-
-  // If response has 'items' property, use it; otherwise assume the data itself is the list
-  return {
-    items: data.items || data.candidates || [],
-    total: data.total || (data.items || data.candidates || []).length,
-    limit: data.limit || params.limit || 50,
-    offset: data.offset || params.offset || 0,
-  };
+  return response.json();
 }
 
 export async function getCandidate(candidateId: string): Promise<APICandidateDetail> {
@@ -230,7 +212,7 @@ export interface GetVacanciesParams {
 }
 
 export interface VacanciesListResponse {
-  vacancies: APIVacancyListItem[];
+  items: APIVacancyListItem[];
   total: number;
   limit: number;
   offset: number;
@@ -252,38 +234,7 @@ export async function getVacanciesFromAPI(params: GetVacanciesParams = {}): Prom
     throw new Error('Failed to fetch vacancies');
   }
 
-  const data = await response.json();
-
-  // Default agents object for vacancies that don't have it yet
-  const defaultAgents = {
-    prescreening: { exists: false, status: null },
-    preonboarding: { exists: false, status: null },
-    insights: { exists: false, status: null },
-  };
-
-  // Normalize vacancy to ensure agents field exists
-  const normalizeVacancy = (v: APIVacancyListItem): APIVacancyListItem => ({
-    ...v,
-    agents: v.agents || defaultAgents,
-  });
-
-  // Handle both array response and paginated response
-  if (Array.isArray(data)) {
-    return {
-      vacancies: data.map(normalizeVacancy),
-      total: data.length,
-      limit: params.limit || 50,
-      offset: params.offset || 0,
-    };
-  }
-
-  const rawVacancies = data.vacancies || data.items || [];
-  return {
-    vacancies: rawVacancies.map(normalizeVacancy),
-    total: data.total || rawVacancies.length,
-    limit: data.limit || params.limit || 50,
-    offset: data.offset || params.offset || 0,
-  };
+  return response.json();
 }
 
 export async function getVacancyDetail(vacancyId: string): Promise<APIVacancyDetail> {

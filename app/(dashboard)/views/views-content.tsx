@@ -98,7 +98,7 @@ export function ViewsContent({ activeTab }: ViewsContentProps) {
       setVacanciesError(null);
       try {
         const response = await getVacanciesFromAPI({ limit: 100 });
-        setApiVacancies(response.vacancies);
+        setApiVacancies(response.items);
       } catch (error) {
         console.error('Failed to fetch vacancies:', error);
         setVacanciesError('Kon vacatures niet laden');

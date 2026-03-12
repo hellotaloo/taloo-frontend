@@ -451,18 +451,10 @@ export async function getVacancies(params?: {
   }
 
   const data = await response.json();
-  
-  // Handle different response formats
-  const vacanciesArray = data.vacancies || data.items || (Array.isArray(data) ? data : []);
-  
-  if (!Array.isArray(vacanciesArray)) {
-    console.error('Unexpected vacancies response format:', data);
-    throw new Error('Invalid response format from vacancies API');
-  }
 
   return {
-    vacancies: vacanciesArray.map(convertVacancy),
-    total: data.total ?? vacanciesArray.length,
+    vacancies: (data.items as BackendVacancy[]).map(convertVacancy),
+    total: data.total,
   };
 }
 
@@ -514,11 +506,10 @@ export async function getPreScreeningVacancies(
   }
 
   const data = await response.json();
-  const vacanciesArray = data.vacancies || data.items || (Array.isArray(data) ? data : []);
 
   return {
-    vacancies: vacanciesArray.map(convertVacancy),
-    total: data.total ?? vacanciesArray.length,
+    vacancies: (data.vacancies as BackendVacancy[]).map(convertVacancy),
+    total: data.total,
   };
 }
 
@@ -545,11 +536,10 @@ export async function getPreOnboardingVacancies(
   }
 
   const data = await response.json();
-  const vacanciesArray = data.vacancies || data.items || (Array.isArray(data) ? data : []);
 
   return {
-    vacancies: vacanciesArray.map(convertVacancy),
-    total: data.total ?? vacanciesArray.length,
+    vacancies: (data.vacancies as BackendVacancy[]).map(convertVacancy),
+    total: data.total,
   };
 }
 
