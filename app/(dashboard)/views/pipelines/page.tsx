@@ -7,7 +7,7 @@ import { PageLayout, PageLayoutHeader, PageLayoutContent } from '@/components/la
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { SearchInput } from '@/components/kit/search-input';
 import { CandidatesPipeline } from '@/components/blocks/candidates-pipeline';
-import { CandidateDetailPane } from '@/components/blocks/records';
+import { CandidateDetailPane } from '@/components/blocks/views';
 import { APICandidateDetail, APIVacancyListItem } from '@/lib/types';
 import { getCandidate } from '@/lib/api';
 

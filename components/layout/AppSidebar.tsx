@@ -61,11 +61,11 @@ const primaryNavItems = [
   { name: 'Audit trail', href: '/audit-trail', icon: History },
 ];
 
-const recordItems = [
-  { name: 'Pipelines', href: '/records/pipeline', icon: Kanban },
-  { name: 'Vacatures', href: '/records/vacancies', icon: Briefcase },
-  { name: 'Kandidaten', href: '/records/candidates', icon: Users },
-  { name: 'Klanten', href: '/records/customers', icon: Building2 },
+const viewItems = [
+  { name: 'Pipelines', href: '/views/pipelines', icon: Kanban },
+  { name: 'Vacatures', href: '/views/vacancies', icon: Briefcase },
+  { name: 'Kandidaten', href: '/views/candidates', icon: Users },
+  { name: 'Klanten', href: '/views/customers', icon: Building2 },
 ];
 
 const agentItems = [
@@ -89,7 +89,7 @@ function getInitials(name: string): string {
 export function AppSidebar() {
   const pathname = usePathname();
   const { user, workspaces, currentWorkspace, switchWorkspace, logout } = useAuth();
-  const [recordsOpen, setRecordsOpen] = React.useState(true);
+  const [viewsOpen, setViewsOpen] = React.useState(true);
   const [agentsOpen, setAgentsOpen] = React.useState(true);
   const [prescreeningCount, setPrescreeningCount] = React.useState<number | null>(null);
   const [activitiesCount, setActivitiesCount] = React.useState<number | null>(null);
@@ -290,19 +290,19 @@ export function AppSidebar() {
           </SidebarGroup>
         </Collapsible>
 
-        {/* Records Section */}
-        <Collapsible open={recordsOpen} onOpenChange={setRecordsOpen}>
+        {/* Views Section */}
+        <Collapsible open={viewsOpen} onOpenChange={setViewsOpen}>
           <SidebarGroup className="py-0 mt-6">
             <SidebarGroupLabel asChild>
               <CollapsibleTrigger className="flex items-center gap-2 w-full group/label">
-                <span>Records</span>
+                <span>Views</span>
                 <ChevronRight className="ml-auto h-4 w-4 transition-transform group-data-[state=open]/label:rotate-90" />
               </CollapsibleTrigger>
             </SidebarGroupLabel>
             <CollapsibleContent>
               <SidebarGroupContent>
                 <SidebarMenu>
-                  {recordItems.map((item) => (
+                  {viewItems.map((item) => (
                     <SidebarMenuItem key={item.name}>
                       <SidebarMenuButton asChild isActive={isActive(item.href)}>
                         <Link href={item.href}>

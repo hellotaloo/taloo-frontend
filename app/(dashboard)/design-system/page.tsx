@@ -1015,7 +1015,7 @@ export default function DesignSystemPage() {
                     score={85}
                     channel="whatsapp"
                     appliedAt="2026-02-08T10:30:00Z"
-                    href="/records?tab=candidates"
+                    href="/views?tab=candidates"
                   />
                   <CandidateCard
                     name="Marie Peeters"
@@ -1025,7 +1025,7 @@ export default function DesignSystemPage() {
                     score={null}
                     channel="voice"
                     appliedAt="2026-02-10T14:00:00Z"
-                    href="/records?tab=candidates"
+                    href="/views?tab=candidates"
                   />
                   <CandidateCard
                     name="Pieter De Smet"

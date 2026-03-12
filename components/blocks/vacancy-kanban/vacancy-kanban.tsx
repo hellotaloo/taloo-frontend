@@ -33,7 +33,7 @@ import { supabase } from '@/lib/supabase';
 import { getCandidates, getCandidate } from '@/lib/api';
 import type { Candidacy, CandidacyStage, APICandidateListItem, APICandidateDetail } from '@/lib/types';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
-import { CandidateDetailPane } from '@/components/blocks/records';
+import { CandidateDetailPane } from '@/components/blocks/views';
 import {
   DropdownMenu,
   DropdownMenuContent,

@@ -13,7 +13,7 @@ import {
   CustomersTable,
   CandidateDetailPane,
   VacancyDetailPane,
-} from '@/components/blocks/records';
+} from '@/components/blocks/views';
 import {
   APICandidateListItem,
   APICandidateDetail,
@@ -23,13 +23,13 @@ import {
 import { getCandidates, getCandidate, getVacanciesFromAPI, getVacancyDetail } from '@/lib/api';
 import { mockClients } from './mock-data';
 
-export type RecordsTab = 'vacancies' | 'candidates' | 'customers';
+export type ViewsTab = 'vacancies' | 'candidates' | 'customers';
 
-interface RecordsContentProps {
-  activeTab: RecordsTab;
+interface ViewsContentProps {
+  activeTab: ViewsTab;
 }
 
-export function RecordsContent({ activeTab }: RecordsContentProps) {
+export function ViewsContent({ activeTab }: ViewsContentProps) {
   const router = useRouter();
 
   const [searchQuery, setSearchQuery] = useState('');

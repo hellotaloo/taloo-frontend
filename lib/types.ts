@@ -134,10 +134,6 @@ export interface FlowEdge {
   label?: string;
 }
 
-// Interview types
-export type InterviewChannel = 'voice' | 'whatsapp' | 'cv';
-export type InterviewStatus = 'started' | 'completed' | 'abandoned';
-
 // CV Application types
 export interface CVApplicationRequest {
   pdf_base64: string;
@@ -184,20 +180,6 @@ export interface CVAnalysisResult {
   meetingSlots: string[];  // Available meeting slots for booking
 }
 
-export interface Interview {
-  id: string;
-  vacancyId: string;
-  agentId: string;
-  channel: InterviewChannel;
-  status: InterviewStatus;
-  startedAt: string;
-  completedAt?: string;
-  questionsAnswered: number;
-  totalQuestions: number;
-  qualified: boolean;
-  knockoutPassed: boolean;
-}
-
 // Application types (pre-screening results)
 export type AnswerRating = 'excellent' | 'good' | 'average' | 'below_average' | 'weak';
 export type ApplicationStatus = 'active' | 'processing' | 'completed' | 'abandoned';
@@ -233,21 +215,6 @@ export interface Application {
   syncedAt?: string | null;
   interviewSlot?: string | null;
   isTest?: boolean;
-}
-
-// Metrics types
-export interface InterviewMetrics {
-  totalInterviews: number;
-  completedInterviews: number;
-  completionRate: number;
-  qualifiedCandidates: number;
-  qualificationRate: number;
-  channelBreakdown: {
-    voice: number;
-    whatsapp: number;
-  };
-  weeklyTrend: { date: string; count: number }[];
-  popularVacancies: { vacancyId: string; title: string; count: number }[];
 }
 
 // Finetune types
@@ -522,128 +489,6 @@ export interface Customer {
   totalCandidates: number;
   createdAt: string;
   lastActivityAt: string;
-}
-
-// =============================================================================
-// Candidate Profile Types (for Overviews - Candidate-Centric)
-// =============================================================================
-
-export type CandidateStatus = 'new' | 'qualified' | 'placed' | 'inactive';
-export type ShiftPreference = 'day' | 'evening' | 'night' | 'weekend' | 'flexible';
-export type AvailabilityStatus = 'immediate' | '1_week' | '2_weeks' | 'specific_date' | 'not_available';
-
-export interface LinkedVacancy {
-  vacancyId: string;
-  vacancyTitle: string;
-  company: string;
-  applicationStatus: 'applied' | 'screening' | 'submitted' | 'placed' | 'rejected';
-  score?: number | null;  // Pre-screening score (0-100)
-  appliedAt: string;
-}
-
-// Interaction event types for candidate timeline
-export type InteractionEventType =
-  | 'registered'
-  | 'applied'
-  | 'prescreening_started'
-  | 'prescreening_completed'
-  | 'interview_scheduled'
-  | 'interview_completed'
-  | 'submitted_to_client'
-  | 'placed'
-  | 'rejected'
-  | 'withdrawn'
-  | 'note_added';
-
-export interface InteractionEvent {
-  id: string;
-  type: InteractionEventType;
-  title: string;
-  description?: string;
-  vacancyId?: string;
-  vacancyTitle?: string;
-  timestamp: string;
-  metadata?: Record<string, unknown>;
-}
-
-export interface CandidateProfile {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  status: CandidateStatus;
-
-  // Availability & Preferences
-  availability: AvailabilityStatus;
-  availableFrom?: string;  // ISO date if specific_date
-  shiftPreference: ShiftPreference[];
-
-  // Skills & Qualifications
-  skills: string[];  // e.g., ['Reachtruck', 'Excel', 'Nederlands']
-  certifications: string[];  // e.g., ['VCA', 'Rijbewijs B', 'Rijbewijs C']
-
-  // Performance
-  rating: number | null;  // 1-5 stars, null if no placements yet
-
-  // Linked vacancies (one candidate → multiple vacancies)
-  linkedVacancies: LinkedVacancy[];
-
-  // Interaction history (timeline)
-  interactions: InteractionEvent[];
-
-  // Timestamps
-  createdAt: string;
-  lastActivityAt: string;
-}
-
-// =============================================================================
-// Vacancy Profile Types (for Overviews - Vacancy-Centric)
-// =============================================================================
-
-export type CandidateApplicationStatus = 'applied' | 'screening' | 'submitted' | 'placed' | 'rejected';
-
-export interface LinkedCandidate {
-  candidateId: string;
-  candidateName: string;
-  email: string;
-  phone: string;
-  applicationStatus: CandidateApplicationStatus;
-  score?: number | null;  // Pre-screening score (0-100)
-  appliedAt: string;
-  channel: 'voice' | 'whatsapp' | 'cv';
-}
-
-// Vacancy event types for vacancy timeline
-export type VacancyEventType =
-  | 'created'
-  | 'screening_configured'
-  | 'published'
-  | 'unpublished'
-  | 'candidate_applied'
-  | 'candidate_qualified'
-  | 'candidate_submitted'
-  | 'candidate_placed'
-  | 'candidate_rejected'
-  | 'note_added'
-  | 'archived';
-
-export interface VacancyEvent {
-  id: string;
-  type: VacancyEventType;
-  title: string;
-  description?: string;
-  candidateId?: string;
-  candidateName?: string;
-  timestamp: string;
-  metadata?: Record<string, unknown>;
-}
-
-export interface VacancyProfile extends Vacancy {
-  // Linked candidates (one vacancy → multiple candidates)
-  linkedCandidates: LinkedCandidate[];
-
-  // Vacancy history (timeline)
-  events: VacancyEvent[];
 }
 
 // =============================================================================

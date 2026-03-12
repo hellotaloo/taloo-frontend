@@ -56,11 +56,11 @@ export const pageConfigs: Record<string, PageConfig> = {
   // Main pages
   '/': { title: 'Dashboard', description: 'Overzicht van agent activiteiten en prestaties', icon: LayoutDashboard },
   '/inbox': { title: 'Inbox', icon: Inbox },
-  '/records': { title: 'Records', description: 'Bekijk en beheer al je gegevens', icon: LayoutList },
-  '/records/vacancies': { title: 'Vacatures', description: 'Bekijk en beheer al je vacatures', icon: Briefcase },
-  '/records/candidates': { title: 'Kandidaten', description: 'Bekijk en beheer al je kandidaten', icon: Users },
-  '/records/pipeline': { title: 'Pipelines', description: 'Overzicht van alle actieve sollicitaties per fase', icon: Kanban },
-  '/records/customers': { title: 'Klanten', description: 'Bekijk en beheer al je klanten', icon: Building2 },
+  '/views': { title: 'Views', description: 'Bekijk en beheer al je gegevens', icon: LayoutList },
+  '/views/vacancies': { title: 'Vacatures', description: 'Bekijk en beheer al je vacatures', icon: Briefcase },
+  '/views/candidates': { title: 'Kandidaten', description: 'Bekijk en beheer al je kandidaten', icon: Users },
+  '/views/pipelines': { title: 'Pipelines', description: 'Overzicht van alle actieve sollicitaties per fase', icon: Kanban },
+  '/views/customers': { title: 'Klanten', description: 'Bekijk en beheer al je klanten', icon: Building2 },
   '/activities': { title: 'Activiteiten', description: 'Status van alle lopende en afgeronde agent activiteiten', icon: Activity },
   '/agents': { title: 'Agents', description: 'Ontdek en activeer AI agents voor je workspace', icon: Boxes },
 
@@ -83,13 +83,6 @@ export const pageConfigs: Record<string, PageConfig> = {
   // Agent settings
   '/agent-settings/voice': { title: 'Voice Agent', description: 'Configure voice settings and test demo calls', icon: Mic },
 
-  // Legacy routes (keep for backwards compatibility)
-  '/metrics': { title: 'Pre-screening Metrics', icon: Phone },
-  '/knockout-interviews': { title: 'Pre-screening', icon: Phone },
-  '/search': { title: 'Zoeken', icon: ScanSearch },
-  '/vacatures': { title: 'Vacatures', icon: LayoutList },
-  '/kandidaten': { title: 'Kandidaten', icon: LayoutList },
-  '/onboarding': { title: 'Onboarding', icon: FileCheck },
 };
 
 /**
@@ -105,7 +98,7 @@ export const dynamicRoutes: Array<{ pattern: RegExp; config: PageConfig }> = [
   { pattern: /^\/interviews\/generate\//, config: { title: 'Interview vragen', icon: Phone } },
 
   // Vacancy pipeline
-  { pattern: /^\/records\/vacancies\/[^/]+\/pipeline/, config: { title: 'Pipeline', icon: Briefcase } },
+  { pattern: /^\/views\/vacancies\/[^/]+\/pipeline/, config: { title: 'Pipeline', icon: Briefcase } },
 
   // Documentcollectie dynamic routes
   { pattern: /^\/document-collection\/detail\//, config: { title: 'Documentcollectie', icon: FileCheck } },

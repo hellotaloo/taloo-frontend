@@ -19,32 +19,6 @@ test.describe('Navigation', () => {
     await page.waitForLoadState('networkidle');
   });
 
-  test('should navigate to knockout interviews page', async ({ page }) => {
-    await page.goto('/');
-
-    // Navigate to knockout interviews
-    await page.goto('/knockout-interviews');
-
-    // Verify we're on the knockout interviews page
-    await expect(page).toHaveURL(/.*knockout-interviews/);
-
-    // Wait for content to load
-    await page.waitForLoadState('networkidle');
-  });
-
-  test('should navigate to metrics page', async ({ page }) => {
-    await page.goto('/');
-
-    // Navigate to metrics
-    await page.goto('/metrics');
-
-    // Verify we're on the metrics page
-    await expect(page).toHaveURL(/.*metrics/);
-
-    // Wait for content to load
-    await page.waitForLoadState('networkidle');
-  });
-
   test('should navigate to insights page', async ({ page }) => {
     await page.goto('/');
 
