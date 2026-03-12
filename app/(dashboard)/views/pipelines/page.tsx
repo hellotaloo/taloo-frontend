@@ -37,11 +37,11 @@ export default function PipelinePage() {
         <PageLayoutHeader />
         <PageLayoutContent>
           <div className="flex items-center justify-between gap-4 mb-4">
-            <Tabs value="alles">
+            <Tabs value="alle">
               <TabsList variant="line">
-                <TabsTrigger value="alles">
+                <TabsTrigger value="alle">
                   <List className="w-3.5 h-3.5" />
-                  Alles
+                  Alle
                 </TabsTrigger>
               </TabsList>
             </Tabs>
