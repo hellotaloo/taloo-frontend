@@ -203,6 +203,40 @@ export async function updateCandidateRating(
   return response.json();
 }
 
+// Candidate Attributes (per candidate)
+export interface PutCandidateAttributeBody {
+  attribute_type_id: string;
+  value: string;
+  source: string;
+}
+
+export async function putCandidateAttribute(
+  candidateId: string,
+  body: PutCandidateAttributeBody
+): Promise<void> {
+  const response = await authFetch(`${BACKEND_URL}/candidates/${candidateId}/attributes`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) {
+    throw new Error('Failed to save attribute');
+  }
+}
+
+export async function deleteCandidateAttribute(
+  candidateId: string,
+  attributeId: string
+): Promise<void> {
+  const response = await authFetch(
+    `${BACKEND_URL}/candidates/${candidateId}/attributes/${attributeId}`,
+    { method: 'DELETE' }
+  );
+  if (!response.ok) {
+    throw new Error('Failed to delete attribute');
+  }
+}
+
 // Vacancies API (from backend)
 export interface GetVacanciesParams {
   limit?: number;

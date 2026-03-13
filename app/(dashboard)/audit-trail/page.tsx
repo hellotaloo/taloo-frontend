@@ -451,12 +451,16 @@ function ActivityRow({
 // Filter types
 type FilterType = 'all' | 'candidate' | 'recruiter' | 'agent';
 
+const PAGE_SIZE = 50;
+
 export default function AuditTrailPage() {
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [activities, setActivities] = useState<GlobalActivity[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [total, setTotal] = useState(0);
 
   // Detail pane states
   const [selectedCandidateId, setSelectedCandidateId] = useState<string | null>(null);
@@ -473,13 +477,14 @@ export default function AuditTrailPage() {
       setIsLoading(true);
       setError(null);
       try {
-        // Map filter to actor_type
         const actorType = activeFilter === 'all' ? undefined : activeFilter;
         const response = await getActivities({
           actor_type: actorType as ActivityActorType | undefined,
-          limit: 100,
+          limit: PAGE_SIZE,
+          offset: 0,
         });
-        setActivities(response.activities ?? []);
+        setActivities(response.items ?? []);
+        setTotal(response.total ?? 0);
       } catch (err) {
         console.error('Failed to fetch activities:', err);
         setError('Kon activiteiten niet laden');
@@ -490,6 +495,27 @@ export default function AuditTrailPage() {
 
     fetchActivities();
   }, [activeFilter]);
+
+  // Load more activities
+  const handleLoadMore = async () => {
+    setIsLoadingMore(true);
+    try {
+      const actorType = activeFilter === 'all' ? undefined : activeFilter;
+      const response = await getActivities({
+        actor_type: actorType as ActivityActorType | undefined,
+        limit: PAGE_SIZE,
+        offset: activities.length,
+      });
+      setActivities((prev) => [...prev, ...(response.items ?? [])]);
+      setTotal(response.total ?? 0);
+    } catch (err) {
+      console.error('Failed to load more activities:', err);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  };
+
+  const hasMore = activities.length < total;
 
   // Fetch candidate detail when selected
   useEffect(() => {
@@ -656,34 +682,54 @@ export default function AuditTrailPage() {
                   <p className="text-sm">Geen activiteiten gevonden</p>
                 </div>
               ) : (
-                groupedActivities.map((group) => (
-                  <div key={group.date} data-testid={`activity-group-${group.date}`}>
-                    {/* Date header */}
-                    <div className="flex items-center gap-3 mb-3">
-                      <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-                        {group.label}
-                      </span>
-                      <div className="flex-1 h-px bg-gray-100" />
-                    </div>
+                <>
+                  {groupedActivities.map((group) => (
+                    <div key={group.date} data-testid={`activity-group-${group.date}`}>
+                      {/* Date header */}
+                      <div className="flex items-center gap-3 mb-3">
+                        <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                          {group.label}
+                        </span>
+                        <div className="flex-1 h-px bg-gray-100" />
+                      </div>
 
-                    {/* Timeline items */}
-                    <div className="relative ml-1">
-                      {/* Vertical line */}
-                      <div className="absolute left-[4px] top-4 bottom-4 w-px bg-gray-200" />
+                      {/* Timeline items */}
+                      <div className="relative ml-1">
+                        {/* Vertical line */}
+                        <div className="absolute left-[4px] top-4 bottom-4 w-px bg-gray-200" />
 
-                      {/* Activity rows */}
-                      {group.activities.map((activity, index) => (
-                        <ActivityRow
-                          key={activity.id}
-                          activity={activity}
-                          index={index}
-                          onCandidateClick={handleCandidateClick}
-                          onVacancyClick={handleVacancyClick}
-                        />
-                      ))}
+                        {/* Activity rows */}
+                        {group.activities.map((activity, index) => (
+                          <ActivityRow
+                            key={activity.id}
+                            activity={activity}
+                            index={index}
+                            onCandidateClick={handleCandidateClick}
+                            onVacancyClick={handleVacancyClick}
+                          />
+                        ))}
+                      </div>
                     </div>
+                  ))}
+
+                  {/* Load more / summary */}
+                  <div className="flex items-center justify-between pt-2">
+                    <span className="text-xs text-gray-400">
+                      {activities.length} van {total} activiteiten
+                    </span>
+                    {hasMore && (
+                      <button
+                        onClick={handleLoadMore}
+                        disabled={isLoadingMore}
+                        data-testid="load-more-activities"
+                        className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+                      >
+                        {isLoadingMore && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                        {isLoadingMore ? 'Laden...' : 'Meer laden'}
+                      </button>
+                    )}
                   </div>
-                ))
+                </>
               )}
             </div>
           </div>
@@ -697,6 +743,10 @@ export default function AuditTrailPage() {
             candidate={selectedCandidateDetail}
             isLoading={candidateDetailLoading}
             onClose={handleCloseCandidateDetail}
+            onVacancyClick={(vacancyId) => {
+              handleCloseCandidateDetail();
+              setSelectedVacancyId(vacancyId);
+            }}
           />
         </SheetContent>
       </Sheet>
@@ -708,6 +758,10 @@ export default function AuditTrailPage() {
             vacancy={selectedVacancyDetail}
             isLoading={vacancyDetailLoading}
             onClose={handleCloseVacancyDetail}
+            onCandidateClick={(candidateId) => {
+              handleCloseVacancyDetail();
+              setSelectedCandidateId(candidateId);
+            }}
           />
         </SheetContent>
       </Sheet>

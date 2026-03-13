@@ -23,12 +23,9 @@ import {
   XCircle,
   MoreHorizontal,
   X,
-  Eye,
-  EyeOff,
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { formatRelativeDate } from '@/lib/utils';
-import { getCandidacies, getCandidacy, patchCandidacy, createCandidacy } from '@/lib/candidacy-api';
+import { cn, formatRelativeDate, formatPhoneNumber } from '@/lib/utils';
+import { getCandidacies, patchCandidacy, createCandidacy } from '@/lib/candidacy-api';
 import { supabase } from '@/lib/supabase';
 import { getCandidates, getCandidate } from '@/lib/api';
 import type { Candidacy, CandidacyStage, APICandidateListItem, APICandidateDetail } from '@/lib/types';
@@ -65,7 +62,8 @@ const STAGE_CONFIG: Record<CandidacyStage, StageConfig> = {
 const ACTIVE_STAGES: CandidacyStage[] = [
   'new', 'pre_screening', 'qualified', 'interview_planned', 'interview_done', 'offer', 'placed',
 ];
-const ARCHIVE_STAGES: CandidacyStage[] = ['rejected', 'withdrawn'];
+const TERMINAL_STAGES: CandidacyStage[] = ['rejected', 'withdrawn'];
+const ALL_STAGES: CandidacyStage[] = [...ACTIVE_STAGES, ...TERMINAL_STAGES];
 
 // ─── Channel badge ────────────────────────────────────────────────────────────
 
@@ -365,7 +363,7 @@ function AddCandidatePopover({ vacancyId, stage, onAdded }: AddCandidatePopoverP
               <Avatar name={c.full_name} />
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-gray-900 truncate">{c.full_name}</p>
-                {c.phone && <p className="text-xs text-gray-400">{c.phone}</p>}
+                {c.phone && <p className="text-xs text-gray-400">{formatPhoneNumber(c.phone)}</p>}
               </div>
               {adding === c.id && <Loader2 className="w-3.5 h-3.5 text-gray-400 animate-spin shrink-0" />}
             </button>
@@ -455,10 +453,8 @@ export interface VacancyKanbanProps {
 export function VacancyKanban({ vacancyId }: VacancyKanbanProps) {
   const [candidacies, setCandidacies] = useState<Candidacy[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showArchive, setShowArchive] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeId, setActiveId] = useState<string | null>(null);
-
   // Candidate detail panel
   const [selectedCandidateId, setSelectedCandidateId] = useState<string | null>(null);
   const [selectedCandidate, setSelectedCandidate] = useState<APICandidateDetail | null>(null);
@@ -497,25 +493,15 @@ export function VacancyKanban({ vacancyId }: VacancyKanbanProps) {
           filter: `vacancy_id=eq.${vacancyId}`,
         },
         async (payload) => {
-          if (payload.eventType === 'INSERT') {
-            const newRow = payload.new as { id: string };
+          if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+            // Refetch full vacancy pipeline to get nested candidate/application data
             try {
-              const full = await getCandidacy(newRow.id);
-              setCandidacies((prev) =>
-                prev.some((c) => c.id === full.id) ? prev : [full, ...prev],
-              );
+              const resp = await getCandidacies({ vacancy_id: vacancyId });
+              setCandidacies(resp.items ?? []);
+
             } catch {
-              // ignore — initial fetch already has it or backend race
+              // ignore
             }
-          } else if (payload.eventType === 'UPDATE') {
-            const updated = payload.new as { id: string; stage: CandidacyStage; stage_updated_at: string; updated_at: string };
-            setCandidacies((prev) =>
-              prev.map((c) =>
-                c.id === updated.id
-                  ? { ...c, stage: updated.stage, stage_updated_at: updated.stage_updated_at, updated_at: updated.updated_at }
-                  : c,
-              ),
-            );
           } else if (payload.eventType === 'DELETE') {
             const deleted = payload.old as { id: string };
             setCandidacies((prev) => prev.filter((c) => c.id !== deleted.id));
@@ -545,7 +531,7 @@ export function VacancyKanban({ vacancyId }: VacancyKanbanProps) {
   // Group by stage
   const grouped = useMemo(() => {
     const map = new Map<CandidacyStage, Candidacy[]>();
-    for (const s of [...ACTIVE_STAGES, ...ARCHIVE_STAGES]) map.set(s, []);
+    for (const s of ALL_STAGES) map.set(s, []);
     const query = searchQuery.toLowerCase();
     for (const c of candidacies) {
       if (query && !c.candidate.full_name.toLowerCase().includes(query)) continue;
@@ -621,8 +607,6 @@ export function VacancyKanban({ vacancyId }: VacancyKanbanProps) {
     setCandidacies((prev) => [candidacy, ...prev]);
   }, []);
 
-  const visibleStages = showArchive ? [...ACTIVE_STAGES, ...ARCHIVE_STAGES] : ACTIVE_STAGES;
-
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -634,20 +618,7 @@ export function VacancyKanban({ vacancyId }: VacancyKanbanProps) {
   return (
     <>
       {/* Toolbar */}
-      <div className="flex items-center justify-between gap-4 mb-5 shrink-0">
-        <button
-          onClick={() => setShowArchive((v) => !v)}
-          className={cn(
-            'flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border transition-colors',
-            showArchive
-              ? 'bg-gray-900 text-white border-gray-900'
-              : 'text-gray-500 border-gray-200 hover:border-gray-300 hover:text-gray-700',
-          )}
-        >
-          {showArchive ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-          Toon archief
-        </button>
-
+      <div className="flex items-center justify-end gap-4 mb-5 shrink-0">
         <div className="relative">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
           <input
@@ -674,7 +645,7 @@ export function VacancyKanban({ vacancyId }: VacancyKanbanProps) {
         onDragEnd={handleDragEnd}
       >
         <div className="flex gap-3 overflow-x-auto pb-4 flex-1">
-          {visibleStages.map((stage) => (
+          {ALL_STAGES.map((stage) => (
             <KanbanColumn
               key={stage}
               stage={stage}

@@ -18,6 +18,7 @@ import {
   Users,
   Circle,
   Shield,
+  ShieldCheck,
   CreditCard,
   GraduationCap,
   Wrench,
@@ -28,6 +29,8 @@ import {
   Camera,
   Award,
   Stamp,
+  Layers,
+  Tags,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -66,6 +69,9 @@ const ICON_MAP: Record<string, LucideIcon> = {
   award: Award,
   stamp: Stamp,
   'file-check': FileCheck,
+  layers: Layers,
+  tags: Tags,
+  'shield-check': ShieldCheck,
 };
 
 /**

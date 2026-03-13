@@ -1,115 +1,113 @@
 'use client';
 
-import { X, Phone, FileText, CheckCircle2, Clock, AlertCircle, Loader2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import {
+  X,
+  Phone,
+  FileText,
+  CheckCircle2,
+  Clock,
+  AlertCircle,
+  Loader2,
+  MessageCircle,
+  XCircle,
+  SkipForward,
+  Download,
+  ArrowRight,
+  User,
+  ChevronRight,
+} from 'lucide-react';
 import { cn, formatTimestamp } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { StatusBadge } from '@/components/kit/status-badge';
-import { getLucideIcon } from '@/lib/ontology-utils';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { getCollectionActivities } from '@/lib/document-collection-api';
 import type {
-  DocumentCollectionDetailResponse,
-  DocumentTypeResponse,
-  CollectionUploadResponse,
-  UploadStatus,
+  DocumentCollectionFullDetailResponse,
+  CollectionDocumentStatusResponse,
+  WorkflowStepResponse,
+  CollectionPlanStepResponse,
+  CollectionMessageResponse,
+  DocumentStatus,
+  GlobalActivity,
 } from '@/lib/types';
 
+// =============================================================================
+// Props
+// =============================================================================
+
 interface CollectionDetailPaneProps {
-  collection: DocumentCollectionDetailResponse | null;
+  collection: DocumentCollectionFullDetailResponse | null;
   isLoading?: boolean;
   onClose?: () => void;
+  onNavigateToCandidate?: (candidateId: string) => void;
+  onNavigateToCandidacy?: (candidacyId: string) => void;
 }
 
-const uploadStatusConfig: Record<UploadStatus, { label: string; variant: 'blue' | 'green' | 'orange' | 'red' | 'gray' }> = {
-  pending:      { label: 'Wachtend',      variant: 'gray' },
-  verified:     { label: 'Geverifieerd',   variant: 'green' },
-  rejected:     { label: 'Afgekeurd',      variant: 'red' },
-  needs_review: { label: 'Review nodig',   variant: 'orange' },
+// =============================================================================
+// Status configs
+// =============================================================================
+
+const collectionStatusConfig: Record<string, { label: string; variant: 'blue' | 'green' | 'orange' | 'red' }> = {
+  active:       { label: 'Lopend',            variant: 'blue' },
+  completed:    { label: 'Afgerond',          variant: 'green' },
+  needs_review: { label: 'Beoordeling nodig', variant: 'orange' },
+  abandoned:    { label: 'Verlaten',          variant: 'red' },
 };
 
-function getStatusIcon(status: UploadStatus) {
-  switch (status) {
-    case 'pending':      return <Clock className="w-4 h-4 text-gray-400" />;
-    case 'verified':     return <CheckCircle2 className="w-4 h-4 text-green-500" />;
-    case 'rejected':     return <AlertCircle className="w-4 h-4 text-red-500" />;
-    case 'needs_review': return <AlertCircle className="w-4 h-4 text-orange-500" />;
-  }
-}
+const documentStatusConfig: Record<DocumentStatus, { label: string; variant: 'blue' | 'green' | 'orange' | 'red' | 'gray'; icon: React.ReactNode }> = {
+  pending:  { label: 'Wachtend',      variant: 'gray',   icon: <Clock className="w-4 h-4 text-gray-400" /> },
+  asked:    { label: 'Gevraagd',      variant: 'blue',   icon: <MessageCircle className="w-4 h-4 text-blue-500" /> },
+  received: { label: 'Ontvangen',     variant: 'orange',  icon: <Download className="w-4 h-4 text-yellow-500" /> },
+  verified: { label: 'Geverifieerd',  variant: 'green',  icon: <CheckCircle2 className="w-4 h-4 text-green-500" /> },
+  failed:   { label: 'Mislukt',       variant: 'red',    icon: <XCircle className="w-4 h-4 text-red-500" /> },
+  skipped:  { label: 'Overgeslagen',  variant: 'gray',   icon: <SkipForward className="w-4 h-4 text-gray-400" /> },
+};
 
-function getStatusBgColor(status: UploadStatus) {
-  switch (status) {
-    case 'pending':      return 'bg-gray-50 border-gray-200';
-    case 'verified':     return 'bg-green-50 border-green-200';
-    case 'rejected':     return 'bg-red-50 border-red-200';
-    case 'needs_review': return 'bg-orange-50 border-orange-200';
-  }
-}
+const documentStatusBg: Record<DocumentStatus, string> = {
+  pending:  'bg-gray-50 border-gray-200',
+  asked:    'bg-blue-50 border-blue-200',
+  received: 'bg-yellow-50 border-yellow-200',
+  verified: 'bg-green-50 border-green-200',
+  failed:   'bg-red-50 border-red-200',
+  skipped:  'bg-gray-50 border-gray-200',
+};
 
-/** Get the best upload status for a document type (verified > needs_review > rejected > pending) */
-function getDocumentStatus(uploads: CollectionUploadResponse[]): UploadStatus {
-  if (uploads.some(u => u.status === 'verified')) return 'verified';
-  if (uploads.some(u => u.status === 'needs_review')) return 'needs_review';
-  if (uploads.some(u => u.status === 'rejected')) return 'rejected';
-  return 'pending';
-}
+const workflowStepStyle: Record<string, { icon: React.ReactNode; ring: string }> = {
+  completed: { icon: <CheckCircle2 className="w-4 h-4 text-green-600" />, ring: 'ring-green-200 bg-green-50' },
+  current:   { icon: <div className="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse" />, ring: 'ring-blue-200 bg-blue-50' },
+  pending:   { icon: <div className="w-2 h-2 rounded-full bg-gray-300" />, ring: 'ring-gray-200 bg-gray-50' },
+  failed:    { icon: <XCircle className="w-4 h-4 text-red-500" />, ring: 'ring-red-200 bg-red-50' },
+};
 
-function buildTimeline(collection: DocumentCollectionDetailResponse) {
-  const events: { id: string; event: string; timestamp: string }[] = [];
+// =============================================================================
+// Main Component
+// =============================================================================
 
-  // Build a lookup for document type names
-  const docTypeMap = new Map(
-    collection.documents_required.map(dt => [dt.id, dt.name])
-  );
+export function CollectionDetailPane({
+  collection,
+  isLoading,
+  onClose,
+  onNavigateToCandidate,
+  onNavigateToCandidacy,
+}: CollectionDetailPaneProps) {
+  const [activities, setActivities] = useState<GlobalActivity[]>([]);
+  const [activitiesLoading, setActivitiesLoading] = useState(false);
 
-  // Start event
-  events.push({
-    id: 'started',
-    event: 'Collectie gestart',
-    timestamp: collection.started_at,
-  });
-
-  // Upload events with document names
-  collection.uploads.forEach((upload) => {
-    const docName = upload.document_type_id
-      ? docTypeMap.get(upload.document_type_id) ?? 'Document'
-      : 'Document';
-    const side = upload.document_side === 'front' ? ' (voorzijde)' :
-                 upload.document_side === 'back' ? ' (achterzijde)' : '';
-
-    events.push({
-      id: `upload-${upload.id}`,
-      event: `${docName}${side} geüpload`,
-      timestamp: upload.uploaded_at,
-    });
-
-    if (upload.status === 'verified') {
-      events.push({
-        id: `verified-${upload.id}`,
-        event: `${docName}${side} geverifieerd`,
-        timestamp: upload.uploaded_at,
-      });
-    } else if (upload.status === 'rejected') {
-      events.push({
-        id: `rejected-${upload.id}`,
-        event: `${docName}${side} afgekeurd`,
-        timestamp: upload.uploaded_at,
-      });
+  // Fetch activities when collection changes (for Tijdlijn tab)
+  useEffect(() => {
+    if (!collection?.candidate_id || !collection?.vacancy_id) {
+      setActivities([]);
+      return;
     }
-  });
 
-  // Completion event
-  if (collection.completed_at) {
-    events.push({
-      id: 'completed',
-      event: 'Collectie voltooid',
-      timestamp: collection.completed_at,
-    });
-  }
+    setActivitiesLoading(true);
+    getCollectionActivities(collection.candidate_id, collection.vacancy_id, { limit: 50 })
+      .then((res) => setActivities(res.items))
+      .catch(() => setActivities([]))
+      .finally(() => setActivitiesLoading(false));
+  }, [collection?.candidate_id, collection?.vacancy_id]);
 
-  events.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
-
-  return events;
-}
-
-export function CollectionDetailPane({ collection, isLoading, onClose }: CollectionDetailPaneProps) {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -129,23 +127,13 @@ export function CollectionDetailPane({ collection, isLoading, onClose }: Collect
     );
   }
 
-  // Group uploads by document_type_id
-  const uploadsByDocType = new Map<string, CollectionUploadResponse[]>();
-  collection.uploads.forEach((upload) => {
-    if (upload.document_type_id) {
-      const existing = uploadsByDocType.get(upload.document_type_id) ?? [];
-      existing.push(upload);
-      uploadsByDocType.set(upload.document_type_id, existing);
-    }
-  });
-
-  const timeline = buildTimeline(collection);
+  const statusCfg = collectionStatusConfig[collection.status] ?? collectionStatusConfig.active;
 
   return (
     <div className="flex flex-col h-full bg-white">
       {/* Header */}
       <div className="px-6 py-4 border-b shrink-0">
-        <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center justify-between mb-1">
           <h2 className="text-lg font-semibold text-gray-900">{collection.candidate_name}</h2>
           {onClose && (
             <Button variant="ghost" size="icon" onClick={onClose}>
@@ -153,137 +141,307 @@ export function CollectionDetailPane({ collection, isLoading, onClose }: Collect
             </Button>
           )}
         </div>
-        <div className="flex items-center gap-3 text-sm text-gray-500">
+
+        {/* Subtitle: vacancy + status + progress + channel */}
+        <div className="flex items-center gap-2 text-sm text-gray-500 flex-wrap">
+          {collection.vacancy_title && (
+            <>
+              <span className="truncate max-w-[200px]">{collection.vacancy_title}</span>
+              <span className="text-gray-300">·</span>
+            </>
+          )}
+          <StatusBadge label={statusCfg.label} variant={statusCfg.variant} />
+          <span className="text-gray-300">·</span>
+          <span>{collection.documents_collected}/{collection.documents_total} documenten</span>
+          <span className="text-gray-300">·</span>
+          <span className="capitalize">{collection.channel}</span>
+        </div>
+
+        {/* Contact + navigation links */}
+        <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
           {collection.candidate_phone && (
             <div className="flex items-center gap-1.5">
               <Phone className="w-3.5 h-3.5" />
               <span>{collection.candidate_phone}</span>
             </div>
           )}
-          {collection.vacancy_title && (
-            <span className="truncate">{collection.vacancy_title}</span>
+          {collection.candidate_id && onNavigateToCandidate && (
+            <button
+              onClick={() => onNavigateToCandidate(collection.candidate_id!)}
+              className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <User className="w-3 h-3" />
+              Kandidaat
+              <ChevronRight className="w-3 h-3" />
+            </button>
+          )}
+          {collection.candidacy_id && onNavigateToCandidacy && (
+            <button
+              onClick={() => onNavigateToCandidacy(collection.candidacy_id!)}
+              className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <FileText className="w-3 h-3" />
+              Kandidatuur
+              <ChevronRight className="w-3 h-3" />
+            </button>
           )}
         </div>
 
-        {/* Summary cards */}
-        <div className="grid grid-cols-3 gap-3 mt-4">
-          <div className="bg-gray-50 rounded-lg p-3">
-            <p className="text-[10px] font-medium text-gray-500 uppercase tracking-wide">Status</p>
-            <div className="mt-1">
-              <StatusBadge
-                label={collection.status === 'active' ? 'Actief' :
-                       collection.status === 'completed' ? 'Compleet' :
-                       collection.status === 'needs_review' ? 'Review nodig' : 'Afgebroken'}
-                variant={collection.status === 'active' ? 'blue' :
-                         collection.status === 'completed' ? 'green' :
-                         collection.status === 'needs_review' ? 'orange' : 'red'}
-              />
-            </div>
-          </div>
-          <div className="bg-gray-50 rounded-lg p-3">
-            <p className="text-[10px] font-medium text-gray-500 uppercase tracking-wide">Documenten</p>
-            <p className="text-lg font-semibold text-gray-900 mt-1">
-              {collection.documents_collected}/{collection.documents_total}
-            </p>
-          </div>
-          <div className="bg-gray-50 rounded-lg p-3">
-            <p className="text-[10px] font-medium text-gray-500 uppercase tracking-wide">Berichten</p>
-            <p className="text-lg font-semibold text-gray-900 mt-1">
-              {collection.message_count}
-            </p>
-          </div>
-        </div>
+        {/* Plan summary */}
+        {collection.plan?.summary && (
+          <p className="mt-3 text-sm text-gray-600 leading-relaxed bg-gray-50 rounded-lg p-3 border border-gray-100">
+            {collection.plan.summary}
+          </p>
+        )}
       </div>
 
-      {/* Content */}
-      <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
-        {/* Documents checklist */}
-        <div className="space-y-3">
-          <h3 className="text-sm font-semibold text-gray-900">Documenten</h3>
-          {collection.documents_required.length === 0 ? (
-            <p className="text-sm text-gray-400">Geen documenten vereist</p>
-          ) : (
-            <div className="space-y-2">
-              {collection.documents_required.map((docType) => {
-                const uploads = uploadsByDocType.get(docType.id) ?? [];
-                const status = uploads.length > 0 ? getDocumentStatus(uploads) : 'pending';
-                return (
-                  <DocumentRow
-                    key={docType.id}
-                    docType={docType}
-                    status={status}
-                    uploads={uploads}
-                  />
-                );
-              })}
-            </div>
-          )}
-        </div>
+      {/* Tabs */}
+      <Tabs defaultValue="tijdlijn" className="flex-1 flex flex-col min-h-0">
+        <TabsList variant="line" className="px-6 shrink-0">
+          <TabsTrigger value="tijdlijn">Tijdlijn</TabsTrigger>
+          <TabsTrigger value="documenten">Documenten</TabsTrigger>
+          <TabsTrigger value="plan">Plan</TabsTrigger>
+          <TabsTrigger value="chat">Chat</TabsTrigger>
+        </TabsList>
 
-        {/* Timeline */}
-        <div className="space-y-3">
-          <h3 className="text-sm font-semibold text-gray-900">Tijdlijn</h3>
-          <div className="space-y-3">
-            {timeline.map((event, index) => (
-              <div key={event.id} className="flex gap-3">
-                <div className="flex flex-col items-center">
-                  <div className="w-2 h-2 rounded-full bg-gray-300 shrink-0 mt-1.5" />
-                  {index < timeline.length - 1 && (
-                    <div className="w-0.5 flex-1 bg-gray-200 mt-1" />
-                  )}
-                </div>
-                <div className="flex-1 pb-4">
-                  <p className="text-sm text-gray-900">{event.event}</p>
-                  <p className="text-xs text-gray-500 mt-0.5">{formatTimestamp(event.timestamp)}</p>
-                </div>
-              </div>
-            ))}
-          </div>
+        <div className="flex-1 overflow-y-auto">
+          <TabsContent value="tijdlijn" className="px-6 py-5 space-y-6 mt-0">
+            <TijdlijnTab
+              workflowSteps={collection.workflow_steps}
+              activities={activities}
+              activitiesLoading={activitiesLoading}
+            />
+          </TabsContent>
+
+          <TabsContent value="documenten" className="px-6 py-5 mt-0">
+            <DocumentenTab documentStatuses={collection.document_statuses} />
+          </TabsContent>
+
+          <TabsContent value="plan" className="px-6 py-5 mt-0">
+            <PlanTab steps={collection.plan?.conversation_steps ?? []} />
+          </TabsContent>
+
+          <TabsContent value="chat" className="px-6 py-5 mt-0">
+            <ChatTab messages={collection.messages} />
+          </TabsContent>
         </div>
-      </div>
+      </Tabs>
     </div>
   );
 }
 
-function DocumentRow({
-  docType,
-  status,
-  uploads,
-}: {
-  docType: DocumentTypeResponse;
-  status: UploadStatus;
-  uploads: CollectionUploadResponse[];
-}) {
-  const Icon = getLucideIcon(docType.icon);
-  const config = uploadStatusConfig[status];
-  const latestUpload = uploads.length > 0
-    ? uploads.reduce((a, b) => new Date(a.uploaded_at) > new Date(b.uploaded_at) ? a : b)
-    : null;
+// =============================================================================
+// Tijdlijn Tab
+// =============================================================================
 
+function TijdlijnTab({
+  workflowSteps,
+  activities,
+  activitiesLoading,
+}: {
+  workflowSteps: WorkflowStepResponse[];
+  activities: GlobalActivity[];
+  activitiesLoading: boolean;
+}) {
   return (
-    <div className={cn('flex items-center justify-between p-3 rounded-lg border', getStatusBgColor(status))}>
-      <div className="flex items-center gap-3 flex-1">
-        <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center shrink-0 border border-gray-200">
-          <Icon className="w-4 h-4 text-gray-600" />
-        </div>
-        <div className="min-w-0">
-          <p className="text-sm font-medium text-gray-900">{docType.name}</p>
-          <div className="flex items-center gap-1.5">
-            {getStatusIcon(status)}
-            <span className="text-xs text-gray-500">{config.label}</span>
-            {docType.requires_front_back && (
-              <span className="text-xs text-gray-400 ml-1">
-                (voor- &amp; achterzijde)
-              </span>
-            )}
+    <>
+      {/* Workflow progress bar */}
+      {workflowSteps.length > 0 && (
+        <div className="space-y-2">
+          <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wide">Voortgang</h3>
+          <div className="flex items-center gap-1">
+            {workflowSteps.map((step, i) => {
+              const style = workflowStepStyle[step.status] ?? workflowStepStyle.pending;
+              return (
+                <div key={step.id} className="flex items-center gap-1 flex-1 min-w-0">
+                  <div className={cn(
+                    'flex items-center gap-2 rounded-lg px-3 py-2 ring-1 flex-1 min-w-0',
+                    style.ring,
+                  )}>
+                    <div className="shrink-0 flex items-center justify-center w-5 h-5">
+                      {style.icon}
+                    </div>
+                    <span className={cn(
+                      'text-xs font-medium truncate',
+                      step.status === 'current' ? 'text-blue-700' :
+                      step.status === 'completed' ? 'text-green-700' :
+                      step.status === 'failed' ? 'text-red-700' : 'text-gray-500'
+                    )}>
+                      {step.label}
+                    </span>
+                  </div>
+                  {i < workflowSteps.length - 1 && (
+                    <ArrowRight className="w-3 h-3 text-gray-300 shrink-0" />
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
-      </div>
-      {latestUpload && (
-        <span className="text-xs text-gray-400 shrink-0 ml-2">
-          {formatTimestamp(latestUpload.uploaded_at)}
-        </span>
       )}
+
+      {/* Activity timeline */}
+      <div className="space-y-2">
+        <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wide">Gebeurtenissen</h3>
+        {activitiesLoading ? (
+          <div className="flex items-center gap-2 py-4 text-gray-400">
+            <Loader2 className="w-4 h-4 animate-spin" />
+            <span className="text-sm">Laden...</span>
+          </div>
+        ) : activities.length === 0 ? (
+          <p className="text-sm text-gray-400 py-4">Nog geen gebeurtenissen</p>
+        ) : (
+          <div className="space-y-0">
+            {activities.map((activity, index) => (
+              <div key={activity.id} className="flex gap-3">
+                <div className="flex flex-col items-center">
+                  <div className="w-2 h-2 rounded-full bg-gray-300 shrink-0 mt-1.5" />
+                  {index < activities.length - 1 && (
+                    <div className="w-0.5 flex-1 bg-gray-200 mt-1" />
+                  )}
+                </div>
+                <div className="flex-1 pb-4">
+                  <p className="text-sm text-gray-900">{activity.summary || activity.event_type}</p>
+                  <p className="text-xs text-gray-500 mt-0.5">{formatTimestamp(activity.created_at)}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
+
+// =============================================================================
+// Documenten Tab
+// =============================================================================
+
+function DocumentenTab({ documentStatuses }: { documentStatuses: CollectionDocumentStatusResponse[] }) {
+  if (documentStatuses.length === 0) {
+    return <p className="text-sm text-gray-400">Geen documenten vereist</p>;
+  }
+
+  return (
+    <div className="grid grid-cols-1 gap-3">
+      {documentStatuses.map((doc) => {
+        const config = documentStatusConfig[doc.status] ?? documentStatusConfig.pending;
+        const bg = documentStatusBg[doc.status] ?? documentStatusBg.pending;
+
+        return (
+          <div key={doc.slug} className={cn('flex items-center justify-between p-3 rounded-lg border', bg)}>
+            <div className="flex items-center gap-3 flex-1 min-w-0">
+              <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center shrink-0 border border-gray-200">
+                {config.icon}
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-gray-900">{doc.name}</p>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs text-gray-500">{config.label}</span>
+                  {doc.priority === 'recommended' && (
+                    <span className="text-xs text-gray-400 ml-1">(optioneel)</span>
+                  )}
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0 ml-2">
+              {doc.verification_passed && (
+                <CheckCircle2 className="w-4 h-4 text-green-500" />
+              )}
+              {doc.uploaded_at && (
+                <span className="text-xs text-gray-400">
+                  {formatTimestamp(doc.uploaded_at)}
+                </span>
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// =============================================================================
+// Plan Tab
+// =============================================================================
+
+function PlanTab({ steps }: { steps: CollectionPlanStepResponse[] }) {
+  if (steps.length === 0) {
+    return <p className="text-sm text-gray-400">Geen plan beschikbaar</p>;
+  }
+
+  return (
+    <div className="space-y-4">
+      {steps.map((step) => (
+        <div key={step.step} className="bg-gray-50 rounded-lg p-4 border border-gray-100">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-gray-200 text-[10px] font-semibold text-gray-600">
+              {step.step}
+            </span>
+            <h4 className="text-sm font-semibold text-gray-900">{step.topic}</h4>
+          </div>
+          <p className="text-sm text-gray-600 leading-relaxed">{step.message}</p>
+          {step.items.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mt-2">
+              {step.items.map((item) => (
+                <span
+                  key={item}
+                  className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-gray-200 text-gray-600"
+                >
+                  {item}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// =============================================================================
+// Chat Tab
+// =============================================================================
+
+function ChatTab({ messages }: { messages: CollectionMessageResponse[] }) {
+  if (messages.length === 0) {
+    return <p className="text-sm text-gray-400">Nog geen berichten</p>;
+  }
+
+  return (
+    <div className="space-y-3">
+      {messages.map((msg, i) => {
+        if (msg.role === 'system') {
+          return (
+            <div key={i} className="flex justify-center">
+              <span className="text-xs text-gray-500 bg-yellow-50 border border-yellow-100 rounded-full px-3 py-1">
+                {msg.message}
+              </span>
+            </div>
+          );
+        }
+
+        const isAgent = msg.role === 'agent';
+
+        return (
+          <div key={i} className={cn('flex', isAgent ? 'justify-start' : 'justify-end')}>
+            <div className={cn(
+              'max-w-[85%] rounded-xl px-3.5 py-2.5',
+              isAgent
+                ? 'bg-gray-100 text-gray-900 rounded-tl-sm'
+                : 'bg-blue-600 text-white rounded-tr-sm'
+            )}>
+              <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.message}</p>
+              <p className={cn(
+                'text-[10px] mt-1',
+                isAgent ? 'text-gray-400' : 'text-blue-200'
+              )}>
+                {isAgent ? 'Agent' : 'Kandidaat'} · {formatTimestamp(msg.created_at)}
+              </p>
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }

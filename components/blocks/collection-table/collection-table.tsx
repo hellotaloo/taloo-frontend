@@ -10,12 +10,24 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import type { CollectionProgress, DocumentCollectionResponse } from '@/lib/types';
+import type { CandidacyStage, CollectionProgress, DocumentCollectionResponse } from '@/lib/types';
 
 const progressLabels: Record<CollectionProgress, string> = {
   pending:     'Wachtend',
   started:     'Gestart',
   in_progress: 'Bezig',
+};
+
+const stageLabels: Record<CandidacyStage, string> = {
+  new:                'Nieuw',
+  pre_screening:      'Pre-screening',
+  qualified:          'Gekwalificeerd',
+  interview_planned:  'Interview gepland',
+  interview_done:     'Interview afgerond',
+  offer:              'Aanbod',
+  placed:             'Geplaatst',
+  rejected:           'Afgewezen',
+  withdrawn:          'Teruggetrokken',
 };
 
 interface CollectionTableProps {
@@ -50,6 +62,7 @@ export function CollectionTable({
         <TableRow>
           <TableHead>Kandidaat</TableHead>
           <TableHead>Vacature</TableHead>
+          <TableHead>Fase</TableHead>
           <TableHead>Voortgang</TableHead>
           <TableHead>Gestart</TableHead>
           <TableHead>Bijgewerkt</TableHead>
@@ -83,6 +96,13 @@ export function CollectionTable({
               </TableCell>
               <TableCell className="text-sm text-gray-600 max-w-[200px] truncate">
                 {collection.vacancy_title || '-'}
+              </TableCell>
+              <TableCell>
+                {collection.candidacy_stage ? (
+                  <span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-700">
+                    {stageLabels[collection.candidacy_stage] ?? collection.candidacy_stage}
+                  </span>
+                ) : '-'}
               </TableCell>
               <TableCell>
                 <span className="text-sm text-gray-600 block">

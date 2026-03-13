@@ -481,7 +481,7 @@ export default function MonitorPage() {
           actor_type: actorType as ActivityActorType | undefined,
           limit: 100,
         });
-        setActivities(response.activities);
+        setActivities(response.items ?? []);
       } catch (err) {
         console.error('Failed to fetch activities:', err);
         setError('Kon activiteiten niet laden');
@@ -709,6 +709,10 @@ export default function MonitorPage() {
             candidate={selectedCandidateDetail}
             isLoading={candidateDetailLoading}
             onClose={handleCloseCandidateDetail}
+            onVacancyClick={(vacancyId) => {
+              handleCloseCandidateDetail();
+              setSelectedVacancyId(vacancyId);
+            }}
           />
         </SheetContent>
       </Sheet>
@@ -720,6 +724,10 @@ export default function MonitorPage() {
             vacancy={selectedVacancyDetail}
             isLoading={vacancyDetailLoading}
             onClose={handleCloseVacancyDetail}
+            onCandidateClick={(candidateId) => {
+              handleCloseVacancyDetail();
+              setSelectedCandidateId(candidateId);
+            }}
           />
         </SheetContent>
       </Sheet>

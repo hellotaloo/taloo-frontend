@@ -1176,10 +1176,18 @@ export interface PreScreeningVoiceSettings {
   similarity_boost: number;
 }
 
+export interface PreScreeningDefaultChannels {
+  voice: boolean;
+  whatsapp: boolean;
+  cv: boolean;
+}
+
 export interface PreScreeningGeneralSettings {
   intro_message: string | null;
   success_message: string | null;
   max_unrelated_answers: number;
+  require_review: boolean;
+  default_channels: PreScreeningDefaultChannels;
 }
 
 export interface PreScreeningPlanningSettings {

@@ -2,7 +2,7 @@
 
 import { FileCheck, CheckCircle2, Loader2, FileText, AlertCircle, Settings, List } from 'lucide-react';
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import type { CollectionStatus, DocumentCollectionDetailResponse, DocumentCollectionResponse } from '@/lib/types';
+import type { CollectionStatus, DocumentCollectionFullDetailResponse, DocumentCollectionResponse } from '@/lib/types';
 import { getDocumentCollections, getDocumentCollection } from '@/lib/document-collection-api';
 import { MetricCard } from '@/components/kit/metric-card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -20,7 +20,7 @@ export default function DocumentCollectionPage() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<FilterTab>('active');
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [selectedDetail, setSelectedDetail] = useState<DocumentCollectionDetailResponse | null>(null);
+  const [selectedDetail, setSelectedDetail] = useState<DocumentCollectionFullDetailResponse | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
 
   const fetchData = useCallback(async () => {

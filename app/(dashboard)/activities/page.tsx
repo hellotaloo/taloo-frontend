@@ -92,11 +92,14 @@ type SortDirection = 'asc' | 'desc' | null;
 function formatCountdown(seconds: number): string {
   const absSeconds = Math.abs(seconds);
 
-  const hours = Math.floor(absSeconds / 3600);
+  const days = Math.floor(absSeconds / 86400);
+  const hours = Math.floor((absSeconds % 86400) / 3600);
   const minutes = Math.floor((absSeconds % 3600) / 60);
   const secs = absSeconds % 60;
 
-  if (hours > 0) {
+  if (days > 0) {
+    return `${days}d ${hours}u ${minutes}m ${secs}s`;
+  } else if (hours > 0) {
     return `${hours}u ${minutes}m ${secs}s`;
   } else if (minutes > 0) {
     return `${minutes}m ${secs}s`;
@@ -107,10 +110,15 @@ function formatCountdown(seconds: number): string {
 
 // Format duration for completed workflows (more concise, no seconds)
 function formatDuration(seconds: number): string {
-  const hours = Math.floor(seconds / 3600);
+  const days = Math.floor(seconds / 86400);
+  const hours = Math.floor((seconds % 86400) / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
 
-  if (hours > 0 && minutes > 0) {
+  if (days > 0 && hours > 0) {
+    return `${days}d ${hours}u ${minutes}m`;
+  } else if (days > 0) {
+    return `${days}d ${minutes}m`;
+  } else if (hours > 0 && minutes > 0) {
     return `${hours}u ${minutes}m`;
   } else if (hours > 0) {
     return `${hours}u`;
@@ -479,7 +487,7 @@ export default function ActivitiesPage() {
                     <SortableHeader column="candidate_name" label="Kandidaat" />
                     <SortableHeader column="vacancy_title" label="Vacature" />
                     <SortableHeader column="current_step_label" label="Stap" />
-                    <SortableHeader column="status" label="Status" />
+                    {activeFilter === 'all' && <SortableHeader column="status" label="Status" />}
                     <SortableHeader column="sla" label="SLA" />
                     <SortableHeader column="time_ago" label="Laatste Update" />
                     <TableHead className="w-[80px]" />
@@ -516,9 +524,11 @@ export default function ActivitiesPage() {
                           )}
                         </div>
                       </TableCell>
-                      <TableCell>
-                        <ActivityStatusBadge status={task.status} isStuck={task.is_stuck} currentStep={task.current_step} />
-                      </TableCell>
+                      {activeFilter === 'all' && (
+                        <TableCell>
+                          <ActivityStatusBadge status={task.status} isStuck={task.is_stuck} currentStep={task.current_step} />
+                        </TableCell>
+                      )}
                       <TableCell>
                         <SLABadge
                           status={task.status}

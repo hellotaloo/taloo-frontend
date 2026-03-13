@@ -1,8 +1,9 @@
 import { authFetch } from './api';
 import type {
   CollectionStatus,
-  DocumentCollectionDetailResponse,
+  DocumentCollectionFullDetailResponse,
   DocumentCollectionResponse,
+  GlobalActivitiesResponse,
   PaginatedCollectionsResponse,
 } from './types';
 
@@ -50,12 +51,36 @@ export async function getDocumentCollections(
 
 export async function getDocumentCollection(
   collectionId: string
-): Promise<DocumentCollectionDetailResponse> {
-  const url = `${getBaseUrl()}/collections/${collectionId}`;
+): Promise<DocumentCollectionFullDetailResponse> {
+  const url = `${getBaseUrl()}/collections/${collectionId}/detail`;
 
   const response = await authFetch(url);
   if (!response.ok) {
     throw new Error(`Failed to fetch document collection: ${response.status}`);
+  }
+
+  return response.json();
+}
+
+export async function getCollectionActivities(
+  candidateId: string,
+  vacancyId: string,
+  params?: { limit?: number }
+): Promise<GlobalActivitiesResponse> {
+  const workspaceId =
+    typeof window !== 'undefined'
+      ? localStorage.getItem('workspace_id') || ''
+      : '';
+  const searchParams = new URLSearchParams();
+  searchParams.set('candidate_id', candidateId);
+  searchParams.set('vacancy_id', vacancyId);
+  if (params?.limit) searchParams.set('limit', params.limit.toString());
+
+  const url = `${BACKEND_URL}/workspaces/${workspaceId}/monitoring?${searchParams}`;
+
+  const response = await authFetch(url);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch collection activities: ${response.status}`);
   }
 
   return response.json();

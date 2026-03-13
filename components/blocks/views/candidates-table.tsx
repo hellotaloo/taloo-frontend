@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import { Users } from 'lucide-react';
 import { APICandidateListItem } from '@/lib/types';
+import { formatPhoneNumber } from '@/lib/utils';
 import {
   DataTable,
   DataTableHeader,
@@ -51,7 +52,7 @@ export function CandidatesTable({ candidates, selectedId, onRowClick }: Candidat
               </span>
             )}
           </div>
-          {item.phone && <div className="text-xs text-gray-400 mt-0.5">{item.phone}</div>}
+          {item.phone && <div className="text-xs text-gray-400 mt-0.5">{formatPhoneNumber(item.phone)}</div>}
         </div>
       ),
     },

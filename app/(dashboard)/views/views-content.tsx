@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Loader2, Archive, List } from 'lucide-react';
 import { PageLayout, PageLayoutHeader, PageLayoutContent } from '@/components/layout/page-layout';
@@ -111,26 +111,30 @@ export function ViewsContent({ activeTab }: ViewsContentProps) {
   }, []);
 
   // Fetch candidate detail when selected
-  useEffect(() => {
-    async function fetchCandidateDetail() {
-      if (!selectedCandidateId) {
-        setSelectedCandidateDetail(null);
-        return;
-      }
+  const refreshCandidateDetail = useCallback(async () => {
+    if (!selectedCandidateId) return;
+    try {
+      const detail = await getCandidate(selectedCandidateId);
+      setSelectedCandidateDetail(detail);
+    } catch (error) {
+      console.error('Failed to fetch candidate detail:', error);
+    }
+  }, [selectedCandidateId]);
 
-      setCandidateDetailLoading(true);
-      try {
-        const detail = await getCandidate(selectedCandidateId);
-        setSelectedCandidateDetail(detail);
-      } catch (error) {
-        console.error('Failed to fetch candidate detail:', error);
-        setSelectedCandidateDetail(null);
-      } finally {
-        setCandidateDetailLoading(false);
-      }
+  useEffect(() => {
+    if (!selectedCandidateId) {
+      setSelectedCandidateDetail(null);
+      return;
     }
 
-    fetchCandidateDetail();
+    setCandidateDetailLoading(true);
+    getCandidate(selectedCandidateId)
+      .then(setSelectedCandidateDetail)
+      .catch((error) => {
+        console.error('Failed to fetch candidate detail:', error);
+        setSelectedCandidateDetail(null);
+      })
+      .finally(() => setCandidateDetailLoading(false));
   }, [selectedCandidateId]);
 
   // Fetch vacancy detail when selected
@@ -356,7 +360,11 @@ export function ViewsContent({ activeTab }: ViewsContentProps) {
             candidate={selectedCandidateDetail}
             isLoading={candidateDetailLoading}
             onClose={handleCloseCandidateDetail}
-            vacancies={apiVacancies}
+            onRefresh={refreshCandidateDetail}
+            onVacancyClick={(vacancyId) => {
+              handleCloseCandidateDetail();
+              setSelectedVacancyId(vacancyId);
+            }}
           />
         </SheetContent>
       </Sheet>
@@ -368,6 +376,10 @@ export function ViewsContent({ activeTab }: ViewsContentProps) {
             vacancy={selectedVacancyDetail}
             isLoading={vacancyDetailLoading}
             onClose={handleCloseVacancyDetail}
+            onCandidateClick={(candidateId) => {
+              handleCloseVacancyDetail();
+              setSelectedCandidateId(candidateId);
+            }}
           />
         </SheetContent>
       </Sheet>

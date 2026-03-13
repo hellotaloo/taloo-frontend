@@ -1,6 +1,6 @@
 'use client';
 
-import { FileCheck, LayoutDashboard } from 'lucide-react';
+import { ClipboardList, FileCheck, LayoutDashboard } from 'lucide-react';
 import { NavItem } from '@/components/kit/nav-item';
 
 export interface OntologySidebarProps {
@@ -28,10 +28,17 @@ export function OntologySidebar({ className, activeObject, onSelectObject }: Ont
         <div className="mt-1 space-y-1">
           <NavItem
             icon={FileCheck}
-            label="Certificaten"
+            label="Documenten"
             active={activeObject === 'document_type'}
             onClick={() => onSelectObject?.('document_type')}
             testId="object-document-type"
+          />
+          <NavItem
+            icon={ClipboardList}
+            label="Kandidaat attributen"
+            active={activeObject === 'attribute_type'}
+            onClick={() => onSelectObject?.('attribute_type')}
+            testId="object-attribute-type"
           />
         </div>
       </div>

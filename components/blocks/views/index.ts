@@ -3,6 +3,7 @@ export { VacanciesTable } from './vacancies-table';
 export { CustomersTable } from './customers-table';
 export { CandidateDetailPane } from './candidate-detail-pane';
 export { VacancyDetailPane } from './vacancy-detail-pane';
+export { CandidacyArtifacts } from './candidacy-artifacts';
 
 export type { CandidatesTableProps } from './candidates-table';
 export type { VacanciesTableProps } from './vacancies-table';

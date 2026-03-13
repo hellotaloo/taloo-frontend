@@ -391,6 +391,7 @@ export interface DocumentCollectionResponse {
   vacancy_id?: string;
   vacancy_title?: string;
   application_id?: string;
+  candidacy_stage?: CandidacyStage;
   candidate_name: string;
   candidate_phone?: string;
   status: CollectionStatus;
@@ -413,6 +414,7 @@ export interface PaginatedCollectionsResponse {
 }
 
 export type UploadStatus = 'pending' | 'verified' | 'rejected' | 'needs_review';
+export type DocumentStatus = 'pending' | 'asked' | 'received' | 'verified' | 'failed' | 'skipped';
 
 export interface CollectionMessageResponse {
   role: 'user' | 'agent' | 'system';
@@ -446,7 +448,62 @@ export interface DocumentTypeResponse {
   updated_at: string;
 }
 
-export interface DocumentCollectionDetailResponse extends DocumentCollectionResponse {
+// --- Collection Plan (smart planner output) ---
+
+export interface CollectionPlanDocumentResponse {
+  slug: string;
+  name: string;
+  reason?: string;
+  priority: 'required' | 'recommended';
+}
+
+export interface CollectionPlanStepResponse {
+  step: number;
+  topic: string;
+  items: string[];
+  message: string;
+}
+
+export interface CollectionPlanResponse {
+  summary?: string;
+  deadline_note?: string;
+  intro_message?: string;
+  documents_to_collect: CollectionPlanDocumentResponse[];
+  attributes_to_collect: object[];
+  conversation_steps: CollectionPlanStepResponse[];
+  agent_managed_tasks: object[];
+  already_complete: string[];
+  final_step?: object;
+}
+
+// --- Document status (merged plan + upload state) ---
+
+export interface CollectionDocumentStatusResponse {
+  slug: string;
+  name: string;
+  priority: 'required' | 'recommended';
+  status: DocumentStatus;
+  upload_id?: string;
+  verification_passed?: boolean;
+  uploaded_at?: string;
+}
+
+// --- Workflow progress steps ---
+
+export interface WorkflowStepResponse {
+  id: string;
+  label: string;
+  status: 'completed' | 'current' | 'pending' | 'failed';
+}
+
+// --- Full detail response ---
+
+export interface DocumentCollectionFullDetailResponse extends DocumentCollectionResponse {
+  candidacy_id?: string;
+  candidate_id?: string;
+  plan?: CollectionPlanResponse;
+  document_statuses: CollectionDocumentStatusResponse[];
+  workflow_steps: WorkflowStepResponse[];
   messages: CollectionMessageResponse[];
   uploads: CollectionUploadResponse[];
   documents_required: DocumentTypeResponse[];
@@ -561,8 +618,114 @@ export interface APICandidateApplicationSummary {
   completed_at?: string;
 }
 
+// Candidacy summary (embedded in candidate detail)
+export interface CandidacyApplicationBrief {
+  id: string;
+  channel: string;
+  status: string;
+  qualified?: boolean;
+  open_questions_score?: number;
+  knockout_passed: number;
+  knockout_total: number;
+  completed_at?: string;
+}
+
+export interface CandidacySummary {
+  id: string;
+  vacancy_id?: string;
+  stage: CandidacyStage;
+  source?: string;
+  stage_updated_at: string;
+  created_at: string;
+  vacancy_title?: string;
+  vacancy_company?: string;
+  is_open_application: boolean;
+  latest_application?: CandidacyApplicationBrief;
+  screening_result?: ScreeningResult | null;
+  document_collection?: DocumentCollectionSummary | null;
+}
+
+// Agent artifact types (embedded in candidacy)
+export interface ScreeningResult {
+  application_id: string;
+  channel: string;
+  status: string;
+  qualified: boolean;
+  summary?: string;
+  interaction_seconds: number;
+  knockout_passed: number;
+  knockout_total: number;
+  open_questions_score?: number;
+  open_questions_total: number;
+  completed_at?: string;
+  answers: ScreeningAnswer[];
+}
+
+export interface ScreeningAnswer {
+  question_id: string;
+  question_text: string;
+  question_type: 'knockout' | 'qualification';
+  answer?: string;
+  passed?: boolean;
+  score?: number;
+  rating?: AnswerRating;
+  motivation?: string;
+}
+
+export interface DocumentCollectionSummary {
+  collection_id: string;
+  status: string;
+  progress: string;
+  documents_collected: number;
+  documents_total: number;
+  documents: DocumentCollectionItem[];
+}
+
+export interface DocumentCollectionItem {
+  document_type_id: string;
+  document_type_name: string;
+  icon?: string;
+  status: string;
+  uploaded_at?: string;
+}
+
+// Document summary (embedded in candidate detail)
+export interface DocumentSummary {
+  id: string;
+  document_type_id: string;
+  document_type_name: string;
+  document_type_slug?: string;
+  document_number?: string;
+  expiration_date?: string;
+  status: string;
+  verification_passed?: boolean;
+  storage_path?: string;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// Attribute summary (embedded in candidate detail)
+export interface AttributeSummary {
+  id: string;
+  attribute_type_id: string;
+  slug: string;
+  name: string;
+  category: string;
+  data_type: string;
+  options?: { value: string; label: string }[];
+  icon?: string;
+  value?: string;
+  source?: string;
+  verified: boolean;
+  created_at: string;
+}
+
 export interface APICandidateDetail extends APICandidateListItem {
   applications: APICandidateApplicationSummary[];
+  candidacies: CandidacySummary[];
+  attributes: AttributeSummary[];
+  documents: DocumentSummary[];
   timeline?: APIActivityResponse[];
 }
 
@@ -732,8 +895,10 @@ export interface GlobalActivity {
 }
 
 export interface GlobalActivitiesResponse {
-  activities: GlobalActivity[];
+  items: GlobalActivity[];
   total: number;
+  limit: number;
+  offset: number;
 }
 
 // =============================================================================
@@ -763,6 +928,21 @@ export interface OntologyTypeInfo {
 /** GET /ontology response */
 export interface OntologyOverview {
   types: OntologyTypeInfo[];
+}
+
+/** A single stat from GET /ontology/stats */
+export interface OntologyStatItem {
+  key: string;
+  label: string;
+  value: number;
+  icon: string;
+}
+
+/** GET /ontology/stats response */
+export interface OntologyStatsResponse {
+  stats: OntologyStatItem[];
+  document_categories: string[];
+  attribute_categories: string[];
 }
 
 /** A child entity nested under a parent */
@@ -831,6 +1011,44 @@ export interface OntologyEntitiesResponse {
 }
 
 // =============================================================================
+// Candidate Attribute Types
+// =============================================================================
+
+export type AttributeCategory = 'legal' | 'transport' | 'availability' | 'financial' | 'personal' | 'general';
+export type AttributeDataType = 'text' | 'boolean' | 'date' | 'select' | 'multi_select' | 'number';
+export type AttributeCollectedBy = 'pre_screening' | 'contract' | 'document_collection';
+
+export interface AttributeOption {
+  value: string;
+  label: string;
+}
+
+export interface AttributeType {
+  id: string;
+  workspace_id: string;
+  slug: string;
+  name: string;
+  description: string | null;
+  category: AttributeCategory;
+  data_type: AttributeDataType;
+  options: AttributeOption[] | null;
+  icon: string | null;
+  is_default: boolean;
+  is_active: boolean;
+  sort_order: number;
+  collected_by: AttributeCollectedBy | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AttributeTypesResponse {
+  items: AttributeType[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+// =============================================================================
 // ATS — Candidacy Types
 // =============================================================================
 
@@ -867,6 +1085,7 @@ export interface CandidacyApplicationSummary {
   knockout_passed: number;
   knockout_total: number;
   completed_at: string | null;
+  interview_scheduled_at: string | null;
 }
 
 export interface LinkedVacancy {

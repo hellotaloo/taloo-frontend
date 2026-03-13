@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { List } from 'lucide-react';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { PageLayout, PageLayoutHeader, PageLayoutContent } from '@/components/layout/page-layout';
@@ -30,6 +30,16 @@ export default function PipelinePage() {
       setCandidateDetailLoading(false);
     }
   };
+
+  const refreshCandidateDetail = useCallback(async () => {
+    if (!selectedCandidateId) return;
+    try {
+      const detail = await getCandidate(selectedCandidateId);
+      setSelectedCandidateDetail(detail);
+    } catch {
+      // silent refresh failure
+    }
+  }, [selectedCandidateId]);
 
   return (
     <>
@@ -76,6 +86,7 @@ export default function PipelinePage() {
               setSelectedCandidateId(null);
               setSelectedCandidateDetail(null);
             }}
+            onRefresh={refreshCandidateDetail}
             vacancies={[] as APIVacancyListItem[]}
           />
         </SheetContent>

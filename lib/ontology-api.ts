@@ -1,6 +1,7 @@
 import { authFetch } from './api';
 import type {
   OntologyOverview,
+  OntologyStatsResponse,
   OntologyEntitiesResponse,
   OntologyEntity,
   VerificationSchema,
@@ -24,6 +25,17 @@ export async function getOntologyOverview(): Promise<OntologyOverview> {
   const url = `${BACKEND_URL}/ontology?workspace_id=${getWorkspaceId()}`;
   const response = await authFetch(url);
   if (!response.ok) throw new Error('Failed to fetch ontology overview');
+  return response.json();
+}
+
+// =============================================================================
+// Stats
+// =============================================================================
+
+export async function getOntologyStats(): Promise<OntologyStatsResponse> {
+  const url = `${BACKEND_URL}/ontology/stats?workspace_id=${getWorkspaceId()}`;
+  const response = await authFetch(url);
+  if (!response.ok) throw new Error('Failed to fetch ontology stats');
   return response.json();
 }
 

@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Search, FileCheck, GitBranch, Clock, Hash, Tag, Layers, Plus } from 'lucide-react';
+import { useSearchParams, useRouter } from 'next/navigation';
+import { ArrowLeft, Search, Clock, Layers, Plus } from 'lucide-react';
 import {
   PageLayout,
   PageLayoutHeader,
@@ -43,8 +44,16 @@ import {
 import { Label } from '@/components/ui/label';
 import { OntologySidebar } from '@/components/blocks/ontology-sidebar';
 import { OntologyDetailPanel, CATEGORY_OPTIONS } from '@/components/blocks/ontology-panel';
-import { getOntologyEntities, getOntologyEntity, createOntologyEntity } from '@/lib/ontology-api';
-import type { OntologyEntity, OntologyEntitiesResponse } from '@/lib/types';
+import {
+  AttributeTypeDetailPanel,
+  ATTRIBUTE_CATEGORY_OPTIONS,
+  DATA_TYPE_OPTIONS,
+  COLLECTED_BY_OPTIONS,
+} from '@/components/blocks/attribute-type-panel';
+import { getOntologyEntities, getOntologyEntity, createOntologyEntity, getOntologyStats } from '@/lib/ontology-api';
+import { getAttributeTypes, createAttributeType } from '@/lib/attribute-types-api';
+import { getLucideIcon } from '@/lib/ontology-utils';
+import type { OntologyEntity, OntologyEntitiesResponse, AttributeType, AttributeTypesResponse, AttributeDataType, OntologyStatsResponse } from '@/lib/types';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -52,12 +61,22 @@ import { cn } from '@/lib/utils';
 // Constants
 // =============================================================================
 
-const CATEGORY_TABS = [
+const DOCUMENT_CATEGORY_TABS = [
   { key: null, label: 'Alle' },
   { key: 'identity', label: 'Identiteit' },
   { key: 'certificate', label: 'Certificaten' },
   { key: 'financial', label: 'Financieel' },
   { key: 'other', label: 'Overig' },
+] as const;
+
+const ATTRIBUTE_CATEGORY_TABS = [
+  { key: null, label: 'Alle' },
+  { key: 'legal', label: 'Juridisch' },
+  { key: 'transport', label: 'Vervoer' },
+  { key: 'availability', label: 'Beschikbaarheid' },
+  { key: 'financial', label: 'Financieel' },
+  { key: 'personal', label: 'Persoonlijk' },
+  { key: 'general', label: 'Algemeen' },
 ] as const;
 
 function slugify(name: string): string {
@@ -69,31 +88,78 @@ function slugify(name: string): string {
 // =============================================================================
 
 export default function OntologyPage() {
-  const [activeObject, setActiveObject] = useState<string | null>(null);
-  const [entitiesData, setEntitiesData] = useState<OntologyEntitiesResponse | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [activeCategory, setActiveCategory] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
+  const router = useRouter();
+  const searchParams = useSearchParams();
 
-  // Detail panel
+  // URL-driven state
+  const activeObject = searchParams.get('object') || null;
+  const activeCategory = searchParams.get('category') || null;
+
+  const setActiveObject = useCallback((obj: string | null) => {
+    const params = new URLSearchParams();
+    if (obj) params.set('object', obj);
+    const qs = params.toString();
+    router.push(`/admin/ontology${qs ? `?${qs}` : ''}`);
+  }, [router]);
+
+  const setActiveCategory = useCallback((cat: string | null) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (cat) params.set('category', cat);
+    else params.delete('category');
+    const qs = params.toString();
+    router.push(`/admin/ontology${qs ? `?${qs}` : ''}`);
+  }, [router, searchParams]);
+
+  const [searchQuery, setSearchQuery] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  // ── Document type state ─────────────────────────────────────────────────
+  const [entitiesData, setEntitiesData] = useState<OntologyEntitiesResponse | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedEntity, setSelectedEntity] = useState<OntologyEntity | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
 
-  // Create dialog
+  // ── Overview stats ─────────────────────────────────────────────────────
+  const [stats, setStats] = useState<OntologyStatsResponse | null>(null);
+
+  // ── Attribute type state ────────────────────────────────────────────────
+  const [attrData, setAttrData] = useState<AttributeTypesResponse | null>(null);
+  const [selectedAttrId, setSelectedAttrId] = useState<string | null>(null);
+  const [selectedAttr, setSelectedAttr] = useState<AttributeType | null>(null);
+
+  // ── Create dialog (shared) ─────────────────────────────────────────────
   const [showCreate, setShowCreate] = useState(false);
   const [createName, setCreateName] = useState('');
   const [createSlug, setCreateSlug] = useState('');
   const [createSlugEdited, setCreateSlugEdited] = useState(false);
-  const [createCategory, setCreateCategory] = useState('identity');
+  const [createCategory, setCreateCategory] = useState('');
+  const [createDataType, setCreateDataType] = useState<AttributeDataType>('text');
   const [createSlugError, setCreateSlugError] = useState<string | null>(null);
   const [createLoading, setCreateLoading] = useState(false);
 
   const displaySlug = createSlugEdited ? createSlug : slugify(createName);
+  const isAttrMode = activeObject === 'attribute_type';
 
-  // Load entities when an object is selected
+  // ── Reset local UI state on object switch ────────────────────────────────
   useEffect(() => {
-    if (!activeObject) return;
+    setSearchQuery('');
+    setSelectedId(null);
+    setSelectedEntity(null);
+    setSelectedAttrId(null);
+    setSelectedAttr(null);
+  }, [activeObject]);
+
+  // ── Load overview stats ────────────────────────────────────────────────
+  useEffect(() => {
+    if (activeObject !== null) return;
+    getOntologyStats()
+      .then(setStats)
+      .catch(() => {/* silent — overview is non-critical */});
+  }, [activeObject]);
+
+  // ── Load document types ─────────────────────────────────────────────────
+  useEffect(() => {
+    if (activeObject !== 'document_type') return;
     setLoading(true);
     getOntologyEntities({
       type: 'document_type',
@@ -105,7 +171,20 @@ export default function OntologyPage() {
       .finally(() => setLoading(false));
   }, [activeObject, activeCategory]);
 
-  // Load detail when selected
+  // ── Load attribute types ────────────────────────────────────────────────
+  useEffect(() => {
+    if (activeObject !== 'attribute_type') return;
+    setLoading(true);
+    getAttributeTypes({
+      category: activeCategory || undefined,
+      limit: 200,
+    })
+      .then(setAttrData)
+      .catch(() => toast.error('Kon attribuuttypes niet laden'))
+      .finally(() => setLoading(false));
+  }, [activeObject, activeCategory]);
+
+  // ── Load document detail ────────────────────────────────────────────────
   useEffect(() => {
     if (!selectedId) {
       setSelectedEntity(null);
@@ -121,20 +200,37 @@ export default function OntologyPage() {
       .finally(() => setDetailLoading(false));
   }, [selectedId]);
 
-  // Filter by search query
-  const filteredItems = (entitiesData?.items || []).filter(
+  // ── Load attribute detail (from list data) ──────────────────────────────
+  useEffect(() => {
+    if (!selectedAttrId) {
+      setSelectedAttr(null);
+      return;
+    }
+    const found = attrData?.items.find((a) => a.id === selectedAttrId) ?? null;
+    setSelectedAttr(found);
+  }, [selectedAttrId, attrData]);
+
+  // ── Filtering ───────────────────────────────────────────────────────────
+
+  const filteredDocItems = (entitiesData?.items || []).filter(
     (entity) =>
       entity.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (entity.description || '').toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
-  // ── Callbacks ──────────────────────────────────────────────────────────────
+  const filteredAttrItems = (attrData?.items || []).filter(
+    (attr) =>
+      attr.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (attr.description || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      attr.slug.toLowerCase().includes(searchQuery.toLowerCase()),
+  );
+
+  // ── Document type callbacks ─────────────────────────────────────────────
 
   const handleCloseDetail = () => setSelectedId(null);
 
   const handleSelectedEntityChange = (updates: Partial<OntologyEntity>) => {
     setSelectedEntity((prev) => (prev ? { ...prev, ...updates } : prev));
-    // Keep list in sync for name / is_verifiable changes
     setEntitiesData((prev) =>
       prev
         ? { ...prev, items: prev.items.map((e) => (e.id === selectedId ? { ...e, ...updates } : e)) }
@@ -151,13 +247,36 @@ export default function OntologyPage() {
     handleCloseDetail();
   };
 
-  // ── Create ─────────────────────────────────────────────────────────────────
+  // ── Attribute type callbacks ────────────────────────────────────────────
+
+  const handleCloseAttrDetail = () => setSelectedAttrId(null);
+
+  const handleSelectedAttrChange = (updates: Partial<AttributeType>) => {
+    setSelectedAttr((prev) => (prev ? { ...prev, ...updates } : prev));
+    setAttrData((prev) =>
+      prev
+        ? { ...prev, items: prev.items.map((a) => (a.id === selectedAttrId ? { ...a, ...updates } : a)) }
+        : prev,
+    );
+  };
+
+  const handleAttrDelete = () => {
+    setAttrData((prev) =>
+      prev
+        ? { ...prev, items: prev.items.filter((a) => a.id !== selectedAttrId), total: prev.total - 1 }
+        : prev,
+    );
+    handleCloseAttrDetail();
+  };
+
+  // ── Create ──────────────────────────────────────────────────────────────
 
   function openCreate() {
     setCreateName('');
     setCreateSlug('');
     setCreateSlugEdited(false);
-    setCreateCategory('identity');
+    setCreateCategory(isAttrMode ? 'general' : 'identity');
+    setCreateDataType('text');
     setCreateSlugError(null);
     setShowCreate(true);
   }
@@ -168,36 +287,71 @@ export default function OntologyPage() {
     const slug = displaySlug || slugify(trimName);
     setCreateLoading(true);
     setCreateSlugError(null);
-    try {
-      const created = await createOntologyEntity({
-        slug,
-        name: trimName,
-        category: createCategory,
-        is_verifiable: false,
-        is_default: false,
-        scan_mode: 'single',
-        sort_order: 0,
-      });
-      setEntitiesData((prev) =>
-        prev
-          ? { ...prev, items: [...prev.items, created], total: prev.total + 1 }
-          : prev,
-      );
-      setShowCreate(false);
-      setSelectedId(created.id);
-      setSelectedEntity(created);
-    } catch (err) {
-      if ((err as { status?: number }).status === 409) {
-        setCreateSlugError('Deze slug bestaat al — pas de naam of slug aan.');
-      } else {
-        toast.error('Kon documenttype niet aanmaken');
+
+    if (isAttrMode) {
+      try {
+        const created = await createAttributeType({
+          slug,
+          name: trimName,
+          category: createCategory as AttributeType['category'],
+          data_type: createDataType,
+          is_default: false,
+          sort_order: 0,
+        });
+        setAttrData((prev) =>
+          prev
+            ? { ...prev, items: [...prev.items, created], total: prev.total + 1 }
+            : prev,
+        );
+        setShowCreate(false);
+        setSelectedAttrId(created.id);
+      } catch (err) {
+        if ((err as { status?: number }).status === 409) {
+          setCreateSlugError('Deze slug bestaat al — pas de naam of slug aan.');
+        } else {
+          toast.error('Kon attribuuttype niet aanmaken');
+        }
+      } finally {
+        setCreateLoading(false);
       }
-    } finally {
-      setCreateLoading(false);
+    } else {
+      try {
+        const created = await createOntologyEntity({
+          slug,
+          name: trimName,
+          category: createCategory,
+          is_verifiable: false,
+          is_default: false,
+          scan_mode: 'single',
+          sort_order: 0,
+        });
+        setEntitiesData((prev) =>
+          prev
+            ? { ...prev, items: [...prev.items, created], total: prev.total + 1 }
+            : prev,
+        );
+        setShowCreate(false);
+        setSelectedId(created.id);
+        setSelectedEntity(created);
+      } catch (err) {
+        if ((err as { status?: number }).status === 409) {
+          setCreateSlugError('Deze slug bestaat al — pas de naam of slug aan.');
+        } else {
+          toast.error('Kon documenttype niet aanmaken');
+        }
+      } finally {
+        setCreateLoading(false);
+      }
     }
   }
 
-  // ── Sidebar ────────────────────────────────────────────────────────────────
+  // ── Derived ─────────────────────────────────────────────────────────────
+
+  const categoryTabs = isAttrMode ? ATTRIBUTE_CATEGORY_TABS : DOCUMENT_CATEGORY_TABS;
+  const createCategoryOptions = isAttrMode ? ATTRIBUTE_CATEGORY_OPTIONS : CATEGORY_OPTIONS;
+  const hasOpenSheet = isAttrMode ? !!selectedAttrId : !!selectedId;
+
+  // ── Sidebar ─────────────────────────────────────────────────────────────
 
   const sidebar = (
     <OntologySidebar
@@ -232,36 +386,34 @@ export default function OntologyPage() {
         {/* Overview — no object selected */}
         {!activeObject ? (
           <div className="space-y-8">
-            {/* Header */}
             <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-xl font-semibold text-gray-900">Overzicht</h2>
-                <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">coming soon</span>
-              </div>
+              <h2 className="text-xl font-semibold text-gray-900">Overzicht</h2>
               <p className="text-sm text-gray-500 mt-1">
                 Een overzicht van alle ontology objecten en recente wijzigingen.
               </p>
             </div>
 
-            {/* Stat cards */}
             <div className="grid grid-cols-4 gap-4">
-              {[
-                { icon: FileCheck, label: 'Documenttypes', value: '—', color: 'bg-brand-dark-blue' },
-                { icon: Tag, label: 'Subtypes', value: '—', color: 'bg-brand-dark-blue' },
-                { icon: GitBranch, label: 'Categorieën', value: '—', color: 'bg-brand-dark-blue' },
-                { icon: Hash, label: 'Verifieerbaar', value: '—', color: 'bg-brand-dark-blue' },
-              ].map(({ icon: Icon, label, value, color }) => (
-                <div key={label} className="bg-white border border-gray-100 rounded-xl p-5">
-                  <div className={`w-8 h-8 rounded-lg ${color} flex items-center justify-center mb-3`}>
-                    <Icon className="w-4 h-4 text-white" />
+              {stats ? stats.stats.map((stat) => {
+                const Icon = getLucideIcon(stat.icon);
+                return (
+                  <div key={stat.key} className="bg-white border border-gray-100 rounded-xl p-5">
+                    <div className="w-8 h-8 rounded-lg bg-brand-dark-blue flex items-center justify-center mb-3">
+                      <Icon className="w-4 h-4 text-white" />
+                    </div>
+                    <div className="text-2xl font-semibold text-gray-900">{stat.value}</div>
+                    <div className="text-xs text-gray-500 mt-0.5">{stat.label}</div>
                   </div>
-                  <div className="text-2xl font-semibold text-gray-900">{value}</div>
-                  <div className="text-xs text-gray-500 mt-0.5">{label}</div>
+                );
+              }) : [...Array(4)].map((_, i) => (
+                <div key={i} className="bg-white border border-gray-100 rounded-xl p-5 animate-pulse">
+                  <div className="w-8 h-8 rounded-lg bg-gray-100 mb-3" />
+                  <div className="h-7 bg-gray-100 rounded w-12 mb-1" />
+                  <div className="h-3 bg-gray-50 rounded w-20" />
                 </div>
               ))}
             </div>
 
-            {/* Recent changes */}
             <div className="bg-white border border-gray-100 rounded-xl">
               <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
                 <div className="flex items-center gap-2">
@@ -293,7 +445,7 @@ export default function OntologyPage() {
             {/* Category Tabs + Search + New button */}
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
-                {CATEGORY_TABS.map(({ key, label }) => (
+                {categoryTabs.map(({ key, label }) => (
                   <button
                     key={label}
                     onClick={() => setActiveCategory(key)}
@@ -312,7 +464,7 @@ export default function OntologyPage() {
                 <div className="relative w-56">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                   <Input
-                    placeholder="Zoek documenttype..."
+                    placeholder={isAttrMode ? 'Zoek attribuuttype...' : 'Zoek documenttype...'}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="pl-9 h-9 bg-white"
@@ -340,7 +492,66 @@ export default function OntologyPage() {
                   </div>
                 ))}
               </div>
+            ) : isAttrMode ? (
+              /* ── Attribute types table ────────────────────────────────── */
+              <div className="**:data-[slot=table-container]:overflow-hidden">
+                <Table className="table-fixed">
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-12">#</TableHead>
+                      <TableHead>Naam</TableHead>
+                      <TableHead className="w-28">Type</TableHead>
+                      <TableHead className="text-right w-32">Verzameld door</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredAttrItems.map((attr, index) => (
+                      <TableRow
+                        key={attr.id}
+                        onClick={() => setSelectedAttrId(attr.id)}
+                        className={cn(
+                          'cursor-pointer transition-colors',
+                          selectedAttrId === attr.id ? 'bg-gray-50' : 'hover:bg-gray-50',
+                        )}
+                        data-testid={`attribute-row-${attr.slug}`}
+                      >
+                        <TableCell className="text-sm text-gray-400">
+                          {index + 1}
+                        </TableCell>
+                        <TableCell className="truncate">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-gray-900 truncate">{attr.name}</span>
+                            {attr.is_default && (
+                              <Badge variant="secondary" className="text-[11px] px-1.5 py-0 bg-blue-50 text-blue-600 border-blue-200 shrink-0">
+                                Standaard
+                              </Badge>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-sm text-gray-500">
+                          {DATA_TYPE_OPTIONS.find((o) => o.value === attr.data_type)?.label ?? attr.data_type}
+                        </TableCell>
+                        <TableCell className="text-right text-sm text-gray-500">
+                          {attr.collected_by
+                            ? COLLECTED_BY_OPTIONS.find((o) => o.value === attr.collected_by)?.label ?? attr.collected_by
+                            : '-'}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    {filteredAttrItems.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={4} className="text-center py-10 text-sm text-gray-500">
+                          {searchQuery
+                            ? `Geen resultaten voor "${searchQuery}"`
+                            : 'Geen attribuuttypes gevonden'}
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
             ) : (
+              /* ── Document types table ─────────────────────────────────── */
               <div className="**:data-[slot=table-container]:overflow-hidden">
                 <Table className="table-fixed">
                   <TableHeader>
@@ -351,7 +562,7 @@ export default function OntologyPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredItems.map((entity, index) => (
+                    {filteredDocItems.map((entity, index) => (
                       <TableRow
                         key={entity.id}
                         onClick={() => setSelectedId(entity.id)}
@@ -394,7 +605,7 @@ export default function OntologyPage() {
                         </TableCell>
                       </TableRow>
                     ))}
-                    {filteredItems.length === 0 && (
+                    {filteredDocItems.length === 0 && (
                       <TableRow>
                         <TableCell colSpan={3} className="text-center py-10 text-sm text-gray-500">
                           {searchQuery
@@ -415,7 +626,7 @@ export default function OntologyPage() {
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Nieuw documenttype</DialogTitle>
+            <DialogTitle>{isAttrMode ? 'Nieuw attribuuttype' : 'Nieuw documenttype'}</DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4 py-2">
@@ -428,7 +639,7 @@ export default function OntologyPage() {
                 value={createName}
                 onChange={(e) => setCreateName(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
-                placeholder="bv. Rijbewijs"
+                placeholder={isAttrMode ? 'bv. Eigen vervoer' : 'bv. Rijbewijs'}
               />
             </div>
 
@@ -460,7 +671,7 @@ export default function OntologyPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {CATEGORY_OPTIONS.map((opt) => (
+                  {createCategoryOptions.map((opt) => (
                     <SelectItem key={opt.value} value={opt.value}>
                       {opt.label}
                     </SelectItem>
@@ -468,6 +679,25 @@ export default function OntologyPage() {
                 </SelectContent>
               </Select>
             </div>
+
+            {/* Data type — attribute types only */}
+            {isAttrMode && (
+              <div className="space-y-1.5">
+                <Label>Gegevenstype</Label>
+                <Select value={createDataType} onValueChange={(v) => setCreateDataType(v as AttributeDataType)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {DATA_TYPE_OPTIONS.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
 
           <DialogFooter>
@@ -485,7 +715,7 @@ export default function OntologyPage() {
         </DialogContent>
       </Dialog>
 
-      {/* ── Detail Panel ─────────────────────────────────────────────────────── */}
+      {/* ── Document type detail panel ─────────────────────────────────────── */}
       <Sheet open={!!selectedId} onOpenChange={(open) => !open && handleCloseDetail()}>
         <SheetContent side="right" className="w-full sm:max-w-xl p-0 flex flex-col">
           <SheetHeader className="shrink-0 border-b px-6 py-4">
@@ -513,6 +743,31 @@ export default function OntologyPage() {
               entity={selectedEntity}
               onEntityChange={handleSelectedEntityChange}
               onEntityDelete={handleEntityDelete}
+            />
+          ) : null}
+        </SheetContent>
+      </Sheet>
+
+      {/* ── Attribute type detail panel ────────────────────────────────────── */}
+      <Sheet open={!!selectedAttrId} onOpenChange={(open) => !open && handleCloseAttrDetail()}>
+        <SheetContent side="right" className="w-full sm:max-w-xl p-0 flex flex-col">
+          <SheetHeader className="shrink-0 border-b px-6 py-4">
+            <SheetTitle>{selectedAttr?.name ?? 'Laden...'}</SheetTitle>
+            {selectedAttr && (
+              <SheetDescription>
+                {ATTRIBUTE_CATEGORY_OPTIONS.find((o) => o.value === selectedAttr.category)?.label ?? selectedAttr.category}
+                {' · '}
+                {DATA_TYPE_OPTIONS.find((o) => o.value === selectedAttr.data_type)?.label ?? selectedAttr.data_type}
+              </SheetDescription>
+            )}
+          </SheetHeader>
+
+          {selectedAttr ? (
+            <AttributeTypeDetailPanel
+              key={selectedAttr.id}
+              attributeType={selectedAttr}
+              onAttributeTypeChange={handleSelectedAttrChange}
+              onAttributeTypeDelete={handleAttrDelete}
             />
           ) : null}
         </SheetContent>

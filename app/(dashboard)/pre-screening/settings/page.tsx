@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Save, Calendar, MessageCircle, CheckCircle2, ShieldQuestion, MessageSquare, Pencil, Check, X, Phone, Info, Mic, SlidersHorizontal, ListOrdered, ChevronDown, User } from 'lucide-react';
+import { ArrowLeft, Save, Calendar, MessageCircle, CheckCircle2, ShieldQuestion, MessageSquare, Pencil, Check, X, Phone, Info, Mic, SlidersHorizontal, ListOrdered, ChevronDown, User, Eye, Globe } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import {
@@ -59,7 +59,7 @@ export default function PreScreeningSettingsPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [activeSection, setActiveSection] = useState<SettingsSection>('voice');
+  const [activeSection, setActiveSection] = useState<SettingsSection>('algemeen');
 
   // Voice settings state
   const [selectedVoice, setSelectedVoice] = useState<string>('emma');
@@ -88,6 +88,10 @@ export default function PreScreeningSettingsPage() {
   const [escalationEndTime, setEscalationEndTime] = useState('17:00');
   const [escalationPhoneMode, setEscalationPhoneMode] = useState<'auto' | 'custom'>('auto');
   const [escalationCustomPhone, setEscalationCustomPhone] = useState('');
+
+  // Review & default channels
+  const [requireReview, setRequireReview] = useState(false);
+  const [defaultChannels, setDefaultChannels] = useState({ voice: true, whatsapp: true, cv: true });
 
   const allDays = ['ma', 'di', 'wo', 'do', 'vr', 'za', 'zo'] as const;
 
@@ -123,6 +127,8 @@ export default function PreScreeningSettingsPage() {
         setScheduleStartOffset(planning.schedule_start_offset);
         setConsentEnabled(interview.require_consent);
         setEscalationEnabled(escalation.allow_escalation);
+        setRequireReview(general.require_review);
+        if (general.default_channels) setDefaultChannels(general.default_channels);
         setSchedulingOption(planning.planning_mode as 'funnel' | 'direct');
         if (general.intro_message) {
           setIntroMessage(general.intro_message);
@@ -213,6 +219,8 @@ export default function PreScreeningSettingsPage() {
             max_unrelated_answers: maxUnrelatedAnswers,
             intro_message: introMessage,
             success_message: successMessage,
+            require_review: requireReview,
+            default_channels: defaultChannels,
           },
           planning: {
             schedule_days_ahead: scheduleDaysAhead,
@@ -245,24 +253,26 @@ export default function PreScreeningSettingsPage() {
     successMessage,
     consentEnabled,
     escalationEnabled,
+    requireReview,
+    defaultChannels,
   ]);
 
   const sidebar = (
     <div className="flex flex-col h-full py-4">
       <div className="px-2 space-y-1">
         <NavItem
-          icon={Mic}
-          label="Voice"
-          active={activeSection === 'voice'}
-          onClick={() => setActiveSection('voice')}
-          testId="settings-voice"
-        />
-        <NavItem
           icon={SlidersHorizontal}
           label="Algemeen"
           active={activeSection === 'algemeen'}
           onClick={() => setActiveSection('algemeen')}
           testId="settings-algemeen"
+        />
+        <NavItem
+          icon={Mic}
+          label="Voice"
+          active={activeSection === 'voice'}
+          onClick={() => setActiveSection('voice')}
+          testId="settings-voice"
         />
         <NavItem
           icon={Calendar}
@@ -560,6 +570,101 @@ export default function PreScreeningSettingsPage() {
                           </button>
                         </div>
                       )}
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              {/* Review & Publish */}
+              <section className="space-y-4">
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900">Review & publicatie</h2>
+                  <p className="text-sm text-gray-500 mt-1">
+                    Bepaal hoe pre-screenings worden goedgekeurd en gepubliceerd
+                  </p>
+                </div>
+
+                <div className="space-y-3">
+                  {/* Require Review */}
+                  <div className="flex items-center justify-between p-4 rounded-lg border border-gray-200 bg-white">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <Label className="font-medium text-gray-900">Review vereisen</Label>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button type="button" className="text-gray-400 hover:text-gray-600 transition-colors">
+                              <Info className="w-3.5 h-3.5" />
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent side="right" className="max-w-[260px]">
+                            Indien ingeschakeld wordt elke pre-screening eerst ter review aangeboden aan de manager, ook bij een positief verdict. Een negatief verdict vereist altijd review.
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+                      <p className="text-sm text-gray-500 mt-0.5">
+                        Stuur alle resultaten ter goedkeuring naar de manager
+                      </p>
+                    </div>
+                    <Switch
+                      checked={requireReview}
+                      onCheckedChange={setRequireReview}
+                    />
+                  </div>
+
+                  {/* Default Channels */}
+                  <div className="p-4 rounded-lg border border-gray-200 bg-white space-y-3">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <Label className="font-medium text-gray-900">Standaard kanalen</Label>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button type="button" className="text-gray-400 hover:text-gray-600 transition-colors">
+                              <Info className="w-3.5 h-3.5" />
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent side="right" className="max-w-[260px]">
+                            Kanalen die standaard worden ingeschakeld wanneer een pre-screening automatisch wordt gepubliceerd.
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+                      <p className="text-sm text-gray-500 mt-0.5">
+                        Selecteer welke kanalen standaard actief zijn bij publicatie
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-4">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <Switch
+                          checked={defaultChannels.voice}
+                          onCheckedChange={(checked) => setDefaultChannels(prev => ({ ...prev, voice: checked }))}
+                        />
+                        <div className="flex items-center gap-1.5">
+                          <Phone className="w-3.5 h-3.5 text-gray-600" />
+                          <span className="text-sm text-gray-700">Voice</span>
+                        </div>
+                      </label>
+
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <Switch
+                          checked={defaultChannels.whatsapp}
+                          onCheckedChange={(checked) => setDefaultChannels(prev => ({ ...prev, whatsapp: checked }))}
+                        />
+                        <div className="flex items-center gap-1.5">
+                          <MessageCircle className="w-3.5 h-3.5 text-gray-600" />
+                          <span className="text-sm text-gray-700">WhatsApp</span>
+                        </div>
+                      </label>
+
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <Switch
+                          checked={defaultChannels.cv}
+                          onCheckedChange={(checked) => setDefaultChannels(prev => ({ ...prev, cv: checked }))}
+                        />
+                        <div className="flex items-center gap-1.5">
+                          <Globe className="w-3.5 h-3.5 text-gray-600" />
+                          <span className="text-sm text-gray-700">CV</span>
+                        </div>
+                      </label>
                     </div>
                   </div>
                 </div>

@@ -32,7 +32,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { StatusBadge } from '@/components/kit/status-badge';
-import { CollapseBox } from '@/components/kit/collapse-box';
 import { MarkdownContent } from '@/components/kit/markdown-content';
 import { cn } from '@/lib/utils';
 import { getCandidates } from '@/lib/api';
@@ -44,6 +43,7 @@ export interface VacancyDetailPaneProps {
   vacancy: APIVacancyDetail | null;
   isLoading?: boolean;
   onClose: () => void;
+  onCandidateClick?: (candidateId: string) => void;
 }
 
 // Event type to icon/color mapping (aligned with design system)
@@ -122,7 +122,7 @@ function TimelineEvent({ activity, isLast }: { activity: APIActivityResponse; is
       </div>
 
       {/* Content */}
-      <div className="flex-1 pb-4">
+      <div className="flex-1 pt-1.5 pb-4">
         <div className="flex items-start justify-between gap-2">
           <div>
             <p className="text-sm font-medium text-gray-900">
@@ -151,7 +151,7 @@ function TimelineEvent({ activity, isLast }: { activity: APIActivityResponse; is
   );
 }
 
-type TabType = 'candidates' | 'agents' | 'timeline';
+type TabType = 'candidates' | 'agents' | 'timeline' | 'description';
 
 // Agent type configuration
 const agentTypeConfig: Record<string, { label: string; icon: typeof PhoneCall; description: string }> = {
@@ -259,9 +259,12 @@ function CandidateAvatar({ name }: { name: string }) {
 
 // ─── Candidacy row ────────────────────────────────────────────────────────────
 
-function CandidacyRow({ candidacy }: { candidacy: Candidacy }) {
+function CandidacyRow({ candidacy, onClick }: { candidacy: Candidacy; onClick?: (candidateId: string) => void }) {
   return (
-    <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+    <button
+      className="w-full flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors text-left"
+      onClick={() => onClick?.(candidacy.candidate_id)}
+    >
       <CandidateAvatar name={candidacy.candidate.full_name} />
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium text-gray-900 truncate">{candidacy.candidate.full_name}</p>
@@ -272,7 +275,7 @@ function CandidacyRow({ candidacy }: { candidacy: Candidacy }) {
       <span className="text-xs text-gray-500 shrink-0 bg-gray-200 rounded px-1.5 py-0.5">
         {STAGE_LABELS[candidacy.stage] ?? candidacy.stage}
       </span>
-    </div>
+    </button>
   );
 }
 
@@ -393,12 +396,16 @@ function TabsSection({
   vacancyId,
   timeline,
   applicants,
-  agents
+  agents,
+  description,
+  onCandidateClick
 }: {
   vacancyId: string;
   timeline: APIActivityResponse[];
   applicants: APIApplicantSummary[];
   agents?: VacancyAgents;
+  description?: string;
+  onCandidateClick?: (candidateId: string) => void;
 }) {
   const [activeTab, setActiveTab] = useState<TabType>('timeline');
   const [candidacies, setCandidacies] = useState<Candidacy[]>([]);
@@ -430,39 +437,38 @@ function TabsSection({
       {/* Tab buttons */}
       <div className="shrink-0 border-b border-gray-200 px-6">
         <div className="flex gap-6">
-          <button
-            onClick={() => setActiveTab('timeline')}
-            className={cn(
-              'py-3 text-sm font-medium border-b-2 -mb-px transition-colors',
-              activeTab === 'timeline'
-                ? 'border-gray-900 text-gray-900'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
-            )}
-          >
-            Tijdlijn ({timeline.length})
-          </button>
-          <button
-            onClick={() => setActiveTab('agents')}
-            className={cn(
-              'py-3 text-sm font-medium border-b-2 -mb-px transition-colors',
-              activeTab === 'agents'
-                ? 'border-gray-900 text-gray-900'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
-            )}
-          >
-            Agents ({activeAgentsCount})
-          </button>
-          <button
-            onClick={() => setActiveTab('candidates')}
-            className={cn(
-              'py-3 text-sm font-medium border-b-2 -mb-px transition-colors',
-              activeTab === 'candidates'
-                ? 'border-gray-900 text-gray-900'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
-            )}
-          >
-            Kandidaten ({candidaciesLoading ? '…' : candidacies.length})
-          </button>
+          {([
+            { key: 'timeline' as const, label: 'Tijdlijn', count: timeline.length },
+            { key: 'candidates' as const, label: 'Kandidaten', count: candidaciesLoading ? -1 : candidacies.length },
+            { key: 'description' as const, label: 'Vacaturetekst', count: 0 },
+            { key: 'agents' as const, label: 'Agents', count: activeAgentsCount },
+          ]).map(tab => {
+            const isActive = activeTab === tab.key;
+            return (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className={cn(
+                  'py-3 text-sm font-medium border-b-2 -mb-px transition-colors inline-flex items-center gap-1.5',
+                  isActive
+                    ? 'border-gray-900 text-gray-900'
+                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                )}
+              >
+                {tab.label}
+                {tab.count !== 0 && (
+                  <span className={cn(
+                    'inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-semibold',
+                    isActive
+                      ? 'bg-gray-900 text-white'
+                      : 'bg-gray-100 text-gray-500'
+                  )}>
+                    {tab.count === -1 ? '…' : tab.count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -491,12 +497,23 @@ function TabsSection({
             ) : candidacies.length > 0 ? (
               <div className="space-y-2">
                 {candidacies.map((c) => (
-                  <CandidacyRow key={c.id} candidacy={c} />
+                  <CandidacyRow key={c.id} candidacy={c} onClick={onCandidateClick} />
                 ))}
               </div>
             ) : (
               <p className="text-sm text-gray-400 text-center py-8">
                 Geen kandidaten
+              </p>
+            )}
+          </div>
+        )}
+        {activeTab === 'description' && (
+          <div className="px-6 py-4">
+            {description ? (
+              <MarkdownContent content={description} />
+            ) : (
+              <p className="text-sm text-gray-400 text-center py-8">
+                Geen vacaturetekst
               </p>
             )}
           </div>
@@ -594,7 +611,7 @@ function ApplicantRow({ applicant }: { applicant: APIApplicantSummary }) {
   );
 }
 
-export function VacancyDetailPane({ vacancy, isLoading, onClose }: VacancyDetailPaneProps) {
+export function VacancyDetailPane({ vacancy, isLoading, onClose, onCandidateClick }: VacancyDetailPaneProps) {
   if (isLoading) {
     return (
       <div className="flex flex-col h-full bg-white">
@@ -690,44 +707,27 @@ export function VacancyDetailPane({ vacancy, isLoading, onClose }: VacancyDetail
 
         {/* Recruiter info */}
         {vacancy.recruiter && (
-          <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-            <p className="text-[10px] font-medium text-gray-500 uppercase tracking-wide mb-2">
-              Recruiter
-            </p>
-            <div className="flex items-center gap-3">
-              {vacancy.recruiter.avatar_url ? (
-                <img
-                  src={vacancy.recruiter.avatar_url}
-                  alt={vacancy.recruiter.name}
-                  className="w-10 h-10 rounded-full object-cover shrink-0"
-                />
-              ) : (
-                <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center shrink-0">
-                  <User className="w-5 h-5 text-gray-400" />
-                </div>
-              )}
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium text-gray-900">{vacancy.recruiter.name}</p>
-                {vacancy.recruiter.team && (
-                  <p className="text-xs text-gray-500">{vacancy.recruiter.team}</p>
-                )}
+          <div className="mt-4 flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+            {vacancy.recruiter.avatar_url ? (
+              <img
+                src={vacancy.recruiter.avatar_url}
+                alt={vacancy.recruiter.name}
+                className="w-8 h-8 rounded-full object-cover shrink-0"
+              />
+            ) : (
+              <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center shrink-0">
+                <User className="w-4 h-4 text-gray-400" />
               </div>
+            )}
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium text-gray-900">{vacancy.recruiter.name}</p>
+              {vacancy.recruiter.team && (
+                <p className="text-xs text-gray-500">{vacancy.recruiter.team}</p>
+              )}
             </div>
-          </div>
-        )}
-
-        {/* Description */}
-        {vacancy.description && (
-          <div className="mt-4">
-            <CollapseBox
-              title="Vacaturetekst"
-              icon={FileText}
-              defaultOpen={false}
-              contentMaxHeight="200px"
-              className="bg-gray-50 border-gray-50"
-            >
-              <MarkdownContent content={vacancy.description} />
-            </CollapseBox>
+            <span className="text-[10px] font-medium text-gray-400 uppercase tracking-wide shrink-0">
+              Recruiter
+            </span>
           </div>
         )}
 
@@ -769,6 +769,8 @@ export function VacancyDetailPane({ vacancy, isLoading, onClose }: VacancyDetail
         timeline={timeline}
         applicants={vacancy.applicants || []}
         agents={vacancy.agents}
+        description={vacancy.description}
+        onCandidateClick={onCandidateClick}
       />
     </div>
   );
