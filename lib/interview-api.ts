@@ -551,6 +551,7 @@ export interface NavigationCounts {
   prescreening: {
     new: number;
     generated: number;
+    published: number;
     archived: number;
   };
   preonboarding: {
@@ -561,6 +562,14 @@ export interface NavigationCounts {
   activities?: {
     active: number;
     stuck: number;
+  };
+  vacancies?: {
+    active: number;
+    archived: number;
+  };
+  candidates?: {
+    total: number;
+    archived: number;
   };
 }
 

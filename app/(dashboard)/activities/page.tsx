@@ -78,6 +78,18 @@ const stepLabelNl: Record<string, string> = {
   'Scheduled': 'Ingepland',
   'Sent': 'Verstuurd',
   'Cancelled': 'Geannuleerd',
+  'Generating Plan': 'Plan genereren',
+  'Plan Generated': 'Plan opgesteld',
+  'Collecting Documents': 'Documenten verzamelen',
+  'Follow Up': 'Opvolging',
+  'Follow-up': 'Opvolging',
+  'Finished': 'Afgerond',
+  'WhatsApp Conversation': 'WhatsApp gesprek',
+  'Voice Call': 'Telefoongesprek',
+  'Screening': 'Screening',
+  'Review': 'Beoordeling',
+  'Approved': 'Goedgekeurd',
+  'Rejected': 'Afgewezen',
 };
 
 function translateStepLabel(label: string): string {
@@ -512,7 +524,10 @@ export default function ActivitiesPage() {
                       </TableCell>
                       <TableCell>
                         <div className="min-w-0">
-                          <span className="text-gray-900">
+                          <span className="text-gray-900 inline-flex items-center gap-1.5">
+                            {task.current_step_label.includes('Generating') && (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin text-gray-400" />
+                            )}
                             {task.current_step === 'marked_as_complete'
                               ? // Show last completed step for manually completed tasks
                                 translateStepLabel(task.workflow_steps?.filter(s => s.status === 'completed').pop()?.label || task.current_step_label)

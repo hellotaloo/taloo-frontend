@@ -1,7 +1,7 @@
 'use client';
 
 import { User } from 'lucide-react';
-import { cn, formatTimestamp, formatRelativeDate } from '@/lib/utils';
+import { cn, formatTimestamp, formatRelativeDate, formatPhoneNumber } from '@/lib/utils';
 import {
   Table,
   TableBody,
@@ -89,7 +89,7 @@ export function CollectionTable({
                       {collection.candidate_name}
                     </span>
                     {collection.candidate_phone && (
-                      <span className="text-xs text-gray-500">{collection.candidate_phone}</span>
+                      <span className="text-xs text-gray-500">{formatPhoneNumber(collection.candidate_phone)}</span>
                     )}
                   </div>
                 </div>

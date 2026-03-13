@@ -717,7 +717,7 @@ export default function OntologyPage() {
 
       {/* ── Document type detail panel ─────────────────────────────────────── */}
       <Sheet open={!!selectedId} onOpenChange={(open) => !open && handleCloseDetail()}>
-        <SheetContent side="right" className="w-full sm:max-w-xl p-0 flex flex-col">
+        <SheetContent side="right" className="w-full sm:max-w-[720px] p-0 flex flex-col">
           <SheetHeader className="shrink-0 border-b px-6 py-4">
             <SheetTitle>{selectedEntity?.name ?? 'Laden...'}</SheetTitle>
             {selectedEntity && (
@@ -750,7 +750,7 @@ export default function OntologyPage() {
 
       {/* ── Attribute type detail panel ────────────────────────────────────── */}
       <Sheet open={!!selectedAttrId} onOpenChange={(open) => !open && handleCloseAttrDetail()}>
-        <SheetContent side="right" className="w-full sm:max-w-xl p-0 flex flex-col">
+        <SheetContent side="right" className="w-full sm:max-w-[720px] p-0 flex flex-col">
           <SheetHeader className="shrink-0 border-b px-6 py-4">
             <SheetTitle>{selectedAttr?.name ?? 'Laden...'}</SheetTitle>
             {selectedAttr && (

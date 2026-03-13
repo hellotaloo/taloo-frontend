@@ -1,9 +1,10 @@
 'use client';
 
 import { FileCheck, CheckCircle2, Loader2, FileText, AlertCircle, Settings, List } from 'lucide-react';
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import type { CollectionStatus, DocumentCollectionFullDetailResponse, DocumentCollectionResponse } from '@/lib/types';
 import { getDocumentCollections, getDocumentCollection } from '@/lib/document-collection-api';
+import { useRealtimeTable } from '@/hooks/use-realtime-table';
 import { MetricCard } from '@/components/kit/metric-card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CollectionTable, CollectionDetailPane } from '@/components/blocks/collection-table';
@@ -23,6 +24,9 @@ export default function DocumentCollectionPage() {
   const [selectedDetail, setSelectedDetail] = useState<DocumentCollectionFullDetailResponse | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
 
+  const selectedIdRef = useRef(selectedId);
+  selectedIdRef.current = selectedId;
+
   const fetchData = useCallback(async () => {
     try {
       const data = await getDocumentCollections({ limit: 200 });
@@ -35,6 +39,14 @@ export default function DocumentCollectionPage() {
     }
   }, []);
 
+  const fetchDetail = useCallback((id: string) => {
+    setDetailLoading(true);
+    getDocumentCollection(id)
+      .then(setSelectedDetail)
+      .catch(() => setSelectedDetail(null))
+      .finally(() => setDetailLoading(false));
+  }, []);
+
   useEffect(() => {
     fetchData();
   }, [fetchData]);
@@ -44,12 +56,39 @@ export default function DocumentCollectionPage() {
       setSelectedDetail(null);
       return;
     }
-    setDetailLoading(true);
-    getDocumentCollection(selectedId)
-      .then(setSelectedDetail)
-      .catch(() => setSelectedDetail(null))
-      .finally(() => setDetailLoading(false));
-  }, [selectedId]);
+    fetchDetail(selectedId);
+  }, [selectedId, fetchDetail]);
+
+  // --- Realtime: refresh list + detail on collection changes ---
+  useRealtimeTable({
+    schema: 'agents',
+    table: 'document_collections',
+    event: '*',
+    onUpdate: () => {
+      fetchData();
+      if (selectedIdRef.current) fetchDetail(selectedIdRef.current);
+    },
+  });
+
+  // --- Realtime: refresh detail on new messages or uploads ---
+  useRealtimeTable({
+    schema: 'agents',
+    table: 'document_collection_session_turns',
+    event: 'INSERT',
+    onUpdate: () => {
+      if (selectedIdRef.current) fetchDetail(selectedIdRef.current);
+    },
+  });
+
+  useRealtimeTable({
+    schema: 'agents',
+    table: 'document_collection_uploads',
+    event: '*',
+    onUpdate: () => {
+      fetchData();
+      if (selectedIdRef.current) fetchDetail(selectedIdRef.current);
+    },
+  });
 
   const handleCloseDetail = useCallback(() => {
     setSelectedId(null);
@@ -175,7 +214,7 @@ export default function DocumentCollectionPage() {
     </PageLayout>
 
     <Sheet open={!!selectedId} onOpenChange={(open) => !open && handleCloseDetail()}>
-      <SheetContent side="right" className="w-full sm:max-w-xl p-0" showCloseButton={false}>
+      <SheetContent side="right" className="w-full sm:max-w-[720px] p-0" showCloseButton={false}>
         <CollectionDetailPane
           collection={selectedDetail}
           isLoading={detailLoading}

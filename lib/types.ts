@@ -384,6 +384,8 @@ export interface PreOnboardingRequest {
 export type CollectionStatus = 'active' | 'completed' | 'needs_review' | 'abandoned';
 export type CollectionProgress = 'pending' | 'started' | 'in_progress';
 
+export type CollectionGoal = 'collect_basic' | 'collect_and_sign' | 'document_renewal';
+
 export interface DocumentCollectionResponse {
   id: string;
   config_id: string;
@@ -392,6 +394,7 @@ export interface DocumentCollectionResponse {
   vacancy_title?: string;
   application_id?: string;
   candidacy_stage?: CandidacyStage;
+  goal: CollectionGoal;
   candidate_name: string;
   candidate_phone?: string;
   status: CollectionStatus;
@@ -448,44 +451,21 @@ export interface DocumentTypeResponse {
   updated_at: string;
 }
 
-// --- Collection Plan (smart planner output) ---
+// --- Collection item status (unified: documents + attributes + tasks) ---
 
-export interface CollectionPlanDocumentResponse {
+export type CollectionItemType = 'document' | 'attribute' | 'task';
+
+export interface CollectionItemStatusResponse {
   slug: string;
   name: string;
-  reason?: string;
-  priority: 'required' | 'recommended';
-}
-
-export interface CollectionPlanStepResponse {
-  step: number;
-  topic: string;
-  items: string[];
-  message: string;
-}
-
-export interface CollectionPlanResponse {
-  summary?: string;
-  deadline_note?: string;
-  intro_message?: string;
-  documents_to_collect: CollectionPlanDocumentResponse[];
-  attributes_to_collect: object[];
-  conversation_steps: CollectionPlanStepResponse[];
-  agent_managed_tasks: object[];
-  already_complete: string[];
-  final_step?: object;
-}
-
-// --- Document status (merged plan + upload state) ---
-
-export interface CollectionDocumentStatusResponse {
-  slug: string;
-  name: string;
+  type: CollectionItemType;
   priority: 'required' | 'recommended';
   status: DocumentStatus;
-  upload_id?: string;
+  value?: string;              // For attributes: the collected value
+  upload_id?: string;          // For documents: upload reference
   verification_passed?: boolean;
   uploaded_at?: string;
+  scheduled_at?: string;       // For tasks: when the task is scheduled to execute
 }
 
 // --- Workflow progress steps ---
@@ -501,8 +481,9 @@ export interface WorkflowStepResponse {
 export interface DocumentCollectionFullDetailResponse extends DocumentCollectionResponse {
   candidacy_id?: string;
   candidate_id?: string;
-  plan?: CollectionPlanResponse;
-  document_statuses: CollectionDocumentStatusResponse[];
+  summary?: string;            // Plan summary for recruiter (Dutch)
+  deadline_note?: string;      // e.g. "Start op 24 maart"
+  collection_items: CollectionItemStatusResponse[];
   workflow_steps: WorkflowStepResponse[];
   messages: CollectionMessageResponse[];
   uploads: CollectionUploadResponse[];
@@ -1113,4 +1094,20 @@ export interface Candidacy {
 export interface CandidaciesResponse {
   items: Candidacy[];
   total: number;
+}
+
+// ---------------------------------------------------------------------------
+// Placements
+// ---------------------------------------------------------------------------
+
+export type PlacementRegime = 'full' | 'flex' | 'day';
+
+export interface PlacementCreate {
+  candidate_id: string;
+  vacancy_id: string;
+  client_id?: string;
+  start_date?: string; // YYYY-MM-DD
+  regime: PlacementRegime;
+  contract_id?: string;
+  create_contract?: boolean;
 }

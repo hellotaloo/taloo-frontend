@@ -26,6 +26,8 @@ import {
   ExternalLink,
   Plus,
   Search,
+  ClipboardList,
+  Stethoscope,
 } from 'lucide-react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
@@ -33,8 +35,9 @@ import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { StatusBadge } from '@/components/kit/status-badge';
 import { MarkdownContent } from '@/components/kit/markdown-content';
+import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
-import { getCandidates } from '@/lib/api';
+import { getCandidates, getWorkstationSheet, setWorkstationSheetParam, deleteWorkstationSheetParam, getMedicalRisks, type WorkstationSheetParam, type MedicalRiskOption } from '@/lib/api';
 import { getCandidacies, createCandidacy } from '@/lib/candidacy-api';
 import { APIVacancyDetail, APIActivityResponse, APIApplicantSummary, VacancyAgents, AgentStatusInfo, Candidacy, CandidacyStage, APICandidateListItem } from '@/lib/types';
 import { toast } from 'sonner';
@@ -151,7 +154,7 @@ function TimelineEvent({ activity, isLast }: { activity: APIActivityResponse; is
   );
 }
 
-type TabType = 'candidates' | 'agents' | 'timeline' | 'description';
+type TabType = 'candidates' | 'agents' | 'timeline' | 'description' | 'werkpostfiche';
 
 // Agent type configuration
 const agentTypeConfig: Record<string, { label: string; icon: typeof PhoneCall; description: string }> = {
@@ -390,6 +393,149 @@ function AddCandidateModal({ vacancyId, onSuccess, onClose }: AddCandidateModalP
   );
 }
 
+// ─── Medical risks selector ──────────────────────────────────────────────────
+
+function MedicalRisksSelector({
+  vacancyId,
+  value,
+  onChange,
+}: {
+  vacancyId: string;
+  value: { id: string; name: string }[];
+  onChange: (risks: { id: string; name: string }[]) => void;
+}) {
+  const [query, setQuery] = useState('');
+  const [options, setOptions] = useState<MedicalRiskOption[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Fetch options when query changes
+  useEffect(() => {
+    const controller = new AbortController();
+    const timeout = setTimeout(async () => {
+      setLoading(true);
+      try {
+        const results = await getMedicalRisks(query || undefined);
+        if (!controller.signal.aborted) {
+          setOptions(results);
+        }
+      } catch {
+        // ignore
+      } finally {
+        if (!controller.signal.aborted) setLoading(false);
+      }
+    }, query ? 300 : 0);
+
+    return () => {
+      clearTimeout(timeout);
+      controller.abort();
+    };
+  }, [query]);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
+  const selectedIds = new Set(value.map(v => v.id));
+
+  const handleSelect = (option: MedicalRiskOption) => {
+    if (selectedIds.has(option.id)) {
+      onChange(value.filter(v => v.id !== option.id));
+    } else {
+      onChange([...value, { id: option.id, name: option.name }]);
+    }
+  };
+
+  const handleRemove = (id: string) => {
+    onChange(value.filter(v => v.id !== id));
+  };
+
+  return (
+    <div className="p-2.5 bg-gray-50 rounded-lg" ref={containerRef}>
+      <span className="text-sm text-gray-700">Risico&apos;s</span>
+
+      {/* Selected tags */}
+      {value.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 mt-2">
+          {value.map(risk => (
+            <span
+              key={risk.id}
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-white border border-gray-200 text-xs text-gray-700"
+            >
+              {risk.name}
+              <button
+                onClick={() => handleRemove(risk.id)}
+                className="text-gray-400 hover:text-red-500 transition-colors"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* Search input */}
+      <div className="relative mt-2">
+        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+        <Input
+          value={query}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            setOpen(true);
+          }}
+          onFocus={() => setOpen(true)}
+          placeholder="Zoek risico..."
+          className="h-8 pl-8 text-xs bg-white"
+        />
+      </div>
+
+      {/* Dropdown */}
+      {open && (
+        <div className="mt-1 max-h-48 overflow-y-auto rounded-md border border-gray-200 bg-white shadow-sm">
+          {loading ? (
+            <div className="flex justify-center py-3">
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-gray-400" />
+            </div>
+          ) : options.length > 0 ? (
+            options.map(option => (
+              <button
+                key={option.id}
+                className={cn(
+                  'w-full flex items-center gap-2 px-3 py-1.5 text-xs text-left hover:bg-gray-50 transition-colors',
+                  selectedIds.has(option.id) && 'bg-blue-50 text-blue-700'
+                )}
+                onClick={() => handleSelect(option)}
+              >
+                <div className={cn(
+                  'w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0',
+                  selectedIds.has(option.id)
+                    ? 'bg-blue-500 border-blue-500'
+                    : 'border-gray-300'
+                )}>
+                  {selectedIds.has(option.id) && (
+                    <CheckCircle className="w-3 h-3 text-white" />
+                  )}
+                </div>
+                {option.name}
+              </button>
+            ))
+          ) : (
+            <p className="text-xs text-gray-400 text-center py-3">Geen resultaten</p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Tabs section ─────────────────────────────────────────────────────────────
 
 function TabsSection({
@@ -411,6 +557,8 @@ function TabsSection({
   const [candidacies, setCandidacies] = useState<Candidacy[]>([]);
   const [candidaciesLoading, setCandidaciesLoading] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [werkpostfiche, setWerkpostfiche] = useState<WorkstationSheetParam[]>([]);
+  const [werkpostficheLoading, setWerkpostficheLoading] = useState(false);
 
   const fetchCandidacies = useCallback(async () => {
     setCandidaciesLoading(true);
@@ -424,9 +572,22 @@ function TabsSection({
     }
   }, [vacancyId]);
 
+  const fetchWerkpostfiche = useCallback(async () => {
+    setWerkpostficheLoading(true);
+    try {
+      const data = await getWorkstationSheet(vacancyId);
+      setWerkpostfiche(data);
+    } catch {
+      setWerkpostfiche([]);
+    } finally {
+      setWerkpostficheLoading(false);
+    }
+  }, [vacancyId]);
+
   useEffect(() => {
     fetchCandidacies();
-  }, [fetchCandidacies]);
+    fetchWerkpostfiche();
+  }, [fetchCandidacies, fetchWerkpostfiche]);
 
   const activeAgentsCount = agents
     ? Object.values(agents).filter((a) => a.exists).length
@@ -440,6 +601,7 @@ function TabsSection({
           {([
             { key: 'timeline' as const, label: 'Tijdlijn', count: timeline.length },
             { key: 'candidates' as const, label: 'Kandidaten', count: candidaciesLoading ? -1 : candidacies.length },
+            { key: 'werkpostfiche' as const, label: 'Werkpostfiche', count: werkpostfiche.length },
             { key: 'description' as const, label: 'Vacaturetekst', count: 0 },
             { key: 'agents' as const, label: 'Agents', count: activeAgentsCount },
           ]).map(tab => {
@@ -549,6 +711,75 @@ function TabsSection({
               <p className="text-sm text-gray-400 text-center py-8">
                 Geen activiteit
               </p>
+            )}
+          </div>
+        )}
+        {activeTab === 'werkpostfiche' && (
+          <div className="px-6 py-4">
+            {werkpostficheLoading ? (
+              <div className="flex justify-center py-8">
+                <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {/* Medisch category */}
+                <div>
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <Stethoscope className="w-3.5 h-3.5 text-gray-400" />
+                    <span className="text-xs font-medium text-gray-500">Medisch onderzoek</span>
+                  </div>
+                  <div className="space-y-1.5">
+                    {/* Medical check toggle */}
+                    <div className="flex items-center justify-between p-2.5 bg-gray-50 rounded-lg">
+                      <span className="text-sm text-gray-700">Verplicht gezondheidstoezicht</span>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className={cn(
+                          'text-sm',
+                          werkpostfiche.find(p => p.param_key === 'medical_check')
+                            ? 'font-medium text-green-700'
+                            : 'text-gray-400'
+                        )}>
+                          {werkpostfiche.find(p => p.param_key === 'medical_check') ? 'Vereist' : 'Niet vereist'}
+                        </span>
+                        <Switch
+                          checked={!!werkpostfiche.find(p => p.param_key === 'medical_check')}
+                          onCheckedChange={async (checked) => {
+                            if (checked) {
+                              await setWorkstationSheetParam(vacancyId, 'medical_check', 'yes');
+                            } else {
+                              await deleteWorkstationSheetParam(vacancyId, 'medical_check');
+                              // Also clear risks when disabling
+                              await deleteWorkstationSheetParam(vacancyId, 'medical_risks');
+                            }
+                            fetchWerkpostfiche();
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Medical risks — only when medical_check is enabled */}
+                    {werkpostfiche.find(p => p.param_key === 'medical_check') && (
+                      <MedicalRisksSelector
+                        vacancyId={vacancyId}
+                        value={(() => {
+                          const param = werkpostfiche.find(p => p.param_key === 'medical_risks');
+                          if (!param) return [];
+                          try { return JSON.parse(param.param_value) as { id: string; name: string }[]; }
+                          catch { return []; }
+                        })()}
+                        onChange={async (risks) => {
+                          if (risks.length > 0) {
+                            await setWorkstationSheetParam(vacancyId, 'medical_risks', JSON.stringify(risks));
+                          } else {
+                            await deleteWorkstationSheetParam(vacancyId, 'medical_risks');
+                          }
+                          fetchWerkpostfiche();
+                        }}
+                      />
+                    )}
+                  </div>
+                </div>
+              </div>
             )}
           </div>
         )}

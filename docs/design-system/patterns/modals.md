@@ -242,7 +242,7 @@ import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle, SheetDescri
 
 ```tsx
 <Sheet open={isOpen} onOpenChange={setIsOpen}>
-  <SheetContent side="right" className="w-full sm:max-w-xl">
+  <SheetContent side="right" className="w-full sm:max-w-[720px]">
     <SheetHeader>
       <SheetTitle>{vacancy.title}</SheetTitle>
       <SheetDescription>

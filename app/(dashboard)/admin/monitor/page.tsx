@@ -704,7 +704,7 @@ export default function MonitorPage() {
 
       {/* Candidate Detail Sheet */}
       <Sheet open={!!selectedCandidateId} onOpenChange={(open) => !open && handleCloseCandidateDetail()}>
-        <SheetContent side="right" className="w-full sm:max-w-xl p-0" showCloseButton={false}>
+        <SheetContent side="right" className="w-full sm:max-w-[720px] p-0" showCloseButton={false}>
           <CandidateDetailPane
             candidate={selectedCandidateDetail}
             isLoading={candidateDetailLoading}
@@ -719,7 +719,7 @@ export default function MonitorPage() {
 
       {/* Vacancy Detail Sheet */}
       <Sheet open={!!selectedVacancyId} onOpenChange={(open) => !open && handleCloseVacancyDetail()}>
-        <SheetContent side="right" className="w-full sm:max-w-xl p-0" showCloseButton={false}>
+        <SheetContent side="right" className="w-full sm:max-w-[720px] p-0" showCloseButton={false}>
           <VacancyDetailPane
             vacancy={selectedVacancyDetail}
             isLoading={vacancyDetailLoading}

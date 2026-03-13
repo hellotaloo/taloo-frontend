@@ -16,8 +16,9 @@ import { Loader2, Phone, MessageCircle, FileText, Calendar } from 'lucide-react'
 import { cn, formatRelativeDate, formatTimestamp } from '@/lib/utils';
 import { getCandidacies, patchCandidacy } from '@/lib/candidacy-api';
 import { supabase } from '@/lib/supabase';
-import type { Candidacy, CandidacyStage } from '@/lib/types';
+import type { Candidacy, CandidacyStage, PlacementCreate } from '@/lib/types';
 import { toast } from 'sonner';
+import { PlacementDialog } from '@/components/blocks/placement-dialog';
 
 // ─── Stage config ─────────────────────────────────────────────────────────────
 
@@ -226,6 +227,7 @@ export function CandidatesPipeline({ searchQuery, onCandidateClick }: Candidates
   const [candidacies, setCandidacies] = useState<Candidacy[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [placementCandidate, setPlacementCandidate] = useState<Candidacy | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -307,6 +309,12 @@ export function CandidatesPipeline({ searchQuery, onCandidateClick }: Candidates
     const candidacy = candidacies.find((c) => c.id === candidacyId);
     if (!candidacy || candidacy.stage === newStage) return;
 
+    // Intercept: interview_done → offer requires placement details
+    if (candidacy.stage === 'interview_done' && newStage === 'offer') {
+      setPlacementCandidate(candidacy);
+      return;
+    }
+
     // Optimistic update
     const prevStage = candidacy.stage;
     const prevUpdatedAt = candidacy.stage_updated_at;
@@ -330,6 +338,30 @@ export function CandidatesPipeline({ searchQuery, onCandidateClick }: Candidates
     }
   }
 
+  async function handlePlacementConfirm(placement: PlacementCreate) {
+    const candidacy = placementCandidate;
+    if (!candidacy) return;
+
+    const now = new Date().toISOString();
+    setCandidacies((prev) =>
+      prev.map((c) => (c.id === candidacy.id ? { ...c, stage: 'offer' as CandidacyStage, stage_updated_at: now } : c)),
+    );
+    setPlacementCandidate(null);
+
+    try {
+      await patchCandidacy(candidacy.id, { stage: 'offer', placement });
+    } catch {
+      setCandidacies((prev) =>
+        prev.map((c) =>
+          c.id === candidacy.id
+            ? { ...c, stage: candidacy.stage, stage_updated_at: candidacy.stage_updated_at }
+            : c,
+        ),
+      );
+      toast.error('Kon plaatsing niet aanmaken');
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -342,35 +374,44 @@ export function CandidatesPipeline({ searchQuery, onCandidateClick }: Candidates
   const terminalStages = VISIBLE_STAGES.filter((s) => TERMINAL_STAGES.includes(s));
 
   return (
-    <DndContext
-      sensors={sensors}
-      onDragStart={handleDragStart}
-      onDragEnd={handleDragEnd}
-    >
-      <div className="flex gap-3 overflow-x-auto pb-4">
-        {activeStages.map((stage) => (
-          <PipelineColumn
-            key={stage}
-            stage={stage}
-            candidacies={grouped.get(stage) ?? []}
-            onCardClick={(c) => onCandidateClick(c.candidate_id)}
-          />
-        ))}
-        {/* Separator before terminal columns */}
-        <div className="w-px bg-gray-200 shrink-0 my-2" />
-        {terminalStages.map((stage) => (
-          <PipelineColumn
-            key={stage}
-            stage={stage}
-            candidacies={grouped.get(stage) ?? []}
-            onCardClick={(c) => onCandidateClick(c.candidate_id)}
-          />
-        ))}
-      </div>
+    <>
+      <DndContext
+        sensors={sensors}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+      >
+        <div className="flex gap-3 overflow-x-auto pb-4">
+          {activeStages.map((stage) => (
+            <PipelineColumn
+              key={stage}
+              stage={stage}
+              candidacies={grouped.get(stage) ?? []}
+              onCardClick={(c) => onCandidateClick(c.candidate_id)}
+            />
+          ))}
+          {/* Separator before terminal columns */}
+          <div className="w-px bg-gray-200 shrink-0 my-2" />
+          {terminalStages.map((stage) => (
+            <PipelineColumn
+              key={stage}
+              stage={stage}
+              candidacies={grouped.get(stage) ?? []}
+              onCardClick={(c) => onCandidateClick(c.candidate_id)}
+            />
+          ))}
+        </div>
 
-      <DragOverlay>
-        {activeCandidacy && <PipelineCardOverlay candidacy={activeCandidacy} />}
-      </DragOverlay>
-    </DndContext>
+        <DragOverlay>
+          {activeCandidacy && <PipelineCardOverlay candidacy={activeCandidacy} />}
+        </DragOverlay>
+      </DndContext>
+
+      <PlacementDialog
+        candidacy={placementCandidate}
+        open={!!placementCandidate}
+        onOpenChange={(open) => !open && setPlacementCandidate(null)}
+        onConfirm={handlePlacementConfirm}
+      />
+    </>
   );
 }

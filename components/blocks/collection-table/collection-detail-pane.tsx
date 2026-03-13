@@ -3,11 +3,9 @@
 import { useState, useEffect } from 'react';
 import {
   X,
-  Phone,
   FileText,
   CheckCircle2,
   Clock,
-  AlertCircle,
   Loader2,
   MessageCircle,
   XCircle,
@@ -16,17 +14,20 @@ import {
   ArrowRight,
   User,
   ChevronRight,
+  Briefcase,
+  Play,
 } from 'lucide-react';
-import { cn, formatTimestamp } from '@/lib/utils';
+import { cn, formatTimestamp, formatDate, formatTime } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { StatusBadge } from '@/components/kit/status-badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { getCollectionActivities } from '@/lib/document-collection-api';
+import { getCollectionActivities, triggerCollectionTask } from '@/lib/document-collection-api';
+import { toast } from 'sonner';
 import type {
   DocumentCollectionFullDetailResponse,
-  CollectionDocumentStatusResponse,
+  CollectionItemStatusResponse,
+  CollectionGoal,
   WorkflowStepResponse,
-  CollectionPlanStepResponse,
   CollectionMessageResponse,
   DocumentStatus,
   GlobalActivity,
@@ -55,22 +56,31 @@ const collectionStatusConfig: Record<string, { label: string; variant: 'blue' | 
   abandoned:    { label: 'Verlaten',          variant: 'red' },
 };
 
-const documentStatusConfig: Record<DocumentStatus, { label: string; variant: 'blue' | 'green' | 'orange' | 'red' | 'gray'; icon: React.ReactNode }> = {
-  pending:  { label: 'Wachtend',      variant: 'gray',   icon: <Clock className="w-4 h-4 text-gray-400" /> },
-  asked:    { label: 'Gevraagd',      variant: 'blue',   icon: <MessageCircle className="w-4 h-4 text-blue-500" /> },
-  received: { label: 'Ontvangen',     variant: 'orange',  icon: <Download className="w-4 h-4 text-yellow-500" /> },
-  verified: { label: 'Geverifieerd',  variant: 'green',  icon: <CheckCircle2 className="w-4 h-4 text-green-500" /> },
-  failed:   { label: 'Mislukt',       variant: 'red',    icon: <XCircle className="w-4 h-4 text-red-500" /> },
-  skipped:  { label: 'Overgeslagen',  variant: 'gray',   icon: <SkipForward className="w-4 h-4 text-gray-400" /> },
+const goalConfig: Record<CollectionGoal, { label: string; variant: 'blue' | 'green' | 'orange' | 'red' | 'gray' }> = {
+  collect_basic:     { label: 'Documenten & gegevens',     variant: 'blue' },
+  collect_and_sign:  { label: 'Verzamelen & ondertekenen', variant: 'green' },
+  document_renewal:  { label: 'Document vernieuwing',      variant: 'orange' },
 };
 
-const documentStatusBg: Record<DocumentStatus, string> = {
-  pending:  'bg-gray-50 border-gray-200',
-  asked:    'bg-blue-50 border-blue-200',
-  received: 'bg-yellow-50 border-yellow-200',
-  verified: 'bg-green-50 border-green-200',
-  failed:   'bg-red-50 border-red-200',
-  skipped:  'bg-gray-50 border-gray-200',
+const stageLabels: Record<string, string> = {
+  new: 'Nieuw',
+  pre_screening: 'Pre-screening',
+  qualified: 'Gekwalificeerd',
+  interview_planned: 'Gesprek gepland',
+  interview_done: 'Gesprek afgerond',
+  offer: 'Aanbod',
+  placed: 'Geplaatst',
+  rejected: 'Afgewezen',
+  withdrawn: 'Teruggetrokken',
+};
+
+const itemStatusConfig: Record<DocumentStatus, { label: string; variant: 'blue' | 'green' | 'orange' | 'red' | 'gray'; icon: React.ReactNode }> = {
+  pending:  { label: 'Wachtend',      variant: 'gray',   icon: <Clock className="w-3.5 h-3.5 text-gray-400" /> },
+  asked:    { label: 'Gevraagd',      variant: 'blue',   icon: <MessageCircle className="w-3.5 h-3.5 text-blue-500" /> },
+  received: { label: 'Ontvangen',     variant: 'orange',  icon: <Download className="w-3.5 h-3.5 text-yellow-500" /> },
+  verified: { label: 'Geverifieerd',  variant: 'green',  icon: <CheckCircle2 className="w-3.5 h-3.5 text-green-500" /> },
+  failed:   { label: 'Mislukt',       variant: 'red',    icon: <XCircle className="w-3.5 h-3.5 text-red-500" /> },
+  skipped:  { label: 'Overgeslagen',  variant: 'gray',   icon: <SkipForward className="w-3.5 h-3.5 text-gray-400" /> },
 };
 
 const workflowStepStyle: Record<string, { icon: React.ReactNode; ring: string }> = {
@@ -128,13 +138,19 @@ export function CollectionDetailPane({
   }
 
   const statusCfg = collectionStatusConfig[collection.status] ?? collectionStatusConfig.active;
+  const documents = collection.collection_items.filter((i) => i.type === 'document');
+  const attributes = collection.collection_items.filter((i) => i.type === 'attribute');
+  const tasks = collection.collection_items.filter((i) => i.type === 'task');
 
   return (
     <div className="flex flex-col h-full bg-white">
       {/* Header */}
       <div className="px-6 py-4 border-b shrink-0">
         <div className="flex items-center justify-between mb-1">
-          <h2 className="text-lg font-semibold text-gray-900">{collection.candidate_name}</h2>
+          <h2 className="text-lg font-semibold text-gray-900">
+            <span className="text-gray-400 font-normal">Document collectie</span>{' '}
+            {collection.candidate_name}
+          </h2>
           {onClose && (
             <Button variant="ghost" size="icon" onClick={onClose}>
               <X className="w-4 h-4" />
@@ -142,69 +158,133 @@ export function CollectionDetailPane({
           )}
         </div>
 
-        {/* Subtitle: vacancy + status + progress + channel */}
+        {/* Status badges */}
         <div className="flex items-center gap-2 text-sm text-gray-500 flex-wrap">
-          {collection.vacancy_title && (
-            <>
-              <span className="truncate max-w-[200px]">{collection.vacancy_title}</span>
-              <span className="text-gray-300">·</span>
-            </>
-          )}
           <StatusBadge label={statusCfg.label} variant={statusCfg.variant} />
-          <span className="text-gray-300">·</span>
-          <span>{collection.documents_collected}/{collection.documents_total} documenten</span>
-          <span className="text-gray-300">·</span>
-          <span className="capitalize">{collection.channel}</span>
-        </div>
-
-        {/* Contact + navigation links */}
-        <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
-          {collection.candidate_phone && (
-            <div className="flex items-center gap-1.5">
-              <Phone className="w-3.5 h-3.5" />
-              <span>{collection.candidate_phone}</span>
-            </div>
-          )}
-          {collection.candidate_id && onNavigateToCandidate && (
-            <button
-              onClick={() => onNavigateToCandidate(collection.candidate_id!)}
-              className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 transition-colors"
-            >
-              <User className="w-3 h-3" />
-              Kandidaat
-              <ChevronRight className="w-3 h-3" />
-            </button>
-          )}
-          {collection.candidacy_id && onNavigateToCandidacy && (
-            <button
-              onClick={() => onNavigateToCandidacy(collection.candidacy_id!)}
-              className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 transition-colors"
-            >
-              <FileText className="w-3 h-3" />
-              Kandidatuur
-              <ChevronRight className="w-3 h-3" />
-            </button>
+          {collection.goal && (
+            <>
+              <span className="text-gray-300">·</span>
+              <StatusBadge
+                label={goalConfig[collection.goal]?.label ?? collection.goal}
+                variant={goalConfig[collection.goal]?.variant ?? 'gray'}
+              />
+            </>
           )}
         </div>
 
         {/* Plan summary */}
-        {collection.plan?.summary && (
-          <p className="mt-3 text-sm text-gray-600 leading-relaxed bg-gray-50 rounded-lg p-3 border border-gray-100">
-            {collection.plan.summary}
-          </p>
+        {collection.summary && (
+          <div className="mt-3 bg-brand-dark-blue rounded-lg p-3.5">
+            <h4 className="text-[10px] font-semibold tracking-widest uppercase text-brand-light-blue/70 mb-1.5">
+              Plan van aanpak
+            </h4>
+            <p className="text-sm text-white/90 leading-relaxed">
+              {collection.summary}
+            </p>
+          </div>
+        )}
+
+        {/* Candidate + Vacancy cards */}
+        <div className="grid grid-cols-2 gap-2.5 mt-3">
+          {collection.candidate_id && onNavigateToCandidate ? (
+            <button
+              onClick={() => onNavigateToCandidate(collection.candidate_id!)}
+              className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-colors text-left"
+            >
+              <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
+                <User className="w-4 h-4 text-gray-500" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-gray-900 truncate">{collection.candidate_name}</p>
+                {collection.candidate_phone && (
+                  <p className="text-xs text-gray-400 truncate">{collection.candidate_phone}</p>
+                )}
+              </div>
+              <ChevronRight className="w-4 h-4 text-gray-300 shrink-0 ml-auto" />
+            </button>
+          ) : (
+            <div className="flex items-center gap-3 p-3 rounded-lg border border-gray-100 bg-gray-50/50">
+              <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
+                <User className="w-4 h-4 text-gray-400" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-gray-600 truncate">{collection.candidate_name}</p>
+                {collection.candidate_phone && (
+                  <p className="text-xs text-gray-400 truncate">{collection.candidate_phone}</p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {collection.vacancy_id ? (
+            <button
+              onClick={() => collection.candidacy_id && onNavigateToCandidacy?.(collection.candidacy_id)}
+              className={cn(
+                'flex items-center gap-3 p-3 rounded-lg border text-left',
+                collection.candidacy_id && onNavigateToCandidacy
+                  ? 'border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-colors'
+                  : 'border-gray-100 bg-gray-50/50 cursor-default',
+              )}
+            >
+              <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
+                <Briefcase className="w-4 h-4 text-gray-500" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-gray-900 truncate">{collection.vacancy_title || 'Vacature'}</p>
+                {collection.candidacy_stage && (
+                  <p className="text-xs text-gray-400 truncate">
+                    {stageLabels[collection.candidacy_stage] ?? collection.candidacy_stage}
+                  </p>
+                )}
+              </div>
+              {collection.candidacy_id && onNavigateToCandidacy && (
+                <ChevronRight className="w-4 h-4 text-gray-300 shrink-0 ml-auto" />
+              )}
+            </button>
+          ) : null}
+        </div>
+
+        {/* Progress bars */}
+        {collection.collection_items.length > 0 && (
+          <div className="flex gap-3 mt-3">
+            {documents.length > 0 && (
+              <ProgressBar
+                label="Documenten"
+                collected={documents.filter((d) => d.status === 'verified').length}
+                total={documents.length}
+              />
+            )}
+            {attributes.length > 0 && (
+              <ProgressBar
+                label="Gegevens"
+                collected={attributes.filter((a) => ['received', 'verified'].includes(a.status)).length}
+                total={attributes.length}
+              />
+            )}
+            {tasks.length > 0 && (
+              <ProgressBar
+                label="Taken"
+                collected={tasks.filter((t) => ['received', 'verified'].includes(t.status)).length}
+                total={tasks.length}
+              />
+            )}
+          </div>
         )}
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue="tijdlijn" className="flex-1 flex flex-col min-h-0">
+      <Tabs defaultValue="overzicht" className="flex-1 flex flex-col min-h-0">
         <TabsList variant="line" className="px-6 shrink-0">
+          <TabsTrigger value="overzicht">Overzicht</TabsTrigger>
           <TabsTrigger value="tijdlijn">Tijdlijn</TabsTrigger>
-          <TabsTrigger value="documenten">Documenten</TabsTrigger>
-          <TabsTrigger value="plan">Plan</TabsTrigger>
           <TabsTrigger value="chat">Chat</TabsTrigger>
         </TabsList>
 
         <div className="flex-1 overflow-y-auto">
+          <TabsContent value="overzicht" className="px-6 py-5 space-y-5 mt-0">
+            <OverzichtTab documents={documents} attributes={attributes} tasks={tasks} collectionId={collection.id} />
+          </TabsContent>
+
           <TabsContent value="tijdlijn" className="px-6 py-5 space-y-6 mt-0">
             <TijdlijnTab
               workflowSteps={collection.workflow_steps}
@@ -213,19 +293,207 @@ export function CollectionDetailPane({
             />
           </TabsContent>
 
-          <TabsContent value="documenten" className="px-6 py-5 mt-0">
-            <DocumentenTab documentStatuses={collection.document_statuses} />
-          </TabsContent>
-
-          <TabsContent value="plan" className="px-6 py-5 mt-0">
-            <PlanTab steps={collection.plan?.conversation_steps ?? []} />
-          </TabsContent>
-
           <TabsContent value="chat" className="px-6 py-5 mt-0">
             <ChatTab messages={collection.messages} />
           </TabsContent>
         </div>
       </Tabs>
+    </div>
+  );
+}
+
+// =============================================================================
+// Collection Item Row
+// =============================================================================
+
+// =============================================================================
+// Progress Bar (compact, for header)
+// =============================================================================
+
+function ProgressBar({ label, collected, total }: { label: string; collected: number; total: number }) {
+  const pct = total > 0 ? Math.round((collected / total) * 100) : 0;
+
+  return (
+    <div className="flex-1 min-w-0">
+      <div className="flex items-center justify-between mb-1">
+        <span className="text-xs font-medium text-gray-500">{label}</span>
+        <span className="text-xs text-gray-400">{collected}/{total}</span>
+      </div>
+      <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+        <div
+          className={cn(
+            'h-full rounded-full transition-all duration-500',
+            pct === 100 ? 'bg-green-500' : pct > 0 ? 'bg-blue-500' : 'bg-gray-200',
+          )}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
+// =============================================================================
+// Overzicht Tab
+// =============================================================================
+
+function OverzichtTab({
+  documents,
+  attributes,
+  tasks,
+  collectionId,
+}: {
+  documents: CollectionItemStatusResponse[];
+  attributes: CollectionItemStatusResponse[];
+  tasks: CollectionItemStatusResponse[];
+  collectionId: string;
+}) {
+  return (
+    <>
+      {documents.length > 0 && (
+        <div>
+          <h3 className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">
+            Documenten ({documents.filter((d) => d.status === 'verified').length}/{documents.length})
+          </h3>
+          <div className="space-y-1.5">
+            {documents.map((item) => (
+              <CollectionItemRow key={item.slug} item={item} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {attributes.length > 0 && (
+        <div>
+          <h3 className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">
+            Gegevens ({attributes.filter((a) => ['received', 'verified'].includes(a.status)).length}/{attributes.length})
+          </h3>
+          <div className="space-y-1.5">
+            {attributes.map((item) => (
+              <CollectionItemRow key={item.slug} item={item} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {tasks.length > 0 && (
+        <div>
+          <h3 className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">
+            Taken ({tasks.filter((t) => ['received', 'verified'].includes(t.status)).length}/{tasks.length})
+          </h3>
+          <div className="space-y-1.5">
+            {tasks.map((item) => (
+              <TaskItemRow key={item.slug} item={item} collectionId={collectionId} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {documents.length === 0 && attributes.length === 0 && tasks.length === 0 && (
+        <p className="text-sm text-gray-400">Nog geen items om te verzamelen</p>
+      )}
+    </>
+  );
+}
+
+// =============================================================================
+// Collection Item Row
+// =============================================================================
+
+function CollectionItemRow({ item }: { item: CollectionItemStatusResponse }) {
+  const config = itemStatusConfig[item.status] ?? itemStatusConfig.pending;
+  const isCollected = ['received', 'verified'].includes(item.status);
+
+  return (
+    <div className={cn(
+      'flex items-center justify-between py-1.5 px-2.5 rounded-md text-sm',
+      isCollected ? 'bg-green-50/50' : 'bg-transparent',
+    )}>
+      <div className="flex items-center gap-2.5 min-w-0">
+        <div className="shrink-0">{config.icon}</div>
+        <span className={cn(
+          'truncate',
+          isCollected ? 'text-gray-900' : 'text-gray-500',
+        )}>
+          {item.name}
+        </span>
+        {item.priority === 'recommended' && (
+          <span className="text-[10px] text-gray-400 shrink-0">(optioneel)</span>
+        )}
+      </div>
+      <div className="flex items-center gap-2 shrink-0 ml-2">
+        {item.value && (
+          <span className="text-xs text-gray-600 font-mono truncate max-w-[140px]">{item.value}</span>
+        )}
+        {item.verification_passed && (
+          <CheckCircle2 className="w-3.5 h-3.5 text-green-500" />
+        )}
+        {item.uploaded_at && (
+          <span className="text-[10px] text-gray-400">{formatTimestamp(item.uploaded_at)}</span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function TaskItemRow({ item, collectionId }: { item: CollectionItemStatusResponse; collectionId: string }) {
+  const config = itemStatusConfig[item.status] ?? itemStatusConfig.pending;
+  const isCompleted = ['received', 'verified', 'triggered'].includes(item.status);
+  const isScheduled = !!item.scheduled_at && !isCompleted;
+  const [triggering, setTriggering] = useState(false);
+
+  async function handleTriggerNow() {
+    setTriggering(true);
+    try {
+      await triggerCollectionTask(collectionId, item.slug);
+      toast.success(`${item.name} wordt nu uitgevoerd`);
+    } catch {
+      toast.error('Kon taak niet starten');
+    } finally {
+      setTriggering(false);
+    }
+  }
+
+  return (
+    <div className={cn(
+      'flex items-center justify-between py-1.5 px-2.5 rounded-md text-sm',
+      isCompleted ? 'bg-green-50/50' : 'bg-transparent',
+    )}>
+      <div className="flex items-center gap-2.5 min-w-0">
+        <div className="shrink-0">{config.icon}</div>
+        <span className={cn(
+          'truncate',
+          isCompleted ? 'text-gray-900' : 'text-gray-500',
+        )}>
+          {item.name}
+        </span>
+      </div>
+      <div className="flex items-center gap-2 shrink-0 ml-2">
+        {isScheduled && (
+          <>
+            <span className="text-xs text-gray-400">
+              Gepland op {formatDate(item.scheduled_at)} om {formatTime(item.scheduled_at)}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-6 px-2 text-[11px]"
+              onClick={handleTriggerNow}
+              disabled={triggering}
+            >
+              {triggering ? <Loader2 className="w-3 h-3 animate-spin" /> : <><Play className="w-3 h-3 mr-1" />Nu starten</>}
+            </Button>
+          </>
+        )}
+        {item.status === 'triggered' && (
+          <span className="text-[10px] text-orange-500 font-medium">Gestart</span>
+        )}
+        {isCompleted && item.value && (
+          <span className="text-xs text-gray-600 font-mono truncate max-w-[140px]">{item.value}</span>
+        )}
+        {item.verification_passed && (
+          <CheckCircle2 className="w-3.5 h-3.5 text-green-500" />
+        )}
+      </div>
     </div>
   );
 }
@@ -310,92 +578,6 @@ function TijdlijnTab({
         )}
       </div>
     </>
-  );
-}
-
-// =============================================================================
-// Documenten Tab
-// =============================================================================
-
-function DocumentenTab({ documentStatuses }: { documentStatuses: CollectionDocumentStatusResponse[] }) {
-  if (documentStatuses.length === 0) {
-    return <p className="text-sm text-gray-400">Geen documenten vereist</p>;
-  }
-
-  return (
-    <div className="grid grid-cols-1 gap-3">
-      {documentStatuses.map((doc) => {
-        const config = documentStatusConfig[doc.status] ?? documentStatusConfig.pending;
-        const bg = documentStatusBg[doc.status] ?? documentStatusBg.pending;
-
-        return (
-          <div key={doc.slug} className={cn('flex items-center justify-between p-3 rounded-lg border', bg)}>
-            <div className="flex items-center gap-3 flex-1 min-w-0">
-              <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center shrink-0 border border-gray-200">
-                {config.icon}
-              </div>
-              <div className="min-w-0">
-                <p className="text-sm font-medium text-gray-900">{doc.name}</p>
-                <div className="flex items-center gap-1.5">
-                  <span className="text-xs text-gray-500">{config.label}</span>
-                  {doc.priority === 'recommended' && (
-                    <span className="text-xs text-gray-400 ml-1">(optioneel)</span>
-                  )}
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 shrink-0 ml-2">
-              {doc.verification_passed && (
-                <CheckCircle2 className="w-4 h-4 text-green-500" />
-              )}
-              {doc.uploaded_at && (
-                <span className="text-xs text-gray-400">
-                  {formatTimestamp(doc.uploaded_at)}
-                </span>
-              )}
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-// =============================================================================
-// Plan Tab
-// =============================================================================
-
-function PlanTab({ steps }: { steps: CollectionPlanStepResponse[] }) {
-  if (steps.length === 0) {
-    return <p className="text-sm text-gray-400">Geen plan beschikbaar</p>;
-  }
-
-  return (
-    <div className="space-y-4">
-      {steps.map((step) => (
-        <div key={step.step} className="bg-gray-50 rounded-lg p-4 border border-gray-100">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-gray-200 text-[10px] font-semibold text-gray-600">
-              {step.step}
-            </span>
-            <h4 className="text-sm font-semibold text-gray-900">{step.topic}</h4>
-          </div>
-          <p className="text-sm text-gray-600 leading-relaxed">{step.message}</p>
-          {step.items.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 mt-2">
-              {step.items.map((item) => (
-                <span
-                  key={item}
-                  className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-gray-200 text-gray-600"
-                >
-                  {item}
-                </span>
-              ))}
-            </div>
-          )}
-        </div>
-      ))}
-    </div>
   );
 }
 

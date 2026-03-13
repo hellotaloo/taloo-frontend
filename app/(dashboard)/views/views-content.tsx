@@ -21,6 +21,7 @@ import {
   APIVacancyDetail,
 } from '@/lib/types';
 import { getCandidates, getCandidate, getVacanciesFromAPI, getVacancyDetail } from '@/lib/api';
+import { useRealtimeTable } from '@/hooks/use-realtime-table';
 import { mockClients } from './mock-data';
 
 export type ViewsTab = 'vacancies' | 'candidates' | 'customers';
@@ -73,42 +74,51 @@ export function ViewsContent({ activeTab }: ViewsContentProps) {
   }, [activeTab]);
 
   // Fetch candidates from API
-  useEffect(() => {
-    async function fetchCandidates() {
-      setCandidatesLoading(true);
-      setCandidatesError(null);
-      try {
-        const response = await getCandidates({ limit: 100 });
-        setApiCandidates(response.items);
-      } catch (error) {
-        console.error('Failed to fetch candidates:', error);
-        setCandidatesError('Kon kandidaten niet laden');
-      } finally {
-        setCandidatesLoading(false);
-      }
+  const fetchCandidates = useCallback(async () => {
+    setCandidatesLoading(true);
+    setCandidatesError(null);
+    try {
+      const response = await getCandidates({ limit: 100 });
+      setApiCandidates(response.items);
+    } catch (error) {
+      console.error('Failed to fetch candidates:', error);
+      setCandidatesError('Kon kandidaten niet laden');
+    } finally {
+      setCandidatesLoading(false);
     }
-
-    fetchCandidates();
   }, []);
 
   // Fetch vacancies from API
-  useEffect(() => {
-    async function fetchVacancies() {
-      setVacanciesLoading(true);
-      setVacanciesError(null);
-      try {
-        const response = await getVacanciesFromAPI({ limit: 100 });
-        setApiVacancies(response.items);
-      } catch (error) {
-        console.error('Failed to fetch vacancies:', error);
-        setVacanciesError('Kon vacatures niet laden');
-      } finally {
-        setVacanciesLoading(false);
-      }
+  const fetchVacancies = useCallback(async () => {
+    setVacanciesLoading(true);
+    setVacanciesError(null);
+    try {
+      const response = await getVacanciesFromAPI({ limit: 100 });
+      setApiVacancies(response.items);
+    } catch (error) {
+      console.error('Failed to fetch vacancies:', error);
+      setVacanciesError('Kon vacatures niet laden');
+    } finally {
+      setVacanciesLoading(false);
     }
-
-    fetchVacancies();
   }, []);
+
+  // Initial fetch
+  useEffect(() => { fetchCandidates(); }, [fetchCandidates]);
+  useEffect(() => { fetchVacancies(); }, [fetchVacancies]);
+
+  // Re-fetch lists when source tables change
+  useRealtimeTable({
+    schema: 'ats',
+    table: 'vacancies',
+    onUpdate: fetchVacancies,
+  });
+
+  useRealtimeTable({
+    schema: 'ats',
+    table: 'candidates',
+    onUpdate: fetchCandidates,
+  });
 
   // Fetch candidate detail when selected
   const refreshCandidateDetail = useCallback(async () => {
@@ -355,7 +365,7 @@ export function ViewsContent({ activeTab }: ViewsContentProps) {
 
       {/* Candidate Detail Sheet */}
       <Sheet open={!!selectedCandidateId} onOpenChange={(open) => !open && handleCloseCandidateDetail()}>
-        <SheetContent side="right" className="w-full sm:max-w-xl p-0" showCloseButton={false}>
+        <SheetContent side="right" className="w-full sm:max-w-[720px] p-0" showCloseButton={false}>
           <CandidateDetailPane
             candidate={selectedCandidateDetail}
             isLoading={candidateDetailLoading}
@@ -371,7 +381,7 @@ export function ViewsContent({ activeTab }: ViewsContentProps) {
 
       {/* Vacancy Detail Sheet */}
       <Sheet open={!!selectedVacancyId} onOpenChange={(open) => !open && handleCloseVacancyDetail()}>
-        <SheetContent side="right" className="w-full sm:max-w-xl p-0" showCloseButton={false}>
+        <SheetContent side="right" className="w-full sm:max-w-[720px] p-0" showCloseButton={false}>
           <VacancyDetailPane
             vacancy={selectedVacancyDetail}
             isLoading={vacancyDetailLoading}

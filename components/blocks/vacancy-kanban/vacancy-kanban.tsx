@@ -28,9 +28,10 @@ import { cn, formatRelativeDate, formatPhoneNumber } from '@/lib/utils';
 import { getCandidacies, patchCandidacy, createCandidacy } from '@/lib/candidacy-api';
 import { supabase } from '@/lib/supabase';
 import { getCandidates, getCandidate } from '@/lib/api';
-import type { Candidacy, CandidacyStage, APICandidateListItem, APICandidateDetail } from '@/lib/types';
+import type { Candidacy, CandidacyStage, PlacementCreate, APICandidateListItem, APICandidateDetail } from '@/lib/types';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { CandidateDetailPane } from '@/components/blocks/views';
+import { PlacementDialog } from '@/components/blocks/placement-dialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -459,6 +460,8 @@ export function VacancyKanban({ vacancyId }: VacancyKanbanProps) {
   const [selectedCandidateId, setSelectedCandidateId] = useState<string | null>(null);
   const [selectedCandidate, setSelectedCandidate] = useState<APICandidateDetail | null>(null);
   const [candidateLoading, setCandidateLoading] = useState(false);
+  // Placement dialog
+  const [placementCandidate, setPlacementCandidate] = useState<Candidacy | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -559,6 +562,12 @@ export function VacancyKanban({ vacancyId }: VacancyKanbanProps) {
     const candidacy = candidacies.find((c) => c.id === candidacyId);
     if (!candidacy || candidacy.stage === newStage) return;
 
+    // Intercept: interview_done → offer requires placement details
+    if (candidacy.stage === 'interview_done' && newStage === 'offer') {
+      setPlacementCandidate(candidacy);
+      return;
+    }
+
     // Optimistic update
     const now = new Date().toISOString();
     setCandidacies((prev) =>
@@ -576,6 +585,30 @@ export function VacancyKanban({ vacancyId }: VacancyKanbanProps) {
         ),
       );
       toast.error('Kon kandidaat niet verplaatsen');
+    }
+  }
+
+  async function handlePlacementConfirm(placement: PlacementCreate) {
+    const candidacy = placementCandidate;
+    if (!candidacy) return;
+
+    const now = new Date().toISOString();
+    setCandidacies((prev) =>
+      prev.map((c) => (c.id === candidacy.id ? { ...c, stage: 'offer' as CandidacyStage, stage_updated_at: now } : c)),
+    );
+    setPlacementCandidate(null);
+
+    try {
+      await patchCandidacy(candidacy.id, { stage: 'offer', placement });
+    } catch {
+      setCandidacies((prev) =>
+        prev.map((c) =>
+          c.id === candidacy.id
+            ? { ...c, stage: candidacy.stage, stage_updated_at: candidacy.stage_updated_at }
+            : c,
+        ),
+      );
+      toast.error('Kon plaatsing niet aanmaken');
     }
   }
 
@@ -668,7 +701,7 @@ export function VacancyKanban({ vacancyId }: VacancyKanbanProps) {
         open={!!selectedCandidateId}
         onOpenChange={(open) => !open && setSelectedCandidateId(null)}
       >
-        <SheetContent side="right" className="w-full sm:max-w-xl p-0" showCloseButton={false}>
+        <SheetContent side="right" className="w-full sm:max-w-[720px] p-0" showCloseButton={false}>
           <CandidateDetailPane
             candidate={selectedCandidate}
             isLoading={candidateLoading}
@@ -676,6 +709,14 @@ export function VacancyKanban({ vacancyId }: VacancyKanbanProps) {
           />
         </SheetContent>
       </Sheet>
+
+      {/* Placement dialog — shown when moving to offer */}
+      <PlacementDialog
+        candidacy={placementCandidate}
+        open={!!placementCandidate}
+        onOpenChange={(open) => !open && setPlacementCandidate(null)}
+        onConfirm={handlePlacementConfirm}
+      />
     </>
   );
 }

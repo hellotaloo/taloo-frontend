@@ -290,6 +290,54 @@ export async function getVacancyDetail(vacancyId: string): Promise<APIVacancyDet
   };
 }
 
+// Workstation sheet API
+export interface WorkstationSheetParam {
+  param_key: string;
+  param_value: string;
+  notes: string | null;
+  updated_at: string | null;
+}
+
+export async function getWorkstationSheet(vacancyId: string): Promise<WorkstationSheetParam[]> {
+  const response = await fetch(`${BACKEND_URL}/vacancies/${vacancyId}/workstation-sheet`);
+  if (!response.ok) throw new Error('Failed to fetch workstation sheet');
+  return response.json();
+}
+
+export async function setWorkstationSheetParam(
+  vacancyId: string,
+  paramKey: string,
+  paramValue: string,
+  notes?: string
+): Promise<void> {
+  const response = await fetch(`${BACKEND_URL}/vacancies/${vacancyId}/workstation-sheet/${paramKey}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ param_value: paramValue, notes }),
+  });
+  if (!response.ok) throw new Error('Failed to set workstation sheet param');
+}
+
+export async function deleteWorkstationSheetParam(vacancyId: string, paramKey: string): Promise<void> {
+  const response = await fetch(`${BACKEND_URL}/vacancies/${vacancyId}/workstation-sheet/${paramKey}`, {
+    method: 'DELETE',
+  });
+  if (!response.ok) throw new Error('Failed to delete workstation sheet param');
+}
+
+// Medical risk options
+export interface MedicalRiskOption {
+  id: string;
+  name: string;
+}
+
+export async function getMedicalRisks(search?: string): Promise<MedicalRiskOption[]> {
+  const params = search ? `?search=${encodeURIComponent(search)}` : '';
+  const response = await fetch(`${BACKEND_URL}/werkpostfiche/medical-risks${params}`);
+  if (!response.ok) throw new Error('Failed to fetch medical risks');
+  return response.json();
+}
+
 // Monitoring API (event log - formerly /activities)
 export interface GetActivitiesParams {
   actor_type?: ActivityActorType;

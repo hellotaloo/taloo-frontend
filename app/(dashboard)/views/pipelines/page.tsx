@@ -78,7 +78,7 @@ export default function PipelinePage() {
           }
         }}
       >
-        <SheetContent side="right" className="w-full sm:max-w-xl p-0" showCloseButton={false}>
+        <SheetContent side="right" className="w-full sm:max-w-[720px] p-0" showCloseButton={false}>
           <CandidateDetailPane
             candidate={selectedCandidateDetail}
             isLoading={candidateDetailLoading}

@@ -67,16 +67,12 @@ export async function getCollectionActivities(
   vacancyId: string,
   params?: { limit?: number }
 ): Promise<GlobalActivitiesResponse> {
-  const workspaceId =
-    typeof window !== 'undefined'
-      ? localStorage.getItem('workspace_id') || ''
-      : '';
   const searchParams = new URLSearchParams();
   searchParams.set('candidate_id', candidateId);
   searchParams.set('vacancy_id', vacancyId);
   if (params?.limit) searchParams.set('limit', params.limit.toString());
 
-  const url = `${BACKEND_URL}/workspaces/${workspaceId}/monitoring?${searchParams}`;
+  const url = `${BACKEND_URL}/monitoring?${searchParams}`;
 
   const response = await authFetch(url);
   if (!response.ok) {
@@ -84,4 +80,15 @@ export async function getCollectionActivities(
   }
 
   return response.json();
+}
+
+export async function triggerCollectionTask(
+  collectionId: string,
+  taskSlug: string,
+): Promise<void> {
+  const url = `${getBaseUrl()}/collections/${collectionId}/tasks/${taskSlug}/trigger`;
+  const response = await authFetch(url, { method: 'POST' });
+  if (!response.ok) {
+    throw new Error(`Failed to trigger task: ${response.status}`);
+  }
 }

@@ -50,7 +50,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { getNavigationCounts } from '@/lib/interview-api';
+import { getNavigationCounts, type NavigationCounts } from '@/lib/interview-api';
 import { useAuth } from '@/contexts/auth-context';
 import { useRealtimeTable } from '@/hooks/use-realtime-table';
 
@@ -91,24 +91,12 @@ export function AppSidebar() {
   const { user, workspaces, currentWorkspace, switchWorkspace, logout } = useAuth();
   const [viewsOpen, setViewsOpen] = React.useState(true);
   const [agentsOpen, setAgentsOpen] = React.useState(true);
-  const [prescreeningCount, setPrescreeningCount] = React.useState<number | null>(null);
-  const [activitiesCount, setActivitiesCount] = React.useState<number | null>(null);
-  const [hasStuckActivities, setHasStuckActivities] = React.useState(false);
+  const [counts, setCounts] = React.useState<NavigationCounts | null>(null);
 
   const fetchCounts = React.useCallback(() => {
     getNavigationCounts()
-      .then((counts) => {
-        setPrescreeningCount(counts.prescreening.new);
-        if (counts.activities) {
-          setActivitiesCount(counts.activities.active);
-          setHasStuckActivities(counts.activities.stuck > 0);
-        }
-      })
-      .catch(() => {
-        setPrescreeningCount(null);
-        setActivitiesCount(null);
-        setHasStuckActivities(false);
-      });
+      .then(setCounts)
+      .catch(() => setCounts(null));
   }, []);
 
   // Initial fetch
@@ -116,23 +104,50 @@ export function AppSidebar() {
     fetchCounts();
   }, [fetchCounts]);
 
-  // Re-fetch counts when workflows change (activities badges)
+  // Subscribe to navigation_counts table for instant updates
   useRealtimeTable({
-    schema: 'agents',
-    table: 'workflows',
-    onUpdate: fetchCounts,
-  });
-
-  // Re-fetch counts when pre-screenings change (pre-screening badge)
-  useRealtimeTable({
-    schema: 'agents',
-    table: 'pre_screenings',
-    onUpdate: fetchCounts,
+    schema: 'ats',
+    table: 'navigation_counts',
+    event: 'UPDATE',
+    onUpdate: (payload) => {
+      const row = payload.new as Record<string, unknown>;
+      if (row) {
+        setCounts({
+          prescreening: {
+            new: row.prescreening_new as number,
+            generated: row.prescreening_generated as number,
+            published: row.prescreening_published as number,
+            archived: row.prescreening_archived as number,
+          },
+          preonboarding: {
+            new: row.preonboarding_new as number,
+            generated: row.preonboarding_generated as number,
+            archived: row.preonboarding_archived as number,
+          },
+          activities: {
+            active: row.activities_active as number,
+            stuck: row.activities_stuck as number,
+          },
+          vacancies: {
+            active: row.vacancies_active as number,
+            archived: row.vacancies_archived as number,
+          },
+          candidates: {
+            total: row.candidates_total as number,
+            archived: row.candidates_archived as number,
+          },
+        });
+      }
+    },
   });
 
   const isActive = (href: string) => {
     return pathname === href || (href !== '/' && pathname.startsWith(href));
   };
+
+  const prescreeningCount = counts?.prescreening?.new ?? null;
+  const activitiesCount = counts?.activities?.active ?? null;
+  const hasStuckActivities = (counts?.activities?.stuck ?? 0) > 0;
 
   const getAgentBadge = (item: (typeof agentItems)[number]): React.ReactNode => {
     if (!('badgeKey' in item)) return undefined;

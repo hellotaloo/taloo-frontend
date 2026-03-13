@@ -1,5 +1,5 @@
 import { authFetch } from './api';
-import type { Candidacy, CandidaciesResponse, CandidacyStage } from './types';
+import type { Candidacy, CandidaciesResponse, CandidacyStage, PlacementCreate } from './types';
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8080';
 
@@ -84,11 +84,18 @@ export async function createCandidacy(body: CreateCandidacyBody): Promise<Candid
 
 export async function patchCandidacy(
   candidacyId: string,
-  body: { stage: CandidacyStage },
+  body: { stage: CandidacyStage; placement?: PlacementCreate },
 ): Promise<Candidacy> {
   // Backend uses query param: PATCH /candidacies/{id}/stage?stage=qualified
   const url = `${BACKEND_URL}/candidacies/${candidacyId}/stage?stage=${body.stage}`;
-  const response = await authFetch(url, { method: 'PATCH' });
+  const options: RequestInit = { method: 'PATCH' };
+
+  if (body.placement) {
+    options.headers = { 'Content-Type': 'application/json' };
+    options.body = JSON.stringify(body.placement);
+  }
+
+  const response = await authFetch(url, options);
   if (!response.ok) throw new Error('Failed to update candidacy');
   return response.json();
 }

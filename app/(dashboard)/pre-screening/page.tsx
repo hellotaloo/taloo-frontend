@@ -18,6 +18,7 @@ import {
 } from '@/components/blocks/vacancy-table';
 import { PageLayout, PageLayoutHeader, PageLayoutContent } from '@/components/layout/page-layout';
 import { useAtsImport } from '@/hooks/use-ats-import';
+import { useRealtimeTable } from '@/hooks/use-realtime-table';
 import {
   Table,
   TableBody,
@@ -118,6 +119,19 @@ function PreScreeningContent() {
   useEffect(() => {
     fetchData(true);
   }, [fetchData]);
+
+  // Re-fetch when vacancies or pre-screenings change
+  useRealtimeTable({
+    schema: 'ats',
+    table: 'vacancies',
+    onUpdate: () => fetchData(),
+  });
+
+  useRealtimeTable({
+    schema: 'agents',
+    table: 'pre_screenings',
+    onUpdate: () => fetchData(),
+  });
 
   // Use stats from API or fallback to zeros
   const weeklyMetrics = {
