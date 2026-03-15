@@ -610,7 +610,7 @@ function TaskItemRow({ item, collectionId }: { item: CollectionItemStatusRespons
             </Button>
           </>
         )}
-        {item.status === 'triggered' && (
+        {item.status === ('triggered' as string) && (
           <span className="text-[10px] text-orange-500 font-medium">Gestart</span>
         )}
         {isCompleted && item.value && typeof item.value === 'string' && (
