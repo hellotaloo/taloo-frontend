@@ -401,6 +401,14 @@ export default function DocumentCollectionPlayground() {
 
 const WORK_AUTH_SLUGS = new Set(['prato_5', 'prato_9', 'prato_20', 'prato_101', 'prato_102']);
 const GROUP_LABELS: Record<string, string> = { identity: 'Identiteitsbewijs' };
+const ID_FIELD_LABELS: Record<string, string> = {
+  holder_name: 'Naam',
+  date_of_birth: 'Geboortedatum',
+  nationality: 'Nationaliteit',
+  national_registry_number: 'Rijksregisternr',
+  expiry_date: 'Vervaldatum',
+  document_number: 'Documentnr',
+};
 
 // Step type → short label for stepper
 const STEP_LABELS: Record<string, string> = {
@@ -488,9 +496,9 @@ function CollectionOverview({ detail, liveProgress, reviewFlags }: { detail: Doc
   // Also index by resolved_slug so individual doc items can be matched
   const collectedMap = useMemo(() => {
     if (!liveProgress) return null;
-    const map = new Map<string, { collected: boolean; value?: string | Record<string, string> }>();
+    const map = new Map<string, CollectedMapEntry>();
     for (const item of liveProgress.items) {
-      map.set(item.slug, { collected: item.collected, value: item.value });
+      map.set(item.slug, { collected: item.collected, value: item.value, name: item.name });
       if (item.resolved_slug) {
         map.set(item.resolved_slug, { collected: item.collected });
       }
@@ -633,46 +641,50 @@ function groupDocuments(documents: CollectionItemStatusResponse[]): DocumentGrou
 // Grouped Document Row (identity + work authorization)
 // =============================================================================
 
-type CollectedMapEntry = { collected: boolean; value?: string | Record<string, string> };
+type CollectedMapEntry = { collected: boolean; value?: string | Record<string, string>; name?: string };
 type CollectedMap = Map<string, CollectedMapEntry> | null | undefined;
 
 function GroupedDocumentRow({ group, items, collectedMap }: { group: string; items: CollectionItemStatusResponse[]; collectedMap?: CollectedMap }) {
   const idDocs = items.filter((i) => !WORK_AUTH_SLUGS.has(i.slug));
   const workAuthDocs = items.filter((i) => WORK_AUTH_SLUGS.has(i.slug));
 
-  // SSE uses group slug (e.g. "identity") not individual doc slugs
+  // SSE live entry for identity_verification — has name (detected doc type) and value (extracted fields)
+  const idLiveEntry = collectedMap?.get('identity_verification');
+
+  // SSE uses "identity_verification" slug, static items use group "identity" and individual slugs like "id_card"
   const groupLiveCollected = collectedMap?.get(group)?.collected === true;
-  const idLiveCollected = groupLiveCollected || idDocs.some((i) => collectedMap?.get(i.slug)?.collected === true);
+  const idLiveCollected = groupLiveCollected || idLiveEntry?.collected === true || idDocs.some((i) => collectedMap?.get(i.slug)?.collected === true);
   const idVerified = idDocs.some((i) => i.status === 'verified');
   const idReceived = idLiveCollected || idDocs.some((i) => ['received', 'verified'].includes(i.status));
   const workAuthLiveCollected = workAuthDocs.some((i) => collectedMap?.get(i.slug)?.collected === true);
   const workAuthReceived = workAuthLiveCollected || workAuthDocs.some((i) => ['received', 'verified'].includes(i.status));
 
-  // SSE live entry for identity_verification — may have name (detected doc type) and value (extracted fields)
-  const idLiveEntry = collectedMap?.get('identity_verification');
-  const liveLabel = idLiveEntry?.collected ? (collectedMap?.get('identity_verification') as Record<string, unknown> | undefined) : undefined;
-  // The SSE item name contains detected doc type (e.g. "Identiteitskaart" instead of generic "Identiteitsbewijs")
-  const label = GROUP_LABELS[group] ?? group;
+  // Use detected document type from SSE (e.g. "Identiteitskaart") or fallback to static label
+  const label = idLiveEntry?.name || GROUP_LABELS[group] || group;
   const idNames = idDocs.map((i) => i.name).join(' / ');
 
   // Extracted fields from identity document (from SSE value)
   const extractedFields = idLiveEntry?.value;
   const isStructured = extractedFields != null && typeof extractedFields === 'object';
+  // Show extracted fields as soon as they exist (even if identity isn't fully verified yet)
+  const hasExtractedFields = isStructured && Object.keys(extractedFields as Record<string, string>).length > 0;
 
   return (
     <div className="space-y-0.5">
       <div className={cn(
         'flex items-center justify-between py-1.5 px-2.5 rounded-md text-sm transition-colors',
-        idReceived ? 'bg-green-50/50' : 'bg-transparent',
+        idReceived || hasExtractedFields ? 'bg-green-50/50' : 'bg-transparent',
       )}>
         <div className="flex items-center gap-2.5 min-w-0">
           {idLiveCollected ? (
             <CheckCircle2 className="w-3.5 h-3.5 text-green-500 shrink-0" />
+          ) : hasExtractedFields ? (
+            <CollectionItemIcon status="received" />
           ) : (
             <CollectionItemIcon status={idVerified ? 'verified' : idReceived ? 'received' : 'pending'} />
           )}
           <div className="min-w-0">
-            <span className={cn('truncate', idReceived ? 'text-gray-900' : 'text-gray-500')}>
+            <span className={cn('truncate', idReceived || hasExtractedFields ? 'text-gray-900' : 'text-gray-500')}>
               {label}
             </span>
             {idNames && (
@@ -686,11 +698,11 @@ function GroupedDocumentRow({ group, items, collectedMap }: { group: string; ite
       </div>
 
       {/* Extracted identity fields */}
-      {isStructured && idReceived && (
+      {hasExtractedFields && (
         <div className="ml-8 space-y-0.5 mt-0.5">
           {Object.entries(extractedFields as Record<string, string>).map(([key, val]) => (
             <div key={key} className="flex items-center gap-2 py-0.5 px-2.5 text-xs">
-              <span className="text-gray-400 w-20 shrink-0 capitalize">{key.replace(/_/g, ' ')}</span>
+              <span className="text-gray-400 w-24 shrink-0">{ID_FIELD_LABELS[key] || key.replace(/_/g, ' ')}</span>
               <span className="text-gray-600 font-mono truncate">{val}</span>
             </div>
           ))}
