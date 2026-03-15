@@ -830,6 +830,7 @@ function CollectionWhatsApp({
   messages: CollectionMessageResponse[];
   candidateName?: string;
 }) {
+  const clock = useClock();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [browserUrl, setBrowserUrl] = useState<string | null>(null);
 
