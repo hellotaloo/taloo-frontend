@@ -48,6 +48,41 @@ export interface ClientSummary {
   logo?: string;
 }
 
+// =============================================================================
+// Agent Vacancy Types (unified for all agent overview pages)
+// =============================================================================
+
+export type AgentVacancyStatus = 'new' | 'generated' | 'published' | 'archived';
+
+export interface AgentStatItem {
+  key: string;
+  label: string;
+  value: number;
+  description?: string | null;
+  variant?: string | null;
+  icon?: string | null;
+  suffix?: string | null;
+}
+
+export interface AgentVacancy {
+  id: string;
+  title: string;
+  company: string;
+  location: string | null;
+  status: string;
+  created_at: string;
+  agent_status: AgentVacancyStatus;
+  agent_online: boolean | null;
+  stats: AgentStatItem[];
+  last_activity_at: string | null;
+  recruiter: RecruiterSummary | null;
+  client: ClientSummary | null;
+}
+
+export interface AgentDashboardStats {
+  metrics: AgentStatItem[];
+}
+
 export interface Vacancy {
   id: string;
   title: string;

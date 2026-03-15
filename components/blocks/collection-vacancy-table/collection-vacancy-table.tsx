@@ -3,8 +3,9 @@
 import { useState, useMemo, useCallback } from 'react';
 import { Building2, MapPin, FileText, ArrowUp, ArrowDown, ChevronsUpDown, Power, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { Vacancy } from '@/lib/types';
+import type { AgentVacancy } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import { getStatValue } from '@/lib/agent-utils';
 import { updateVacancyAgentStatus } from '@/lib/document-collection-api';
 import { StatusBadge } from '@/components/kit/status-badge';
 import { Button } from '@/components/ui/button';
@@ -20,14 +21,6 @@ import { toast } from 'sonner';
 
 type SortKey = 'title' | 'active' | 'completed' | 'needsReview' | 'lastActivityAt';
 type SortDirection = 'asc' | 'desc' | null;
-
-export interface CollectionStats {
-  active: number;
-  completed: number;
-  needsReview: number;
-  total: number;
-  lastActivityAt?: string | null;
-}
 
 interface SortableHeaderProps {
   label: string;
@@ -69,8 +62,7 @@ function SortableHeader({ label, sortKey, currentSortKey, sortDirection, onSort,
 }
 
 export interface CollectionVacancyTableProps {
-  vacancies: Vacancy[];
-  collectionStats: Map<string, CollectionStats>;
+  vacancies: AgentVacancy[];
 }
 
 function formatRelativeDate(dateString: string | null | undefined) {
@@ -89,7 +81,7 @@ function formatRelativeDate(dateString: string | null | undefined) {
   return date.toLocaleDateString('nl-BE', { day: 'numeric', month: 'short' });
 }
 
-export function CollectionVacancyTable({ vacancies, collectionStats }: CollectionVacancyTableProps) {
+export function CollectionVacancyTable({ vacancies }: CollectionVacancyTableProps) {
   const router = useRouter();
   const [sortKey, setSortKey] = useState<SortKey | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);
@@ -133,29 +125,26 @@ export function CollectionVacancyTable({ vacancies, collectionStats }: Collectio
       let aValue: string | number | null | undefined;
       let bValue: string | number | null | undefined;
 
-      const aStats = collectionStats.get(a.id);
-      const bStats = collectionStats.get(b.id);
-
       switch (sortKey) {
         case 'title':
           aValue = a.title;
           bValue = b.title;
           break;
         case 'active':
-          aValue = aStats?.active ?? 0;
-          bValue = bStats?.active ?? 0;
+          aValue = getStatValue(a.stats, 'active');
+          bValue = getStatValue(b.stats, 'active');
           break;
         case 'completed':
-          aValue = aStats?.completed ?? 0;
-          bValue = bStats?.completed ?? 0;
+          aValue = getStatValue(a.stats, 'completed');
+          bValue = getStatValue(b.stats, 'completed');
           break;
         case 'needsReview':
-          aValue = aStats?.needsReview ?? 0;
-          bValue = bStats?.needsReview ?? 0;
+          aValue = getStatValue(a.stats, 'needs_review');
+          bValue = getStatValue(b.stats, 'needs_review');
           break;
         case 'lastActivityAt':
-          aValue = aStats?.lastActivityAt ?? null;
-          bValue = bStats?.lastActivityAt ?? null;
+          aValue = a.last_activity_at;
+          bValue = b.last_activity_at;
           break;
       }
 
@@ -169,7 +158,7 @@ export function CollectionVacancyTable({ vacancies, collectionStats }: Collectio
       const comparison = String(aValue).localeCompare(String(bValue));
       return sortDirection === 'asc' ? comparison : -comparison;
     });
-  }, [vacancies, collectionStats, sortKey, sortDirection]);
+  }, [vacancies, sortKey, sortDirection]);
 
   if (vacancies.length === 0) {
     return (
@@ -230,9 +219,11 @@ export function CollectionVacancyTable({ vacancies, collectionStats }: Collectio
       </TableHeader>
       <TableBody>
         {sortedVacancies.map((vacancy) => {
-          const stats = collectionStats.get(vacancy.id);
-          const hasActivity = (stats?.total ?? 0) > 0;
-          const agentOnline = vacancy.agents?.preonboarding?.status === 'online' || activatedIds.has(vacancy.id);
+          const active = getStatValue(vacancy.stats, 'active');
+          const completed = getStatValue(vacancy.stats, 'completed');
+          const needsReview = getStatValue(vacancy.stats, 'needs_review');
+          const hasActivity = (active + completed + needsReview) > 0;
+          const agentOnline = vacancy.agent_online === true || activatedIds.has(vacancy.id);
 
           return (
             <TableRow
@@ -261,21 +252,21 @@ export function CollectionVacancyTable({ vacancies, collectionStats }: Collectio
               </TableCell>
               <TableCell className="text-center">
                 <span className={`font-medium ${hasActivity ? 'text-gray-900' : 'text-gray-400'}`}>
-                  {hasActivity ? (stats?.active ?? 0) : '-'}
+                  {hasActivity ? active : '-'}
                 </span>
               </TableCell>
               <TableCell className="text-center">
                 <span className={`font-medium ${hasActivity ? 'text-gray-900' : 'text-gray-400'}`}>
-                  {hasActivity ? (stats?.completed ?? 0) : '-'}
+                  {hasActivity ? completed : '-'}
                 </span>
               </TableCell>
               <TableCell className="text-center">
-                <span className={`font-medium ${(stats?.needsReview ?? 0) > 0 ? 'text-orange-600' : hasActivity ? 'text-gray-900' : 'text-gray-400'}`}>
-                  {hasActivity ? (stats?.needsReview ?? 0) : '-'}
+                <span className={`font-medium ${needsReview > 0 ? 'text-orange-600' : hasActivity ? 'text-gray-900' : 'text-gray-400'}`}>
+                  {hasActivity ? needsReview : '-'}
                 </span>
               </TableCell>
               <TableCell className="text-gray-500 text-sm">
-                {formatRelativeDate(stats?.lastActivityAt)}
+                {formatRelativeDate(vacancy.last_activity_at)}
               </TableCell>
               <TableCell className="text-right">
                 {agentOnline ? (

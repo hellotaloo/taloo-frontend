@@ -380,6 +380,10 @@ export function usePlaygroundChat(contextId: string, options: UsePlaygroundChatO
     messageIdCounter.current = 0;
   }, []);
 
+  const addExternalMessage = useCallback((content: string) => {
+    addMessage(content, false);
+  }, [addMessage]);
+
   return {
     messages,
     isLoading,
@@ -393,5 +397,6 @@ export function usePlaygroundChat(contextId: string, options: UsePlaygroundChatO
     startConversation,
     resetChat,
     collectionProgress,
+    addExternalMessage,
   };
 }

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useClock } from '@/hooks/use-clock';
 import {
   Loader2,
   FileText,
@@ -67,6 +68,7 @@ const statusConfig: Record<string, { label: string; variant: 'blue' | 'green' | 
 // =============================================================================
 
 export default function DocumentCollectionPlayground() {
+  const clock = useClock();
   const [collections, setCollections] = useState<DocumentCollectionResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -212,7 +214,7 @@ export default function DocumentCollectionPlayground() {
                               <>
                                 <span className="font-medium text-gray-900 text-sm">{selectedCollection.candidate_name}</span>
                                 <p className="text-xs text-gray-500">
-                                  {selectedCollection.vacancy_title || 'Documentcollectie'} · {selectedCollection.documents_collected}/{selectedCollection.documents_total} documenten
+                                  {selectedCollection.vacancy_title || 'Documentcollectie'}
                                 </p>
                               </>
                             ) : (
@@ -253,7 +255,7 @@ export default function DocumentCollectionPlayground() {
                                   {collection.candidate_name}
                                 </span>
                                 <p className="text-xs text-gray-500">
-                                  {collection.vacancy_title || 'Documentcollectie'} · {collection.documents_collected}/{collection.documents_total}
+                                  {collection.vacancy_title || 'Documentcollectie'}
                                 </p>
                               </div>
                               {selectedId === collection.id && (
@@ -646,8 +648,16 @@ function GroupedDocumentRow({ group, items, collectedMap }: { group: string; ite
   const workAuthLiveCollected = workAuthDocs.some((i) => collectedMap?.get(i.slug)?.collected === true);
   const workAuthReceived = workAuthLiveCollected || workAuthDocs.some((i) => ['received', 'verified'].includes(i.status));
 
+  // SSE live entry for identity_verification — may have name (detected doc type) and value (extracted fields)
+  const idLiveEntry = collectedMap?.get('identity_verification');
+  const liveLabel = idLiveEntry?.collected ? (collectedMap?.get('identity_verification') as Record<string, unknown> | undefined) : undefined;
+  // The SSE item name contains detected doc type (e.g. "Identiteitskaart" instead of generic "Identiteitsbewijs")
   const label = GROUP_LABELS[group] ?? group;
   const idNames = idDocs.map((i) => i.name).join(' / ');
+
+  // Extracted fields from identity document (from SSE value)
+  const extractedFields = idLiveEntry?.value;
+  const isStructured = extractedFields != null && typeof extractedFields === 'object';
 
   return (
     <div className="space-y-0.5">
@@ -674,6 +684,18 @@ function GroupedDocumentRow({ group, items, collectedMap }: { group: string; ite
           <CheckCircle2 className="w-3.5 h-3.5 text-green-500 shrink-0" />
         )}
       </div>
+
+      {/* Extracted identity fields */}
+      {isStructured && idReceived && (
+        <div className="ml-8 space-y-0.5 mt-0.5">
+          {Object.entries(extractedFields as Record<string, string>).map(([key, val]) => (
+            <div key={key} className="flex items-center gap-2 py-0.5 px-2.5 text-xs">
+              <span className="text-gray-400 w-20 shrink-0 capitalize">{key.replace(/_/g, ' ')}</span>
+              <span className="text-gray-600 font-mono truncate">{val}</span>
+            </div>
+          ))}
+        </div>
+      )}
 
       {workAuthDocs.length > 0 && (
         <div className={cn(
@@ -797,7 +819,7 @@ function CollectionWhatsApp({
     >
       {/* iOS Status bar */}
       <div className="bg-[#f6f6f6] px-6 flex items-center justify-between text-black text-sm font-semibold h-[50px]">
-        <span className="mt-1">22:07</span>
+        <span className="mt-1">{clock}</span>
         <div className="flex items-center gap-1 mt-1">
           <div className="flex gap-0.5 items-end">
             <div className="w-[3px] h-[4px] bg-black rounded-sm" />

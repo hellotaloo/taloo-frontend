@@ -1,16 +1,21 @@
 'use client';
 
-import { useState } from 'react';
-import { X, Lock, ChevronLeft, ChevronRight, Share, Globe } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { useState, useCallback } from 'react';
+import { useClock } from '@/hooks/use-clock';
+import { Lock, ChevronLeft, ChevronRight, Share, Globe } from 'lucide-react';
 
 interface InAppBrowserProps {
   url: string;
   onClose: () => void;
+  closing?: boolean;  // trigger slide-out animation externally
 }
 
-export function InAppBrowser({ url, onClose }: InAppBrowserProps) {
+export function InAppBrowser({ url, onClose, closing = false }: InAppBrowserProps) {
+  const clock = useClock();
   const [isLoading, setIsLoading] = useState(true);
+  const [isClosing, setIsClosing] = useState(false);
+
+  const shouldClose = isClosing || closing;
 
   // Extract hostname for display
   let displayHost = '';
@@ -20,16 +25,25 @@ export function InAppBrowser({ url, onClose }: InAppBrowserProps) {
     displayHost = url;
   }
 
+  const handleClose = useCallback(() => {
+    setIsClosing(true);
+  }, []);
+
   return (
     <div
       className="absolute inset-0 z-40 flex flex-col bg-white"
       style={{
-        animation: 'inAppBrowserSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+        animation: shouldClose
+          ? 'inAppBrowserSlideDown 0.45s cubic-bezier(0.4, 0, 0.2, 1) forwards'
+          : 'inAppBrowserSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+      }}
+      onAnimationEnd={() => {
+        if (shouldClose) onClose();
       }}
     >
       {/* iOS Status bar */}
       <div className="bg-[#f8f8f8] px-6 flex items-center justify-between text-black text-sm font-semibold h-[50px]">
-        <span className="mt-1">22:07</span>
+        <span className="mt-1">{clock}</span>
         <div className="flex items-center gap-1 mt-1">
           <div className="flex gap-0.5 items-end">
             <div className="w-[3px] h-[4px] bg-black rounded-sm" />
@@ -51,7 +65,7 @@ export function InAppBrowser({ url, onClose }: InAppBrowserProps) {
         {/* Done button + URL bar */}
         <div className="flex items-center gap-2">
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="text-[#007AFF] text-[15px] font-medium shrink-0"
           >
             Klaar
@@ -124,6 +138,14 @@ export function InAppBrowser({ url, onClose }: InAppBrowserProps) {
           }
           to {
             transform: translateY(0);
+          }
+        }
+        @keyframes inAppBrowserSlideDown {
+          from {
+            transform: translateY(0);
+          }
+          to {
+            transform: translateY(100%);
           }
         }
         @keyframes browserLoadBar {

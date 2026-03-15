@@ -241,7 +241,7 @@ export function VacanciesTable({ vacancies, selectedId, onRowClick }: VacanciesT
             <div className="min-w-0">
               <span className="text-sm text-gray-500 truncate block">{item.recruiter.name}</span>
               {item.recruiter.team && (
-                <span className="text-sm text-gray-500 truncate block">{item.recruiter.team}</span>
+                <span className="text-xs text-gray-400 truncate block">{item.recruiter.team}</span>
               )}
             </div>
           </div>

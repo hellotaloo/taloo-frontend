@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useClock } from '@/hooks/use-clock';
 import Image from 'next/image';
 import {
   Mic,
@@ -46,6 +47,7 @@ export function VoiceCallMockup({
   isMutedExternal,
   onMuteToggle,
 }: VoiceCallMockupProps) {
+  const clock = useClock();
   const [isMutedInternal, setIsMutedInternal] = useState(false);
   const isMuted = isMutedExternal ?? isMutedInternal;
   const [isSpeaker, setIsSpeaker] = useState(false);
@@ -105,7 +107,7 @@ export function VoiceCallMockup({
     <div className="flex flex-col h-full bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900">
       {/* iOS Status bar */}
       <div className="px-6 flex items-center justify-between text-white text-sm font-semibold h-[50px]">
-        <span className="mt-1">22:07</span>
+        <span className="mt-1">{clock}</span>
         <div className="flex items-center gap-1 mt-1">
           <div className="flex gap-0.5 items-end">
             <div className="w-[3px] h-[4px] bg-white rounded-sm" />

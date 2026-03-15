@@ -1,17 +1,17 @@
 'use client';
 
-import { FileCheck, CheckCircle2, Loader2, FileText, AlertCircle, Settings, Play, Briefcase, ArrowUp, ArrowDown, ChevronsUpDown, Eye } from 'lucide-react';
+import { Loader2, Settings, Play, Briefcase, ArrowUp, ArrowDown, ChevronsUpDown, Eye } from 'lucide-react';
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import type { DocumentCollectionFullDetailResponse, Vacancy } from '@/lib/types';
-import { getDocumentCollections, getDocumentCollection } from '@/lib/document-collection-api';
-import { getPreOnboardingVacancies } from '@/lib/interview-api';
+import type { DocumentCollectionFullDetailResponse, AgentVacancy, AgentDashboardStats } from '@/lib/types';
+import { getDocumentCollection } from '@/lib/document-collection-api';
+import { getPreOnboardingVacancies, getPreOnboardingStats } from '@/lib/interview-api';
 import { getActivityTasks, type TaskRow } from '@/lib/api';
 import { useRealtimeTable } from '@/hooks/use-realtime-table';
 import { cn, formatRelativeDate } from '@/lib/utils';
 import { MetricCard } from '@/components/kit/metric-card';
+import { getStatIcon } from '@/lib/agent-utils';
 import { CollectionDetailPane } from '@/components/blocks/collection-table';
 import { CollectionVacancyTable } from '@/components/blocks/collection-vacancy-table';
-import type { CollectionStats } from '@/components/blocks/collection-vacancy-table';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { PageLayout, PageLayoutHeader, PageLayoutContent } from '@/components/layout/page-layout';
 import { Button } from '@/components/ui/button';
@@ -48,13 +48,12 @@ export default function DocumentCollectionPage() {
   const [sortKey, setSortKey] = useState<SortKey | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);
 
-  // Collections for metrics + vacancy stats (keep existing fetch)
-  const [collections, setCollections] = useState<{ status: string; vacancy_id?: string; completed_at?: string; updated_at: string }[]>([]);
-  const [total, setTotal] = useState(0);
+  // Dashboard stats from backend
+  const [stats, setStats] = useState<AgentDashboardStats | null>(null);
   const [metricsLoading, setMetricsLoading] = useState(true);
 
   // Vacancies
-  const [vacancies, setVacancies] = useState<Vacancy[]>([]);
+  const [vacancies, setVacancies] = useState<AgentVacancy[]>([]);
   const [vacanciesLoading, setVacanciesLoading] = useState(true);
 
   // Fetch activity tasks (active status, then filter for document_collection on frontend)
@@ -69,14 +68,13 @@ export default function DocumentCollectionPage() {
     }
   }, []);
 
-  // Fetch collections for metrics
-  const fetchCollections = useCallback(async () => {
+  // Fetch dashboard stats from backend
+  const fetchStats = useCallback(async () => {
     try {
-      const data = await getDocumentCollections({ limit: 200 });
-      setCollections(data.items);
-      setTotal(data.total);
+      const data = await getPreOnboardingStats();
+      setStats(data);
     } catch (error) {
-      console.error('Failed to load document collections:', error);
+      console.error('Failed to load stats:', error);
     } finally {
       setMetricsLoading(false);
     }
@@ -84,7 +82,7 @@ export default function DocumentCollectionPage() {
 
   const fetchVacancies = useCallback(async () => {
     try {
-      const data = await getPreOnboardingVacancies('generated');
+      const data = await getPreOnboardingVacancies();
       setVacancies(data.vacancies);
     } catch (error) {
       console.error('Failed to load vacancies:', error);
@@ -95,9 +93,9 @@ export default function DocumentCollectionPage() {
 
   useEffect(() => {
     fetchTasks();
-    fetchCollections();
+    fetchStats();
     fetchVacancies();
-  }, [fetchTasks, fetchCollections, fetchVacancies]);
+  }, [fetchTasks, fetchStats, fetchVacancies]);
 
   // Realtime updates
   useRealtimeTable({
@@ -110,14 +108,7 @@ export default function DocumentCollectionPage() {
     schema: 'agents',
     table: 'document_collections',
     event: '*',
-    onUpdate: () => { fetchCollections(); },
-  });
-
-  useRealtimeTable({
-    schema: 'agents',
-    table: 'document_collection_uploads',
-    event: '*',
-    onUpdate: () => { fetchCollections(); },
+    onUpdate: () => { fetchVacancies(); fetchStats(); },
   });
 
   useRealtimeTable({
@@ -132,33 +123,8 @@ export default function DocumentCollectionPage() {
     return tasks.filter(t => t.workflow_type === 'document_collection');
   }, [tasks]);
 
-  // Metrics from collections
-  const stats = useMemo(() => {
-    const active = collections.filter(c => c.status === 'active').length;
-    const completed = collections.filter(c => c.status === 'completed').length;
-    const needsReview = collections.filter(c => c.status === 'needs_review').length;
-    const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
-    return { active, completed, needsReview, completionRate };
-  }, [collections, total]);
-
-  // Vacancy stats from collections
-  const collectionStatsByVacancy = useMemo(() => {
-    const map = new Map<string, CollectionStats>();
-    for (const c of collections) {
-      if (!c.vacancy_id) continue;
-      const existing = map.get(c.vacancy_id) || { active: 0, completed: 0, needsReview: 0, total: 0, lastActivityAt: null as string | null };
-      existing.total++;
-      if (c.status === 'active') existing.active++;
-      if (c.status === 'completed') existing.completed++;
-      if (c.status === 'needs_review') existing.needsReview++;
-      const activityDate = c.completed_at || c.updated_at;
-      if (activityDate && (!existing.lastActivityAt || activityDate > existing.lastActivityAt)) {
-        existing.lastActivityAt = activityDate;
-      }
-      map.set(c.vacancy_id, existing);
-    }
-    return map;
-  }, [collections]);
+  // Metrics from backend
+  const metrics = stats?.metrics ?? [];
 
   // Sorting
   const handleSort = (key: SortKey) => {
@@ -279,35 +245,23 @@ export default function DocumentCollectionPage() {
         <PageLayoutContent>
           {/* Metrics */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-            <MetricCard
-              title="Actieve collecties"
-              value={stats.active}
-              label="Lopend"
-              icon={FileText}
-              variant="blue"
-            />
-            <MetricCard
-              title="Afrondingspercentage"
-              value={`${stats.completionRate}%`}
-              label="Alle collecties"
-              icon={CheckCircle2}
-              variant="dark"
-              progress={stats.completionRate}
-            />
-            <MetricCard
-              title="Volledig verzameld"
-              value={stats.completed}
-              label="Afgerond"
-              icon={FileCheck}
-              variant="lime"
-            />
-            <MetricCard
-              title="Review nodig"
-              value={stats.needsReview}
-              label="Wacht op verificatie"
-              icon={AlertCircle}
-              variant="pink"
-            />
+            {metrics.map((metric) => {
+              const Icon = getStatIcon(metric.icon);
+              const value = metric.suffix ? `${metric.value}${metric.suffix}` : metric.value;
+              const variant = (metric.variant as 'blue' | 'lime' | 'dark' | 'pink') ?? 'blue';
+
+              return (
+                <MetricCard
+                  key={metric.key}
+                  title={metric.label}
+                  value={value}
+                  label={metric.description ?? undefined}
+                  icon={Icon}
+                  variant={variant}
+                  progress={metric.suffix === '%' ? metric.value : undefined}
+                />
+              );
+            })}
           </div>
 
           {/* Tabs: Activiteiten / Vacatures */}
@@ -323,6 +277,9 @@ export default function DocumentCollectionPage() {
               <TabsTrigger value="vacancies">
                 <Briefcase className="w-3.5 h-3.5" />
                 Vacatures
+                <span className="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-500 text-white">
+                  {vacancies.length}
+                </span>
               </TabsTrigger>
             </TabsList>
 
@@ -430,7 +387,6 @@ export default function DocumentCollectionPage() {
               ) : (
                 <CollectionVacancyTable
                   vacancies={vacancies}
-                  collectionStats={collectionStatsByVacancy}
                 />
               )}
             </TabsContent>

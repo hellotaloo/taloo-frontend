@@ -21,7 +21,7 @@ import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
 import { getPreScreeningVacancies, getPreScreening, getVacancy } from '@/lib/interview-api';
 import { usePlaygroundSession } from '@/hooks/use-playground-session';
-import type { Vacancy } from '@/lib/types';
+import type { Vacancy, AgentVacancy } from '@/lib/types';
 
 const VOICE_OPTIONS: VoiceOption[] = [
   {
@@ -101,7 +101,7 @@ export default function PreScreeningDemoPage() {
   const selectedVoiceData = VOICE_OPTIONS.find(v => v.id === selectedVoice);
 
   // Vacancy selection (dynamic)
-  const [vacancies, setVacancies] = useState<Vacancy[]>([]);
+  const [vacancies, setVacancies] = useState<AgentVacancy[]>([]);
   const [vacanciesLoading, setVacanciesLoading] = useState(true);
   const [selectedVacancy, setSelectedVacancy] = useState<string | null>(null);
   const [vacancySelectOpen, setVacancySelectOpen] = useState(false);
@@ -114,16 +114,16 @@ export default function PreScreeningDemoPage() {
   // Full vacancy detail (for description etc.)
   const [vacancyDetail, setVacancyDetail] = useState<Vacancy | null>(null);
 
-  // Fetch vacancies with generated or published pre-screenings
+  // Fetch vacancies with published pre-screenings (for playground)
   useEffect(() => {
     async function fetchVacancies() {
       try {
         setVacanciesLoading(true);
-        const published = await getPreScreeningVacancies('published');
-        const all = published.vacancies;
-        setVacancies(all);
-        if (all.length > 0) {
-          setSelectedVacancy(all[0].id);
+        const data = await getPreScreeningVacancies();
+        const published = data.vacancies.filter(v => v.agent_status === 'published');
+        setVacancies(published);
+        if (published.length > 0) {
+          setSelectedVacancy(published[0].id);
         }
       } catch (err) {
         console.error('Failed to fetch vacancies:', err);
@@ -1107,9 +1107,9 @@ export default function PreScreeningDemoPage() {
         onOpenChange={setShowTriggerDialog}
         vacancyId={selectedVacancy ?? 'demo'}
         vacancyTitle={selectedVacancyData?.title ?? 'Demo Vacature'}
-        hasWhatsApp={selectedVacancyData?.channels?.whatsapp ?? true}
-        hasVoice={selectedVacancyData?.channels?.voice ?? true}
-        hasCv={selectedVacancyData?.channels?.cv ?? true}
+        hasWhatsApp={true}
+        hasVoice={true}
+        hasCv={true}
         source="test"
         onStartCall={() => {
           setShowCallNotification(true);

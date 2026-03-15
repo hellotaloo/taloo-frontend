@@ -1,21 +1,17 @@
 'use client';
 
-import { Phone, CheckCircle2, Users, MapPin, Building2, ArrowRight, Archive, Loader2, Info, ExternalLink, Calendar, FileEdit, Send, MessageCircle, FileText, Settings, Play } from 'lucide-react';
-import ReactMarkdown from 'react-markdown';
-import { useState, useEffect, useCallback, Suspense } from 'react';
+import { Loader2, Info, Settings, Play, Briefcase, ArrowUp, ArrowDown, ChevronsUpDown, Eye, Check, Circle, AlertTriangle, ChevronRight, RefreshCw } from 'lucide-react';
+import { useState, useEffect, useCallback, useMemo, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import Image from 'next/image';
-import { Vacancy } from '@/lib/types';
-import { getPreScreeningVacancies, getDashboardStats, DashboardStats } from '@/lib/interview-api';
+import type { AgentVacancy, AgentDashboardStats } from '@/lib/types';
+import { getPreScreeningVacancies, getPreScreeningStats } from '@/lib/interview-api';
+import { getStatIcon } from '@/lib/agent-utils';
+import { getActivityTasks, type TaskRow } from '@/lib/api';
 import { MetricCard, ChannelCard } from '@/components/kit/metric-card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  ConceptVacanciesTable,
-  PublishedVacanciesTable,
-  ArchivedVacanciesTable,
-} from '@/components/blocks/vacancy-table';
+import { PublishedVacanciesTable } from '@/components/blocks/vacancy-table';
 import { PageLayout, PageLayoutHeader, PageLayoutContent } from '@/components/layout/page-layout';
 import { useAtsImport } from '@/hooks/use-ats-import';
 import { useRealtimeTable } from '@/hooks/use-realtime-table';
@@ -46,54 +42,111 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { ActivityStatusBadge, SLABadge, translateStepLabel } from '@/components/kit/activity-helpers';
+import { Timeline } from '@/components/kit/timeline/timeline';
+import { TimelineNode } from '@/components/kit/timeline/timeline-node';
+import { cn, formatRelativeDate } from '@/lib/utils';
 
-function formatDate(dateString: string | null | undefined) {
-  if (!dateString) return '-';
-  const date = new Date(dateString);
-  return date.toLocaleDateString('nl-BE', { day: 'numeric', month: 'short', year: 'numeric' });
-}
+type SortKey = 'candidate_name' | 'vacancy_title' | 'current_step_label' | 'status' | 'sla' | 'time_ago';
+type SortDirection = 'asc' | 'desc' | null;
 
 function PreScreeningContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const [conceptVacancies, setConceptVacancies] = useState<Vacancy[]>([]);
-  const [publishedVacancies, setPublishedVacancies] = useState<Vacancy[]>([]);
-  const [archivedVacancies, setArchivedVacancies] = useState<Vacancy[]>([]);
-  const [stats, setStats] = useState<DashboardStats | null>(null);
+  // Activity tasks state
+  const [tasks, setTasks] = useState<TaskRow[]>([]);
+  const [tasksLoading, setTasksLoading] = useState(true);
+  const [selectedTask, setSelectedTask] = useState<TaskRow | null>(null);
+
+  // Vacancies state
+  const [vacancies, setVacancies] = useState<AgentVacancy[]>([]);
+  const [vacanciesLoading, setVacanciesLoading] = useState(true);
+
+  // Metrics
+  const [stats, setStats] = useState<AgentDashboardStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Auto-generate
   const [autoGenerate, setAutoGenerate] = useState(true);
   const [showAutoGenerateConfirm, setShowAutoGenerateConfirm] = useState(false);
-  const [selectedVacancy, setSelectedVacancy] = useState<Vacancy | null>(null);
 
-  const fetchData = useCallback(async (showLoading = false) => {
+  // Sorting for activities table
+  const [sortKey, setSortKey] = useState<SortKey | null>(null);
+  const [sortDirection, setSortDirection] = useState<SortDirection>(null);
+
+  const atsImport = useAtsImport(() => { fetchVacancies(); fetchStats(); });
+
+  // Fetch activity tasks
+  const fetchTasks = useCallback(async () => {
     try {
-      if (showLoading) setIsLoading(true);
-      setError(null);
-      const [newData, generatedData, publishedData, archivedData, statsData] = await Promise.all([
-        getPreScreeningVacancies('new'),
-        getPreScreeningVacancies('generated'),
-        getPreScreeningVacancies('published'),
-        getPreScreeningVacancies('archived'),
-        getDashboardStats(),
-      ]);
-
-      setConceptVacancies([...newData.vacancies, ...generatedData.vacancies]);
-      setPublishedVacancies(publishedData.vacancies);
-      setArchivedVacancies(archivedData.vacancies);
-      setStats(statsData);
-    } catch (err) {
-      console.error('Failed to fetch data:', err);
-      if (showLoading) setError('Gegevens laden mislukt');
+      const response = await getActivityTasks({ status: 'active', limit: 100 });
+      setTasks(response.tasks);
+    } catch (error) {
+      console.error('Failed to fetch activity tasks:', error);
     } finally {
-      if (showLoading) setIsLoading(false);
+      setTasksLoading(false);
     }
   }, []);
 
-  const atsImport = useAtsImport(fetchData);
+  // Fetch vacancies (single call, all statuses returned with agent_status field)
+  const fetchVacancies = useCallback(async () => {
+    try {
+      const data = await getPreScreeningVacancies();
+      setVacancies(data.vacancies);
+    } catch (error) {
+      console.error('Failed to load vacancies:', error);
+    } finally {
+      setVacanciesLoading(false);
+    }
+  }, []);
 
-  // Handle auto-generate toggle - show confirmation when enabling
+  // Fetch stats
+  const fetchStats = useCallback(async () => {
+    try {
+      setError(null);
+      const statsData = await getPreScreeningStats();
+      setStats(statsData);
+    } catch (err) {
+      console.error('Failed to fetch stats:', err);
+      setError('Gegevens laden mislukt');
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchTasks();
+    fetchVacancies();
+    fetchStats();
+  }, [fetchTasks, fetchVacancies, fetchStats]);
+
+  // Realtime updates
+  useRealtimeTable({
+    schema: 'agents',
+    table: 'workflows',
+    onUpdate: () => { fetchTasks(); },
+  });
+
+  useRealtimeTable({
+    schema: 'ats',
+    table: 'vacancies',
+    onUpdate: () => { fetchVacancies(); },
+  });
+
+  useRealtimeTable({
+    schema: 'agents',
+    table: 'pre_screenings',
+    onUpdate: () => { fetchTasks(); fetchStats(); },
+  });
+
+  // Filter tasks for pre_screening only
+  const filteredTasks = useMemo(() => {
+    return tasks.filter(t => t.workflow_type === 'pre_screening');
+  }, [tasks]);
+
+  // Auto-generate toggle
   const handleAutoGenerateToggle = (checked: boolean) => {
     if (checked) {
       setShowAutoGenerateConfirm(true);
@@ -107,7 +160,8 @@ function PreScreeningContent() {
     setShowAutoGenerateConfirm(false);
   };
 
-  const activeTab = searchParams.get('tab') || 'concept';
+  // Tab handling
+  const activeTab = searchParams.get('tab') || 'activities';
 
   const handleTabChange = (value: string) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -115,34 +169,71 @@ function PreScreeningContent() {
     router.replace(`/pre-screening?${params.toString()}`, { scroll: false });
   };
 
-  // Fetch vacancies from agent endpoints and stats on mount
-  useEffect(() => {
-    fetchData(true);
-  }, [fetchData]);
-
-  // Re-fetch when vacancies or pre-screenings change
-  useRealtimeTable({
-    schema: 'ats',
-    table: 'vacancies',
-    onUpdate: () => fetchData(),
-  });
-
-  useRealtimeTable({
-    schema: 'agents',
-    table: 'pre_screenings',
-    onUpdate: () => fetchData(),
-  });
-
-  // Use stats from API or fallback to zeros
-  const weeklyMetrics = {
-    total: stats?.totalPrescreeningsThisWeek ?? 0,
-    completionRate: stats?.completionRate ?? 0,
-    qualified: stats?.qualifiedCount ?? 0,
-    qualificationRate: stats?.qualificationRate ?? 0,
-    voice: stats?.channelBreakdown.voice ?? 0,
-    whatsapp: stats?.channelBreakdown.whatsapp ?? 0,
-    dailyData: Array(7).fill({ value: 0 }), // TODO: Add daily breakdown to stats endpoint if needed
+  // Sorting
+  const handleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      if (sortDirection === 'asc') setSortDirection('desc');
+      else if (sortDirection === 'desc') { setSortKey(null); setSortDirection(null); }
+      else setSortDirection('asc');
+    } else {
+      setSortKey(key);
+      setSortDirection('asc');
+    }
   };
+
+  const sortedTasks = [...filteredTasks].sort((a, b) => {
+    if (!sortKey || !sortDirection) {
+      return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+    }
+    if (sortKey === 'sla') {
+      const aSeconds = a.time_remaining_seconds ?? Infinity;
+      const bSeconds = b.time_remaining_seconds ?? Infinity;
+      return sortDirection === 'asc' ? aSeconds - bSeconds : bSeconds - aSeconds;
+    }
+    let aValue = '';
+    let bValue = '';
+    switch (sortKey) {
+      case 'candidate_name': aValue = a.candidate_name || ''; bValue = b.candidate_name || ''; break;
+      case 'vacancy_title': aValue = a.vacancy_title || ''; bValue = b.vacancy_title || ''; break;
+      case 'current_step_label': aValue = a.current_step_label; bValue = b.current_step_label; break;
+      case 'status': aValue = a.is_stuck ? 'stuck' : a.status; bValue = b.is_stuck ? 'stuck' : b.status; break;
+      case 'time_ago': aValue = a.time_ago; bValue = b.time_ago; break;
+    }
+    return sortDirection === 'asc' ? aValue.localeCompare(bValue) : bValue.localeCompare(aValue);
+  });
+
+  // Sortable header component
+  const SortableHeader = ({ column, label, className }: { column: SortKey; label: string; className?: string }) => {
+    const isSorted = sortKey === column;
+    return (
+      <TableHead
+        className={cn(
+          'font-medium cursor-pointer select-none hover:bg-gray-50 transition-colors',
+          isSorted && 'bg-gray-50',
+          className
+        )}
+        onClick={() => handleSort(column)}
+      >
+        <div className="flex items-center gap-2">
+          <span>{label}</span>
+          <span className="inline-flex items-center">
+            {isSorted ? (
+              sortDirection === 'asc' ? (
+                <ArrowUp className="w-4 h-4 text-gray-700" />
+              ) : (
+                <ArrowDown className="w-4 h-4 text-gray-700" />
+              )
+            ) : (
+              <ChevronsUpDown className="w-4 h-4 text-gray-400" />
+            )}
+          </span>
+        </div>
+      </TableHead>
+    );
+  };
+
+  // Metrics from backend stats endpoint
+  const metrics = stats?.metrics ?? [];
 
   if (isLoading) {
     return (
@@ -157,7 +248,7 @@ function PreScreeningContent() {
     return (
       <div className="text-center py-12">
         <p className="text-red-500">{error}</p>
-        <button 
+        <button
           onClick={() => window.location.reload()}
           className="mt-4 text-blue-500 hover:underline"
         >
@@ -166,280 +257,356 @@ function PreScreeningContent() {
       </div>
     );
   }
-  
+
   return (
-    <PageLayout>
-      <PageLayoutHeader
-        action={
-          <div className="flex items-center gap-2">
-            {atsImport.isImporting && (
+    <>
+      <PageLayout>
+        <PageLayoutHeader
+          action={
+            <div className="flex items-center gap-2">
               <Button
                 variant="outline"
                 size="sm"
                 className="gap-2"
-                disabled
+                onClick={atsImport.startImport}
+                disabled={atsImport.isImporting}
               >
-                <Loader2 className="w-4 h-4 animate-spin" />
-                {atsImport.phase === 'importing' ? 'Importeren...' : `${atsImport.publishedCount}/${atsImport.totalCount || '...'}`}
+                {atsImport.isImporting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    {atsImport.phase === 'importing' ? 'Importeren...' : `${atsImport.publishedCount}/${atsImport.totalCount || '...'}`}
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="w-4 h-4" />
+                    ATS Import
+                  </>
+                )}
               </Button>
-            )}
-            <Link href="/pre-screening/demo">
-              <Button variant="outline" size="sm" className="gap-2">
-                <Play className="w-4 h-4" />
-                Playground
-              </Button>
-            </Link>
-            <Link href="/pre-screening/settings">
-              <Button variant="outline" size="sm" className="gap-2">
-                <Settings className="w-4 h-4" />
-                Instellingen
-              </Button>
-            </Link>
-          </div>
-        }
-      />
-      <PageLayoutContent>
-        {/* Weekly Pre-screening Metrics - 4 cards in a row */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <MetricCard
-            title="Totaal pre-screening"
-            value={weeklyMetrics.total}
-            label="Deze week"
-            icon={Phone}
-            variant="blue"
-            sparklineData={weeklyMetrics.dailyData}
-          />
-          
-          <MetricCard
-            title="Afrondingspercentage"
-            value={`${weeklyMetrics.completionRate}%`}
-            label="Deze week"
-            icon={CheckCircle2}
-            variant="dark"
-            progress={weeklyMetrics.completionRate}
-          />
-          
-          <MetricCard
-            title="Gekwalificeerd"
-            value={weeklyMetrics.qualified}
-            label="Deze week"
-            icon={Users}
-            variant="lime"
-            sparklineData={weeklyMetrics.dailyData}
-          />
-
-          <ChannelCard
-            voice={weeklyMetrics.voice}
-            whatsapp={weeklyMetrics.whatsapp}
-          />
-        </div>
-
-        {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-2">
-        <div className="flex items-center justify-between">
-          <TabsList variant="line">
-            <TabsTrigger value="concept" data-testid="tab-concept-vacancies">
-                <FileEdit className="w-3.5 h-3.5" />
-                Geïmporteerd
-                <span className="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-500 text-white">
-                  {conceptVacancies.length}
-                </span>
-              </TabsTrigger>
-            <TabsTrigger value="published" data-testid="tab-published-vacancies">
-              <Send className="w-3.5 h-3.5" />
-              Actief
-              <span className="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-500 text-white">
-                {publishedVacancies.length}
-              </span>
-            </TabsTrigger>
-            <TabsTrigger value="archived" data-testid="tab-archived-vacancies">
-              <Archive className="w-3.5 h-3.5" />
-              Archived
-              <span className="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-500 text-white">
-                {archivedVacancies.length}
-              </span>
-            </TabsTrigger>
-          </TabsList>
-
-          <div className="flex items-center gap-2">
-            <label htmlFor="auto-generate" className="text-sm text-gray-600">
-              Automatisch genereren
-            </label>
-            <Switch
-              id="auto-generate"
-              checked={autoGenerate}
-              onCheckedChange={handleAutoGenerateToggle}
-            />
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button type="button" className="text-gray-400 hover:text-gray-600 transition-colors">
-                  <Info className="w-4 h-4" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom" className="max-w-[240px]">
-                Indien ingeschakeld wordt elke vacature naar Taloo automatisch omgezet naar een pre-screening. Pre-screening kan altijd later worden aangepast.
-              </TooltipContent>
-            </Tooltip>
-          </div>
-        </div>
-        
-        <TabsContent value="concept" className="">
-          <ConceptVacanciesTable
-            vacancies={conceptVacancies}
-            generationStatus={atsImport.vacancies.size > 0 ? atsImport.vacancies : undefined}
-            isImporting={atsImport.isImporting}
-            onSync={atsImport.startImport}
-          />
-        </TabsContent>
-
-        <TabsContent value="published" className="">
-          <PublishedVacanciesTable vacancies={publishedVacancies} />
-        </TabsContent>
-
-        <TabsContent value="archived" className="">
-          <ArchivedVacanciesTable vacancies={archivedVacancies} />
-        </TabsContent>
-      </Tabs>
-
-      {/* Source Record Sheet */}
-      <Sheet open={!!selectedVacancy} onOpenChange={(open) => !open && setSelectedVacancy(null)}>
-        <SheetContent className="sm:max-w-[700px] flex flex-col h-full">
-          {/* Fixed Header */}
-          <SheetHeader className="shrink-0 border-b pb-4">
-            <div className="flex items-center gap-2">
-              {selectedVacancy?.source === 'salesforce' ? (
-                <Image 
-                  src="/salesforc-logo-cloud.png" 
-                  alt="Salesforce" 
-                  width={20} 
-                  height={14}
-                  className="opacity-80"
-                />
-              ) : selectedVacancy?.source === 'bullhorn' ? (
-                <Image 
-                  src="/bullhorn-icon-small.png" 
-                  alt="Bullhorn" 
-                  width={20} 
-                  height={20}
-                  className="opacity-80"
-                />
-              ) : null}
-              <SheetTitle className="text-lg">Brongegevens</SheetTitle>
+              <Link href="/pre-screening/demo">
+                <Button variant="outline" size="sm" className="gap-2">
+                  <Play className="w-4 h-4" />
+                  Playground
+                </Button>
+              </Link>
+              <Link href="/pre-screening/settings">
+                <Button variant="outline" size="sm" className="gap-2">
+                  <Settings className="w-4 h-4" />
+                  Instellingen
+                </Button>
+              </Link>
             </div>
+          }
+        />
+        <PageLayoutContent>
+          {/* Pre-screening Metrics */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            {metrics.map((metric) => {
+              // Special handling for channels card
+              if (metric.key === 'channels' && metric.description) {
+                const parts = metric.description.split(', ');
+                const voice = parseInt(parts.find(p => p.startsWith('voice:'))?.split(': ')[1] ?? '0');
+                const whatsapp = parseInt(parts.find(p => p.startsWith('whatsapp:'))?.split(': ')[1] ?? '0');
+                return <ChannelCard key={metric.key} voice={voice} whatsapp={whatsapp} />;
+              }
+
+              const Icon = getStatIcon(metric.icon);
+              const value = metric.suffix ? `${metric.value}${metric.suffix}` : metric.value;
+              const variant = (metric.variant as 'blue' | 'lime' | 'dark' | 'pink') ?? 'blue';
+
+              return (
+                <MetricCard
+                  key={metric.key}
+                  title={metric.label}
+                  value={value}
+                  label={metric.description ?? undefined}
+                  icon={Icon}
+                  variant={variant}
+                  progress={metric.suffix === '%' ? metric.value : undefined}
+                />
+              );
+            })}
+          </div>
+
+          {/* Tabs: Activiteiten / Vacatures */}
+          <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-2">
+            <div className="flex items-center justify-between">
+              <TabsList variant="line">
+                <TabsTrigger value="activities">
+                  <Play className="w-3.5 h-3.5" />
+                  Activiteiten
+                  <span className="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-500 text-white">
+                    {filteredTasks.length}
+                  </span>
+                </TabsTrigger>
+                <TabsTrigger value="vacancies">
+                  <Briefcase className="w-3.5 h-3.5" />
+                  Vacatures
+                  <span className="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-500 text-white">
+                    {vacancies.length}
+                  </span>
+                </TabsTrigger>
+              </TabsList>
+
+              <div className="flex items-center gap-2">
+                <label htmlFor="auto-generate" className="text-sm text-gray-600">
+                  Automatisch genereren
+                </label>
+                <Switch
+                  id="auto-generate"
+                  checked={autoGenerate}
+                  onCheckedChange={handleAutoGenerateToggle}
+                />
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button type="button" className="text-gray-400 hover:text-gray-600 transition-colors">
+                      <Info className="w-4 h-4" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="max-w-[240px]">
+                    Indien ingeschakeld wordt elke vacature naar Taloo automatisch omgezet naar een pre-screening. Pre-screening kan altijd later worden aangepast.
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+            </div>
+
+            {/* Activities Tab */}
+            <TabsContent value="activities">
+              {tasksLoading && filteredTasks.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-64 text-gray-400 pt-2">
+                  <Loader2 className="w-8 h-8 mb-4 animate-spin" />
+                  <p className="text-sm">Taken laden...</p>
+                </div>
+              ) : filteredTasks.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-64 text-gray-400 pt-2">
+                  <div className="relative mb-6">
+                    <div className="w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center">
+                      <div className="w-3 h-3 rounded-full bg-gray-400" />
+                    </div>
+                    <div className="absolute inset-0 w-12 h-12 rounded-full border-2 border-gray-300 animate-ping [animation-duration:2s]" />
+                    <div className="absolute inset-0 w-12 h-12 rounded-full border border-gray-200 animate-ping [animation-duration:2s] [animation-delay:500ms]" />
+                  </div>
+                  <p className="text-sm text-gray-500">
+                    Geen actieve pre-screenings
+                  </p>
+                </div>
+              ) : (
+                <div className="relative w-full overflow-auto pt-2">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <SortableHeader column="candidate_name" label="Kandidaat" />
+                        <SortableHeader column="vacancy_title" label="Vacature" />
+                        <SortableHeader column="current_step_label" label="Stap" />
+                        <SortableHeader column="status" label="Status" />
+                        <SortableHeader column="sla" label="SLA" />
+                        <SortableHeader column="time_ago" label="Laatste Update" />
+                        <TableHead className="w-[50px]" />
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {sortedTasks.map((task, index) => (
+                        <TableRow
+                          key={task.id}
+                          className="group hover:bg-gray-50/50 cursor-pointer"
+                          style={{ animation: `fade-in-up 0.3s ease-out ${index * 30}ms backwards` }}
+                          onClick={() => setSelectedTask(task)}
+                        >
+                          <TableCell className="font-medium">
+                            {task.candidate_name || <span className="text-gray-400">-</span>}
+                          </TableCell>
+                          <TableCell>
+                            {task.vacancy_title || <span className="text-gray-400">-</span>}
+                          </TableCell>
+                          <TableCell>
+                            <div className="min-w-0">
+                              <span className="text-gray-900 inline-flex items-center gap-1.5">
+                                {task.current_step_label.includes('Generating') && (
+                                  <Loader2 className="w-3.5 h-3.5 animate-spin text-gray-400" />
+                                )}
+                                {translateStepLabel(task.current_step_label)}
+                              </span>
+                              {task.step_detail && (
+                                <span className="block text-xs text-gray-500 mt-0.5">{task.step_detail}</span>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <ActivityStatusBadge status={task.status} isStuck={task.is_stuck} />
+                          </TableCell>
+                          <TableCell>
+                            <SLABadge
+                              status={task.status}
+                              isStuck={task.is_stuck}
+                              timeRemainingSeconds={task.time_remaining_seconds}
+                            />
+                          </TableCell>
+                          <TableCell className="text-gray-500 text-sm">
+                            {formatRelativeDate(task.updated_at)}
+                          </TableCell>
+                          <TableCell>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0"
+                              onClick={(e) => { e.stopPropagation(); setSelectedTask(task); }}
+                            >
+                              <Eye className="w-4 h-4 text-gray-500" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+
+                  <p className="text-sm text-gray-500 mt-2">
+                    {filteredTasks.length} {filteredTasks.length === 1 ? 'screening' : 'screenings'} actief
+                  </p>
+                </div>
+              )}
+            </TabsContent>
+
+            {/* Vacancies Tab */}
+            <TabsContent value="vacancies">
+              {vacanciesLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+                  <span className="ml-2 text-sm text-gray-500">Vacatures laden...</span>
+                </div>
+              ) : (
+                <PublishedVacanciesTable
+                  vacancies={vacancies}
+                  generationStatus={atsImport.vacancies.size > 0 ? atsImport.vacancies : undefined}
+                  isImporting={atsImport.isImporting}
+                />
+              )}
+            </TabsContent>
+          </Tabs>
+
+          {/* Auto-generate Confirmation Dialog */}
+          <AlertDialog open={showAutoGenerateConfirm} onOpenChange={setShowAutoGenerateConfirm}>
+            <AlertDialogContent className="max-w-md">
+              <AlertDialogHeader>
+                <AlertDialogTitle>Automatisch genereren inschakelen?</AlertDialogTitle>
+                <AlertDialogDescription asChild>
+                  <div className="space-y-2 text-sm text-gray-600">
+                    <p>
+                      Pre-screening interviews worden automatisch aangemaakt voor alle toekomstige vacatures.
+                    </p>
+                    <p className="text-gray-500 text-xs">
+                      Je kunt individuele pre-screenings altijd bewerken of uitschakelen.
+                    </p>
+                  </div>
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Annuleren</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={confirmAutoGenerate}
+                  className="bg-green-600 hover:bg-green-700 focus:ring-green-500"
+                >
+                  Inschakelen
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </PageLayoutContent>
+      </PageLayout>
+
+      {/* Workflow Detail Sheet */}
+      <Sheet open={!!selectedTask} onOpenChange={(open) => !open && setSelectedTask(null)}>
+        <SheetContent className="sm:max-w-md">
+          <SheetHeader className="border-b pb-4">
+            <SheetTitle>Workflow Details</SheetTitle>
             <SheetDescription>
-              Originele vacaturegegevens van {selectedVacancy?.source === 'salesforce' ? 'Salesforce' : selectedVacancy?.source === 'bullhorn' ? 'Bullhorn' : 'bron'}
+              {selectedTask?.candidate_name || 'Onbekend'} — {selectedTask?.vacancy_title || 'Geen vacature'}
             </SheetDescription>
           </SheetHeader>
-          
-          {/* Scrollable Content */}
-          {selectedVacancy && (
-            <div className="flex-1 overflow-y-auto px-4 py-4 space-y-6">
-              {/* Vacancy Title */}
-              <div>
-                <h3 className="text-xl font-semibold text-gray-900">
-                  {selectedVacancy.title}
-                </h3>
-                <div className="flex items-center gap-3 mt-2 text-sm text-gray-500">
-                  <span className="flex items-center gap-1">
-                    <Building2 className="w-4 h-4" />
-                    {selectedVacancy.company}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <MapPin className="w-4 h-4" />
-                    {selectedVacancy.location}
-                  </span>
+
+          {selectedTask && (
+            <div className="py-6 px-4">
+              <div className="mb-6 space-y-2">
+                <div className="flex items-center gap-2">
+                  <ActivityStatusBadge status={selectedTask.status} isStuck={selectedTask.is_stuck} />
                 </div>
+                {selectedTask.step_detail && (
+                  <p className="text-sm text-gray-600">{selectedTask.step_detail}</p>
+                )}
+                <p className="text-xs text-gray-400">Laatste update: {formatRelativeDate(selectedTask.updated_at)}</p>
               </div>
 
-              {/* Imported Date */}
-              <div className="flex items-center gap-2 text-sm text-gray-500 pb-4 border-b">
-                <Calendar className="w-4 h-4" />
-                <span>Geïmporteerd {formatDate(selectedVacancy.createdAt)}</span>
-              </div>
-
-              {/* Description */}
-              <div>
-                <h4 className="text-sm font-medium text-gray-700 mb-2">Functieomschrijving</h4>
-                <div className="text-sm text-gray-600 leading-relaxed">
-                  <ReactMarkdown
-                    components={{
-                      h3: ({ children }) => (
-                        <h3 className="text-sm font-semibold text-gray-800 mt-4 mb-2">{children}</h3>
-                      ),
-                      ul: ({ children }) => (
-                        <ul className="list-disc list-outside ml-4 space-y-1 mb-3">{children}</ul>
-                      ),
-                      li: ({ children }) => (
-                        <li className="text-gray-600">{children}</li>
-                      ),
-                      p: ({ children }) => (
-                        <p className="mb-3">{children}</p>
-                      ),
-                    }}
-                  >
-                    {selectedVacancy.description}
-                  </ReactMarkdown>
-                </div>
-              </div>
-
-              {/* External Link */}
-              <div className="pt-4 border-t">
-                <a
-                  href={selectedVacancy.source === 'salesforce' 
-                    ? `https://salesforce.com/record/${selectedVacancy.sourceId || 'example'}`
-                    : selectedVacancy.source === 'bullhorn'
-                    ? `https://bullhorn.com/record/${selectedVacancy.sourceId || 'example'}`
-                    : '#'
-                  }
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 transition-colors"
+              {/* Link to screening detail */}
+              {selectedTask.vacancy_id && (
+                <Link
+                  href={`/pre-screening/detail/${selectedTask.vacancy_id}?mode=dashboard`}
+                  onClick={() => setSelectedTask(null)}
+                  className="w-full mb-6 flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-colors text-left group"
                 >
-                  Openen in {selectedVacancy.source === 'salesforce' ? 'Salesforce' : selectedVacancy.source === 'bullhorn' ? 'Bullhorn' : 'bron'}
-                  <ExternalLink className="w-4 h-4" />
-                </a>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900 truncate">Screening resultaat</p>
+                    <p className="text-xs text-gray-500">Bekijk details</p>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-gray-600 transition-colors" />
+                </Link>
+              )}
+
+              {/* Workflow steps timeline */}
+              <div className="border-t pt-6">
+                <h4 className="text-sm font-medium text-gray-900 mb-4">Workflow Voortgang</h4>
+                <Timeline>
+                  {selectedTask.workflow_steps?.map((step, index) => {
+                    const dotColor = step.status === 'completed' ? 'green'
+                      : step.status === 'failed' ? 'orange'
+                      : 'default';
+
+                    return (
+                      <TimelineNode
+                        key={step.id}
+                        animationDelay={index * 100}
+                        isLast={index === selectedTask.workflow_steps.length - 1}
+                        dotColor={dotColor}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={cn(
+                            'flex items-center justify-center w-6 h-6 rounded-full',
+                            step.status === 'completed' && 'bg-green-500 text-white',
+                            step.status === 'current' && 'bg-blue-500 text-white',
+                            step.status === 'pending' && 'bg-gray-50 text-gray-500',
+                            step.status === 'failed' && 'bg-red-500 text-white',
+                          )}>
+                            {step.status === 'completed' ? (
+                              <Check className="w-3.5 h-3.5" />
+                            ) : step.status === 'failed' ? (
+                              <AlertTriangle className="w-3.5 h-3.5" />
+                            ) : (
+                              <Circle className="w-3 h-3" />
+                            )}
+                          </div>
+                          <div>
+                            <span className={cn(
+                              'text-sm font-medium',
+                              step.status === 'completed' && 'text-green-600',
+                              step.status === 'current' && 'text-blue-600',
+                              step.status === 'pending' && 'text-gray-500',
+                              step.status === 'failed' && 'text-red-600',
+                            )}>
+                              {translateStepLabel(step.label)}
+                            </span>
+                            {step.status === 'current' && (
+                              <span className="ml-2 text-xs text-blue-600 animate-pulse">Actief</span>
+                            )}
+                          </div>
+                        </div>
+                      </TimelineNode>
+                    );
+                  })}
+                </Timeline>
               </div>
             </div>
           )}
         </SheetContent>
       </Sheet>
-
-      {/* Auto-generate Confirmation Dialog */}
-      <AlertDialog open={showAutoGenerateConfirm} onOpenChange={setShowAutoGenerateConfirm}>
-        <AlertDialogContent className="max-w-md">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Automatisch genereren inschakelen?</AlertDialogTitle>
-            <AlertDialogDescription asChild>
-              <div className="space-y-2 text-sm text-gray-600">
-                {conceptVacancies.length > 0 ? (
-                  <p>
-                    Dit maakt pre-screening interviews aan voor je{' '}
-                    <span className="font-medium text-gray-900">{conceptVacancies.length} concept</span> en alle toekomstige vacatures.
-                  </p>
-                ) : (
-                  <p>
-                    Pre-screening interviews worden automatisch aangemaakt voor alle toekomstige vacatures.
-                  </p>
-                )}
-                <p className="text-gray-500 text-xs">
-                  Je kunt individuele pre-screenings altijd bewerken of uitschakelen.
-                </p>
-              </div>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Annuleren</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={confirmAutoGenerate}
-              className="bg-green-600 hover:bg-green-700 focus:ring-green-500"
-            >
-              Inschakelen
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-      </PageLayoutContent>
-    </PageLayout>
+    </>
   );
 }
 

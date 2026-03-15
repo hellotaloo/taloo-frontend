@@ -70,7 +70,7 @@ const viewItems = [
 
 const agentItems = [
   { name: 'Pre-screening', href: '/pre-screening', icon: Phone, badgeKey: 'prescreening' as const },
-  { name: 'Documentcollectie', href: '/document-collection', icon: FileCheck },
+  { name: 'Documentcollectie', href: '/document-collection', icon: FileCheck, badgeKey: 'preonboarding' as const },
 ];
 
 const footerNavItems = [
@@ -114,15 +114,12 @@ export function AppSidebar() {
       if (row) {
         setCounts({
           prescreening: {
-            new: row.prescreening_new as number,
-            generated: row.prescreening_generated as number,
-            published: row.prescreening_published as number,
-            archived: row.prescreening_archived as number,
+            active: row.prescreening_active as number,
+            stuck: row.prescreening_stuck as number,
           },
           preonboarding: {
-            new: row.preonboarding_new as number,
-            generated: row.preonboarding_generated as number,
-            archived: row.preonboarding_archived as number,
+            active: row.preonboarding_active as number,
+            stuck: row.preonboarding_stuck as number,
           },
           activities: {
             active: row.activities_active as number,
@@ -145,17 +142,27 @@ export function AppSidebar() {
     return pathname === href || (href !== '/' && pathname.startsWith(href));
   };
 
-  const prescreeningCount = counts?.prescreening?.new ?? null;
   const activitiesCount = counts?.activities?.active ?? null;
   const hasStuckActivities = (counts?.activities?.stuck ?? 0) > 0;
 
   const getAgentBadge = (item: (typeof agentItems)[number]): React.ReactNode => {
     if (!('badgeKey' in item)) return undefined;
 
-    if (item.badgeKey === 'prescreening' && prescreeningCount !== null && prescreeningCount > 0) {
-      return prescreeningCount;
-    }
-    return undefined;
+    const section = counts?.[item.badgeKey];
+    if (!section) return undefined;
+
+    const active = section.active ?? 0;
+    const stuck = section.stuck ?? 0;
+    const total = active + stuck;
+
+    if (total <= 0) return undefined;
+
+    return (
+      <span className="flex items-center gap-1">
+        {total}
+        {stuck > 0 && <AlertCircle className="h-3 w-3 text-orange-500" />}
+      </span>
+    );
   };
 
   const handleLogout = async () => {

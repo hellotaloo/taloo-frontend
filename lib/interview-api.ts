@@ -508,68 +508,76 @@ export async function getVacancy(vacancyId: string): Promise<Vacancy> {
 // Agent Vacancy API (Pre-screening & Pre-onboarding views)
 // =============================================================================
 
-export type AgentVacancyStatus = 'new' | 'generated' | 'published' | 'archived';
+import type { AgentVacancy, AgentDashboardStats } from './types';
 
 /**
- * Fetch vacancies by pre-screening agent status.
- * - new: has_screening = false (no pre-screening yet)
- * - generated: has_screening = true AND published_at IS NULL (draft)
- * - published: published_at IS NOT NULL (published, online or offline)
- * - archived: status = 'archived'
- * - archived: Vacancy closed or filled
+ * Fetch all non-archived vacancies with prescreening agent status and stats.
+ * Returns unified AgentVacancy[] with agent_status field.
  */
 export async function getPreScreeningVacancies(
-  status: AgentVacancyStatus,
   params?: { limit?: number; offset?: number }
-): Promise<{ vacancies: Vacancy[]; total: number }> {
+): Promise<{ vacancies: AgentVacancy[]; total: number }> {
   const searchParams = new URLSearchParams();
-  searchParams.set('status', status);
   if (params?.limit) searchParams.set('limit', params.limit.toString());
   if (params?.offset) searchParams.set('offset', params.offset.toString());
 
-  const url = `${BACKEND_URL}/agents/prescreening/vacancies?${searchParams}`;
+  const queryString = searchParams.toString();
+  const url = `${BACKEND_URL}/agents/prescreening/vacancies${queryString ? '?' + queryString : ''}`;
   const response = await fetch(url);
 
   if (!response.ok) {
     throw new Error(`Failed to fetch pre-screening vacancies: ${response.status} ${response.statusText}`);
   }
 
-  const data = await response.json();
-
-  return {
-    vacancies: (data.vacancies as BackendVacancy[]).map(convertVacancy),
-    total: data.total,
-  };
+  return response.json();
 }
 
 /**
- * Fetch vacancies by pre-onboarding agent status.
- * - new: preonboarding_agent_enabled is false or NULL
- * - generated: preonboarding_agent_enabled is true
- * - archived: Vacancy closed or filled
+ * Fetch all non-archived vacancies with document collection agent status and stats.
+ * Returns unified AgentVacancy[] with agent_status field.
  */
 export async function getPreOnboardingVacancies(
-  status: AgentVacancyStatus,
   params?: { limit?: number; offset?: number }
-): Promise<{ vacancies: Vacancy[]; total: number }> {
+): Promise<{ vacancies: AgentVacancy[]; total: number }> {
   const searchParams = new URLSearchParams();
-  searchParams.set('status', status);
   if (params?.limit) searchParams.set('limit', params.limit.toString());
   if (params?.offset) searchParams.set('offset', params.offset.toString());
 
-  const url = `${BACKEND_URL}/agents/preonboarding/vacancies?${searchParams}`;
+  const queryString = searchParams.toString();
+  const url = `${BACKEND_URL}/agents/preonboarding/vacancies${queryString ? '?' + queryString : ''}`;
   const response = await fetch(url);
 
   if (!response.ok) {
     throw new Error(`Failed to fetch pre-onboarding vacancies: ${response.status} ${response.statusText}`);
   }
 
-  const data = await response.json();
+  return response.json();
+}
 
-  return {
-    vacancies: (data.vacancies as BackendVacancy[]).map(convertVacancy),
-    total: data.total,
-  };
+/**
+ * Fetch aggregate dashboard stats for the pre-screening overview page.
+ */
+export async function getPreScreeningStats(): Promise<AgentDashboardStats> {
+  const response = await fetch(`${BACKEND_URL}/agents/prescreening/stats`);
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch pre-screening stats: ${response.status} ${response.statusText}`);
+  }
+
+  return response.json();
+}
+
+/**
+ * Fetch aggregate dashboard stats for the document collection overview page.
+ */
+export async function getPreOnboardingStats(): Promise<AgentDashboardStats> {
+  const response = await fetch(`${BACKEND_URL}/agents/preonboarding/stats`);
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch pre-onboarding stats: ${response.status} ${response.statusText}`);
+  }
+
+  return response.json();
 }
 
 // =============================================================================
@@ -578,15 +586,12 @@ export async function getPreOnboardingVacancies(
 
 export interface NavigationCounts {
   prescreening: {
-    new: number;
-    generated: number;
-    published: number;
-    archived: number;
+    active: number;
+    stuck: number;
   };
   preonboarding: {
-    new: number;
-    generated: number;
-    archived: number;
+    active: number;
+    stuck: number;
   };
   activities?: {
     active: number;

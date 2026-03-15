@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback, ReactNode } from 'react';
+import { useClock } from '@/hooks/use-clock';
 import {
   ChevronLeft,
   Plus,
@@ -148,6 +149,7 @@ export function WhatsAppChat({
   isActive = true,
   isPlayground = false,
 }: WhatsAppChatProps) {
+  const clock = useClock();
   // State for scripted scenarios (pass/fail without vacancyId)
   const [scriptedMessages, setScriptedMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
@@ -378,7 +380,7 @@ export function WhatsAppChat({
     >
       {/* iOS Status bar - aligned with Dynamic Island */}
       <div className="bg-[#f6f6f6] px-6 flex items-center justify-between text-black text-sm font-semibold h-[50px]">
-        <span className="mt-1">22:07</span>
+        <span className="mt-1">{clock}</span>
         <div className="flex items-center gap-1 mt-1">
           <div className="flex gap-0.5 items-end">
             <div className="w-[3px] h-[4px] bg-black rounded-sm" />

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { useClock } from '@/hooks/use-clock';
 import {
   ChevronLeft,
   Plus,
@@ -145,12 +146,14 @@ export function WhatsAppChat({
   contextId,
   onCollectionProgress,
 }: WhatsAppChatProps) {
+  const clock = useClock();
   // State for scripted scenarios (pass/fail without vacancyId)
   const [scriptedMessages, setScriptedMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isTyping, setIsTyping] = useState(false);
   const [browserUrl, setBrowserUrl] = useState<string | null>(null);
+  const [browserClosing, setBrowserClosing] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
@@ -171,6 +174,50 @@ export function WhatsAppChat({
       onCollectionProgress(playgroundChat.collectionProgress);
     }
   }, [playgroundChat.collectionProgress, onCollectionProgress]);
+
+  // Stable ref for addExternalMessage so the polling loop survives re-renders
+  const addExternalMessageRef = useRef(playgroundChat.addExternalMessage);
+  addExternalMessageRef.current = playgroundChat.addExternalMessage;
+
+  // Poll for pending messages from webhooks (e.g. Yousign contract signed)
+  useEffect(() => {
+    if (agentType !== 'document_collection' || !playgroundChat.sessionId) return;
+
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8080';
+    const sessionId = playgroundChat.sessionId;
+    let cancelled = false;
+
+    const poll = async () => {
+      while (!cancelled) {
+        await new Promise(r => setTimeout(r, 1000));
+        if (cancelled) break;
+        try {
+          const res = await fetch(
+            `${backendUrl}/playground/chat/${sessionId}/pending`
+          );
+          if (!res.ok) continue;
+          const data = await res.json();
+          const msgs = data.messages || [];
+          if (msgs.length > 0) {
+            // Trigger slide-out animation
+            setBrowserClosing(true);
+            // Show messages after animation completes + small pause
+            setTimeout(() => {
+              for (const msg of msgs) {
+                addExternalMessageRef.current(msg);
+              }
+            }, 1000);
+            break;
+          }
+        } catch {
+          // ignore fetch errors, keep polling
+        }
+      }
+    };
+
+    poll();
+    return () => { cancelled = true; };
+  }, [agentType, playgroundChat.sessionId]);
 
   // Hook for simulation API (pass/fail with vacancyId)
   const simulationChat = useSimulationChat(vacancyId || '');
@@ -410,7 +457,7 @@ export function WhatsAppChat({
     >
       {/* iOS Status bar - aligned with Dynamic Island */}
       <div className="bg-[#f6f6f6] px-6 flex items-center justify-between text-black text-sm font-semibold h-[50px]">
-        <span className="mt-1">22:07</span>
+        <span className="mt-1">{clock}</span>
         <div className="flex items-center gap-1 mt-1">
           <div className="flex gap-0.5 items-end">
             <div className="w-[3px] h-[4px] bg-black rounded-sm" />
@@ -573,7 +620,10 @@ export function WhatsAppChat({
 
       {/* Input area - iOS style */}
       <div className="bg-[#f6f6f6] px-1.5 py-1.5 flex items-end gap-0.5 border-t border-gray-200">
-        <button className="h-9 pr-1 flex items-center justify-center text-gray-500 shrink-0">
+        <button
+          className="h-9 pr-1 flex items-center justify-center text-gray-500 shrink-0"
+          onClick={() => isApiMode && fileInputRef.current?.click()}
+        >
           <Plus className="w-6 h-6" />
         </button>
         
@@ -637,7 +687,11 @@ export function WhatsAppChat({
 
       {/* In-app browser overlay */}
       {browserUrl && (
-        <InAppBrowser url={browserUrl} onClose={() => setBrowserUrl(null)} />
+        <InAppBrowser
+          url={browserUrl}
+          closing={browserClosing}
+          onClose={() => { setBrowserUrl(null); setBrowserClosing(false); }}
+        />
       )}
     </div>
   );
