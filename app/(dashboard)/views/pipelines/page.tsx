@@ -8,7 +8,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { SearchInput } from '@/components/kit/search-input';
 import { CandidatesPipeline } from '@/components/blocks/candidates-pipeline';
 import { CandidateDetailPane } from '@/components/blocks/views';
-import { APICandidateDetail, APIVacancyListItem } from '@/lib/types';
+import { APICandidateDetail } from '@/lib/types';
 import { getCandidate } from '@/lib/api';
 
 export default function PipelinePage() {
@@ -87,7 +87,6 @@ export default function PipelinePage() {
               setSelectedCandidateDetail(null);
             }}
             onRefresh={refreshCandidateDetail}
-            vacancies={[] as APIVacancyListItem[]}
           />
         </SheetContent>
       </Sheet>
