@@ -76,6 +76,8 @@ export default function DocumentCollectionPlayground() {
   const [detail, setDetail] = useState<DocumentCollectionFullDetailResponse | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [chatMode, setChatMode] = useState<'view' | 'test'>('test');
+  const isTestMode = chatMode === 'test';
+  const isViewMode = chatMode === 'view';
   const [chatResetKey, setChatResetKey] = useState(0);
   const [collectionProgress, setCollectionProgress] = useState<CollectionProgress | null>(null);
 
@@ -311,7 +313,7 @@ export default function DocumentCollectionPlayground() {
                       onClick={() => setChatMode('test')}
                       className={cn(
                         'flex items-center gap-1.5 text-xs font-medium py-1.5 px-3 rounded-md transition-colors',
-                        chatMode === 'test'
+                        isTestMode
                           ? 'bg-white text-gray-900 shadow-sm'
                           : 'text-gray-500 hover:text-gray-700',
                       )}
@@ -323,7 +325,7 @@ export default function DocumentCollectionPlayground() {
                       onClick={() => setChatMode('view')}
                       className={cn(
                         'flex items-center gap-1.5 text-xs font-medium py-1.5 px-3 rounded-md transition-colors',
-                        chatMode === 'view'
+                        isViewMode
                           ? 'bg-white text-gray-900 shadow-sm'
                           : 'text-gray-500 hover:text-gray-700',
                       )}
@@ -357,7 +359,7 @@ export default function DocumentCollectionPlayground() {
                       onClick={() => setChatMode('test')}
                       className={cn(
                         'flex items-center gap-1.5 text-xs font-medium py-1.5 px-3 rounded-md transition-colors',
-                        chatMode === 'test'
+                        isTestMode
                           ? 'bg-white text-gray-900 shadow-sm'
                           : 'text-gray-500 hover:text-gray-700',
                       )}
@@ -369,7 +371,7 @@ export default function DocumentCollectionPlayground() {
                       onClick={() => setChatMode('view')}
                       className={cn(
                         'flex items-center gap-1.5 text-xs font-medium py-1.5 px-3 rounded-md transition-colors',
-                        chatMode === 'view'
+                        isViewMode
                           ? 'bg-white text-gray-900 shadow-sm'
                           : 'text-gray-500 hover:text-gray-700',
                       )}
@@ -409,6 +411,20 @@ const ID_FIELD_LABELS: Record<string, string> = {
   expiry_date: 'Vervaldatum',
   document_number: 'Documentnr',
 };
+const DATE_FIELDS = new Set(['date_of_birth', 'expiry_date', 'issue_date']);
+const DAY_NAMES_NL = ['zo', 'ma', 'di', 'woe', 'do', 'vr', 'za'];
+function formatIdFieldValue(key: string, val: string): string {
+  if (!DATE_FIELDS.has(key) || !val) return val;
+  try {
+    const d = new Date(val + 'T00:00:00');
+    if (isNaN(d.getTime())) return val;
+    const day = DAY_NAMES_NL[d.getDay()];
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const yy = String(d.getFullYear()).slice(-2);
+    return `${day} ${dd}/${mm}/${yy}`;
+  } catch { return val; }
+}
 
 // Step type → short label for stepper
 const STEP_LABELS: Record<string, string> = {
@@ -562,7 +578,7 @@ function CollectionOverview({ detail, liveProgress, reviewFlags }: { detail: Doc
               entry.type === 'single' ? (
                 <CollectionItemRow key={entry.items[0].slug} item={entry.items[0]} collectedMap={collectedMap} />
               ) : (
-                <GroupedDocumentRow key={entry.group} group={entry.group} items={entry.items} collectedMap={collectedMap} />
+                <GroupedDocumentRow key={entry.group} group={entry.group} items={entry.items} collectedMap={collectedMap} euCitizen={liveProgress?.eu_citizen} />
               ),
             )}
           </div>
@@ -644,7 +660,7 @@ function groupDocuments(documents: CollectionItemStatusResponse[]): DocumentGrou
 type CollectedMapEntry = { collected: boolean; value?: string | Record<string, string>; name?: string };
 type CollectedMap = Map<string, CollectedMapEntry> | null | undefined;
 
-function GroupedDocumentRow({ group, items, collectedMap }: { group: string; items: CollectionItemStatusResponse[]; collectedMap?: CollectedMap }) {
+function GroupedDocumentRow({ group, items, collectedMap, euCitizen }: { group: string; items: CollectionItemStatusResponse[]; collectedMap?: CollectedMap; euCitizen?: boolean }) {
   const idDocs = items.filter((i) => !WORK_AUTH_SLUGS.has(i.slug));
   const workAuthDocs = items.filter((i) => WORK_AUTH_SLUGS.has(i.slug));
 
@@ -703,13 +719,13 @@ function GroupedDocumentRow({ group, items, collectedMap }: { group: string; ite
           {Object.entries(extractedFields as Record<string, string>).map(([key, val]) => (
             <div key={key} className="flex items-center gap-2 py-0.5 px-2.5 text-xs">
               <span className="text-gray-400 w-24 shrink-0">{ID_FIELD_LABELS[key] || key.replace(/_/g, ' ')}</span>
-              <span className="text-gray-600 font-mono truncate">{val}</span>
+              <span className="text-gray-600 font-mono truncate">{formatIdFieldValue(key, val)}</span>
             </div>
           ))}
         </div>
       )}
 
-      {workAuthDocs.length > 0 && (
+      {workAuthDocs.length > 0 && euCitizen !== true && (
         <div className={cn(
           'flex items-center justify-between py-1 px-2.5 rounded-md text-sm transition-colors',
           workAuthReceived ? 'bg-green-50/50' : 'bg-transparent',
