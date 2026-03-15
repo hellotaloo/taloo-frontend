@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Loader2, AlertCircle, Play, CheckCircle2, List, ArrowUp, ArrowDown, ChevronsUpDown, Eye, Check, Circle, AlertTriangle, PauseCircle, Clock } from 'lucide-react';
+import { Loader2, AlertCircle, Play, CheckCircle2, List, ArrowUp, ArrowDown, ChevronsUpDown, Eye, Check, Circle, AlertTriangle, PauseCircle, Clock, ChevronRight } from 'lucide-react';
 import { cn, formatRelativeDate } from '@/lib/utils';
 import { PageLayout, PageLayoutHeader, PageLayoutContent } from '@/components/layout/page-layout';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -34,9 +34,17 @@ import {
 import { Timeline } from '@/components/kit/timeline/timeline';
 import { TimelineNode } from '@/components/kit/timeline/timeline-node';
 import { getActivityTasks, completeTask, type TaskRow, type GetActivityTasksParams } from '@/lib/api';
+import { getApplications } from '@/lib/interview-api';
+import { getDocumentCollection } from '@/lib/document-collection-api';
 import { TagBadge, type TagBadgeVariant } from '@/components/kit/tag-badge';
+import { ApplicationDetailPane, type Application as ComponentApplication } from '@/components/blocks/application-dashboard';
+import { convertToComponentApplication } from '@/lib/pre-screening-utils';
+import { CollectionDetailPane } from '@/components/blocks/collection-table';
+import { CandidateDetailPane } from '@/components/blocks/views';
+import { getCandidate } from '@/lib/api';
 import { useAuth } from '@/contexts';
 import { useRealtimeTable } from '@/hooks/use-realtime-table';
+import type { APICandidateDetail, DocumentCollectionFullDetailResponse } from '@/lib/types';
 
 // Activity status badge using TagBadge
 function ActivityStatusBadge({ status, isStuck, currentStep }: { status: string; isStuck: boolean; currentStep: string }) {
@@ -229,6 +237,75 @@ export default function ActivitiesPage() {
   const [completeDialogTask, setCompleteDialogTask] = useState<TaskRow | null>(null);
   const [completionNotes, setCompletionNotes] = useState('');
   const [isCompleting, setIsCompleting] = useState(false);
+  // Agent detail pane state
+  const [agentDetailType, setAgentDetailType] = useState<'pre_screening' | 'document_collection' | null>(null);
+  const [applicationDetail, setApplicationDetail] = useState<ComponentApplication | null>(null);
+  const [collectionDetail, setCollectionDetail] = useState<DocumentCollectionFullDetailResponse | null>(null);
+  const [agentDetailLoading, setAgentDetailLoading] = useState(false);
+
+  const handleOpenAgentDetail = async (task: TaskRow) => {
+    setSelectedTask(null); // Close workflow detail sheet
+
+    if (task.workflow_type === 'pre_screening' && task.vacancy_id && task.application_id) {
+      setAgentDetailType('pre_screening');
+      setAgentDetailLoading(true);
+      try {
+        const data = await getApplications(task.vacancy_id);
+        const app = data.applications.find(a => a.id === task.application_id);
+        setApplicationDetail(app ? convertToComponentApplication(app) : null);
+      } catch {
+        setApplicationDetail(null);
+      } finally {
+        setAgentDetailLoading(false);
+      }
+    } else if (task.workflow_type === 'document_collection' && task.collection_id) {
+      setAgentDetailType('document_collection');
+      setAgentDetailLoading(true);
+      try {
+        const detail = await getDocumentCollection(task.collection_id);
+        setCollectionDetail(detail);
+      } catch {
+        setCollectionDetail(null);
+      } finally {
+        setAgentDetailLoading(false);
+      }
+    }
+  };
+
+  const handleCloseAgentDetail = () => {
+    setAgentDetailType(null);
+    setApplicationDetail(null);
+    setCollectionDetail(null);
+  };
+
+  // Candidate detail pane state
+  const [candidateDetail, setCandidateDetail] = useState<APICandidateDetail | null>(null);
+  const [candidateDetailLoading, setCandidateDetailLoading] = useState(false);
+  const [candidateDetailOpen, setCandidateDetailOpen] = useState(false);
+
+  const handleOpenCandidateDetail = async (task: TaskRow) => {
+    if (!task.candidate_id) return;
+    setSelectedTask(null);
+    setCandidateDetailOpen(true);
+    setCandidateDetailLoading(true);
+    try {
+      const detail = await getCandidate(task.candidate_id);
+      setCandidateDetail(detail);
+    } catch {
+      setCandidateDetail(null);
+    } finally {
+      setCandidateDetailLoading(false);
+    }
+  };
+
+  const handleCloseCandidateDetail = () => {
+    setCandidateDetailOpen(false);
+    setCandidateDetail(null);
+  };
+
+  const hasAgentDetail = (task: TaskRow) =>
+    (task.workflow_type === 'pre_screening' && !!task.vacancy_id && !!task.application_id) ||
+    (task.workflow_type === 'document_collection' && !!task.collection_id);
 
   // Fetch counts separately (always from active tasks)
   const fetchCounts = useCallback(async () => {
@@ -429,6 +506,7 @@ export default function ActivitiesPage() {
   };
 
   return (
+    <>
     <PageLayout>
       <PageLayoutHeader />
       <PageLayoutContent>
@@ -510,8 +588,9 @@ export default function ActivitiesPage() {
                     <TableRow
                       key={task.id}
                       data-testid={`task-row-${task.id}`}
-                      className="group hover:bg-gray-50/50"
+                      className="group hover:bg-gray-50/50 cursor-pointer"
                       style={{ animation: `fade-in-up 0.3s ease-out ${index * 30}ms backwards` }}
+                      onClick={() => setSelectedTask(task)}
                     >
                       <TableCell>
                         <WorkflowTypeBadge type={task.workflow_type} label={task.workflow_type_label} />
@@ -562,7 +641,7 @@ export default function ActivitiesPage() {
                                 variant="ghost"
                                 size="sm"
                                 className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                                onClick={() => setCompleteDialogTask(task)}
+                                onClick={(e) => { e.stopPropagation(); setCompleteDialogTask(task); }}
                                 data-testid={`complete-task-${task.id}`}
                                 title="Markeer als afgerond"
                               >
@@ -573,7 +652,7 @@ export default function ActivitiesPage() {
                             variant="ghost"
                             size="sm"
                             className="h-8 w-8 p-0"
-                            onClick={() => setSelectedTask(task)}
+                            onClick={(e) => { e.stopPropagation(); setSelectedTask(task); }}
                             data-testid={`view-task-${task.id}`}
                           >
                             <Eye className="w-4 h-4 text-gray-500" />
@@ -618,6 +697,38 @@ export default function ActivitiesPage() {
                   )}
                   <p className="text-xs text-gray-400">Laatste update: {formatRelativeDate(selectedTask.updated_at)}</p>
                 </div>
+
+                {/* Agent detail card */}
+                {hasAgentDetail(selectedTask) && (
+                  <button
+                    onClick={() => handleOpenAgentDetail(selectedTask)}
+                    className="w-full mb-6 flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-colors text-left group"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900 truncate">
+                        {selectedTask.workflow_type === 'pre_screening' ? 'Screening resultaat' : 'Documentcollectie'}
+                      </p>
+                      <p className="text-xs text-gray-500">Bekijk details</p>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-gray-600 transition-colors" />
+                  </button>
+                )}
+
+                {/* Candidate record card */}
+                {selectedTask.candidate_id && (
+                  <button
+                    onClick={() => handleOpenCandidateDetail(selectedTask)}
+                    className="w-full mb-6 flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-colors text-left group"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900 truncate">
+                        {selectedTask.candidate_name || 'Kandidaat dossier'}
+                      </p>
+                      <p className="text-xs text-gray-500">Bekijk kandidaat dossier</p>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-gray-600 transition-colors" />
+                  </button>
+                )}
 
                 {/* Workflow steps timeline */}
                 <div className="border-t pt-6">
@@ -731,5 +842,39 @@ export default function ActivitiesPage() {
 
       </PageLayoutContent>
     </PageLayout>
+
+    {/* Agent Detail Sheet */}
+    <Sheet open={!!agentDetailType} onOpenChange={(open) => { if (!open) handleCloseAgentDetail(); }}>
+      <SheetContent side="right" className="w-full sm:max-w-[720px] p-0" showCloseButton={false}>
+        {agentDetailLoading ? (
+          <div className="flex items-center justify-center h-full">
+            <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+          </div>
+        ) : agentDetailType === 'pre_screening' ? (
+          <ApplicationDetailPane
+            application={applicationDetail}
+            onClose={handleCloseAgentDetail}
+          />
+        ) : agentDetailType === 'document_collection' ? (
+          <CollectionDetailPane
+            collection={collectionDetail}
+            isLoading={agentDetailLoading}
+            onClose={handleCloseAgentDetail}
+          />
+        ) : null}
+      </SheetContent>
+    </Sheet>
+
+    {/* Candidate Detail Sheet */}
+    <Sheet open={candidateDetailOpen} onOpenChange={(open) => { if (!open) handleCloseCandidateDetail(); }}>
+      <SheetContent side="right" className="w-full sm:max-w-[720px] p-0" showCloseButton={false}>
+        <CandidateDetailPane
+          candidate={candidateDetail}
+          isLoading={candidateDetailLoading}
+          onClose={handleCloseCandidateDetail}
+        />
+      </SheetContent>
+    </Sheet>
+    </>
   );
 }

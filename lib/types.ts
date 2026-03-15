@@ -77,6 +77,8 @@ export interface Vacancy {
   lastActivityAt?: string | null; // Most recent application activity timestamp
   // Publishing
   publishedAt?: string | null;  // When pre-screening was first published (null = never published)
+  // Dates
+  startDate?: string | null;    // Expected start date (ISO YYYY-MM-DD)
 }
 
 // Question types
@@ -459,13 +461,14 @@ export interface CollectionItemStatusResponse {
   slug: string;
   name: string;
   type: CollectionItemType;
-  priority: 'required' | 'recommended';
+  priority: 'required' | 'recommended' | 'conditional';
   status: DocumentStatus;
-  value?: string;              // For attributes: the collected value
+  value?: string | Record<string, string>;  // For attributes: simple string or structured fields
   upload_id?: string;          // For documents: upload reference
   verification_passed?: boolean;
   uploaded_at?: string;
   scheduled_at?: string;       // For tasks: when the task is scheduled to execute
+  group?: string;              // Visual grouping key (e.g. "identity")
 }
 
 // --- Workflow progress steps ---
@@ -484,6 +487,7 @@ export interface DocumentCollectionFullDetailResponse extends DocumentCollection
   summary?: string;            // Plan summary for recruiter (Dutch)
   deadline_note?: string;      // e.g. "Start op 24 maart"
   collection_items: CollectionItemStatusResponse[];
+  conversation_steps?: { step: number; type: string; description: string; completed: boolean; current: boolean }[];
   workflow_steps: WorkflowStepResponse[];
   messages: CollectionMessageResponse[];
   uploads: CollectionUploadResponse[];
@@ -926,6 +930,27 @@ export interface OntologyStatsResponse {
   attribute_categories: string[];
 }
 
+// ─── Integrations & Sync ─────────────────────────────────────────────────────
+
+export interface Integration {
+  id: string;
+  slug: string;
+  name: string;
+  vendor: string;
+  description: string | null;
+  icon: string | null;
+  is_active: boolean;
+}
+
+export interface SyncWithEntry {
+  id: string;
+  integration_id: string;
+  integration_slug: string;
+  integration_name: string;
+  external_id: string | null;
+  external_metadata: Record<string, unknown> | null;
+}
+
 /** A child entity nested under a parent */
 export interface OntologyChildEntity {
   id: string;
@@ -934,6 +959,7 @@ export interface OntologyChildEntity {
   category: string;
   sort_order: number;
   metadata: Record<string, unknown>;
+  sync_with?: SyncWithEntry[];
 }
 
 export type ScanMode = 'single' | 'front_back' | 'multi_page';
@@ -978,9 +1004,11 @@ export interface OntologyEntity {
   is_verifiable: boolean;
   scan_mode: ScanMode;
   verification_config: VerificationConfig | null;
+  ai_hint: string | null;
   metadata: Record<string, unknown>;
   children: OntologyChildEntity[];
   children_count: number;
+  sync_with?: SyncWithEntry[];
 }
 
 /** GET /ontology/entities response */
@@ -996,12 +1024,21 @@ export interface OntologyEntitiesResponse {
 // =============================================================================
 
 export type AttributeCategory = 'legal' | 'transport' | 'availability' | 'financial' | 'personal' | 'general';
-export type AttributeDataType = 'text' | 'boolean' | 'date' | 'select' | 'multi_select' | 'number';
+export type AttributeDataType = 'text' | 'boolean' | 'date' | 'select' | 'multi_select' | 'number' | 'structured';
 export type AttributeCollectedBy = 'pre_screening' | 'contract' | 'document_collection';
 
 export interface AttributeOption {
   value: string;
   label: string;
+}
+
+export interface AttributeFieldDefinition {
+  key: string;
+  label: string;
+  type: string;
+  required: boolean;
+  placeholder?: string | null;
+  options?: string[] | null;
 }
 
 export interface AttributeType {
@@ -1013,11 +1050,14 @@ export interface AttributeType {
   category: AttributeCategory;
   data_type: AttributeDataType;
   options: AttributeOption[] | null;
+  fields: AttributeFieldDefinition[] | null;
   icon: string | null;
   is_default: boolean;
   is_active: boolean;
   sort_order: number;
   collected_by: AttributeCollectedBy | null;
+  ai_hint: string | null;
+  sync_with?: SyncWithEntry[];
   created_at: string;
   updated_at: string;
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Trash2, GripVertical, Plus, Check, X, Pencil } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -31,7 +31,8 @@ import {
   deleteOntologyEntity,
   createOntologyEntity,
 } from '@/lib/ontology-api';
-import type { OntologyEntity, OntologyChildEntity, ScanMode } from '@/lib/types';
+import type { OntologyEntity, OntologyChildEntity, ScanMode, SyncWithEntry } from '@/lib/types';
+import { SyncWithSection } from '@/components/kit/sync-with-section/sync-with-section';
 import { toast } from 'sonner';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -94,6 +95,10 @@ export function OntologyDetailPanel({
 
   // Name editing
   const [nameValue, setNameValue] = useState(entity.name);
+
+  // Description + AI Hint
+  const [descValue, setDescValue] = useState(entity.description || '');
+  const [aiHintValue, setAiHintValue] = useState(entity.ai_hint || '');
 
   // Children state (managed locally after load)
   const [children, setChildren] = useState<OntologyChildEntity[]>(entity.children);
@@ -158,6 +163,67 @@ export function OntologyDetailPanel({
       toast.error('Kon instelling niet opslaan');
     }
   }
+
+  // ── Debounced auto-save for description & AI hint ───────────────────────
+
+  const descTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const aiHintTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const descRef = useRef(descValue);
+  const aiHintRef = useRef(aiHintValue);
+  const entityRef = useRef(entity);
+  descRef.current = descValue;
+  aiHintRef.current = aiHintValue;
+  entityRef.current = entity;
+
+  function handleDescChange(value: string) {
+    const clamped = value.slice(0, 500);
+    setDescValue(clamped);
+    clearTimeout(descTimer.current);
+    descTimer.current = setTimeout(async () => {
+      const trimmed = clamped.trim();
+      if (trimmed === (entityRef.current.description || '')) return;
+      onEntityChange({ description: trimmed || null });
+      try {
+        await patchOntologyEntity(entityRef.current.id, { description: trimmed || null });
+      } catch {
+        toast.error('Kon beschrijving niet opslaan');
+      }
+    }, 600);
+  }
+
+  function handleAiHintChange(value: string) {
+    const clamped = value.slice(0, 500);
+    setAiHintValue(clamped);
+    clearTimeout(aiHintTimer.current);
+    aiHintTimer.current = setTimeout(async () => {
+      const trimmed = clamped.trim();
+      if (trimmed === (entityRef.current.ai_hint || '')) return;
+      onEntityChange({ ai_hint: trimmed || null });
+      try {
+        await patchOntologyEntity(entityRef.current.id, { ai_hint: trimmed || null });
+      } catch {
+        toast.error('Kon AI hint niet opslaan');
+      }
+    }, 600);
+  }
+
+  // Flush pending saves on unmount (panel close / ESC)
+  useEffect(() => {
+    return () => {
+      clearTimeout(descTimer.current);
+      clearTimeout(aiHintTimer.current);
+      const e = entityRef.current;
+      const descTrimmed = descRef.current.trim();
+      if (descTrimmed !== (e.description || '')) {
+        patchOntologyEntity(e.id, { description: descTrimmed || null }).catch(() => {});
+      }
+      const hintTrimmed = aiHintRef.current.trim();
+      if (hintTrimmed !== (e.ai_hint || '')) {
+        patchOntologyEntity(e.id, { ai_hint: hintTrimmed || null }).catch(() => {});
+      }
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ── Delete parent ─────────────────────────────────────────────────────────
 
@@ -337,7 +403,7 @@ export function OntologyDetailPanel({
             <div className="space-y-2.5">
               <div className="flex items-baseline gap-3">
                 <span className="text-xs text-gray-400 w-20 shrink-0">Naam</span>
-                <span className="text-sm text-gray-900">{entity.name}</span>
+                <span className="text-sm text-gray-900">{entity.name} <code className="text-xs text-gray-400 font-mono ml-1">{entity.slug}</code></span>
               </div>
               {isParent && (
                 <>
@@ -368,8 +434,64 @@ export function OntologyDetailPanel({
               <Separator />
               <OntologyExtraction entity={entity} onEntityChange={onEntityChange} />
               <Separator />
+
+              {/* ── Instructies voor de AI ─────────────────────────── */}
+              <div className="space-y-4">
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Instructies voor de AI</p>
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-medium text-gray-500">Beschrijving</label>
+                    <span
+                      className={cn(
+                        'text-xs tabular-nums',
+                        descValue.length >= 450 ? 'text-orange-500' : 'text-gray-400',
+                      )}
+                    >
+                      {descValue.length}/500
+                    </span>
+                  </div>
+                  <textarea
+                    value={descValue}
+                    onChange={(e) => handleDescChange(e.target.value)}
+                    placeholder="bv. Beschrijving van het documenttype..."
+                    rows={3}
+                    className="w-full resize-none rounded-md border border-input bg-background px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-0"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-medium text-gray-500">AI Hint</label>
+                    <span
+                      className={cn(
+                        'text-xs tabular-nums',
+                        aiHintValue.length >= 450 ? 'text-orange-500' : 'text-gray-400',
+                      )}
+                    >
+                      {aiHintValue.length}/500
+                    </span>
+                  </div>
+                  <textarea
+                    value={aiHintValue}
+                    onChange={(e) => handleAiHintChange(e.target.value)}
+                    placeholder="bv. ALTIJD vereist. Identiteitsbewijs voor EU-burgers..."
+                    rows={3}
+                    className="w-full resize-none rounded-md border border-input bg-background px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-0"
+                  />
+                  <p className="text-xs text-gray-400">Instructie voor de AI planner wanneer/hoe dit document verzameld moet worden.</p>
+                </div>
+              </div>
+              <Separator />
             </>
           )}
+
+          {/* ── Koppelingen ──────────────────────────────────────────── */}
+          <SyncWithSection
+            entityId={entity.id}
+            syncWith={entity.sync_with || []}
+            tableName="types_documents"
+            onSyncChange={(syncWith) => onEntityChange({ sync_with: syncWith })}
+          />
+          <Separator />
 
           {/* ── Subtypes ─────────────────────────────────────────────── */}
           <div className="space-y-3">

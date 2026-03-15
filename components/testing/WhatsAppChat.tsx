@@ -1,17 +1,20 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { 
-  ChevronLeft, 
-  Plus, 
-  Camera, 
-  Mic, 
+import {
+  ChevronLeft,
+  Plus,
+  Camera,
+  Mic,
   Send,
   Check,
   CheckCheck,
 } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
 import { useScreeningChat } from '@/hooks/use-screening-chat';
 import { useSimulationChat } from '@/hooks/use-simulation-chat';
+import { usePlaygroundChat, type PlaygroundAgentType, type CollectionProgress } from '@/hooks/use-playground-chat';
+import { InAppBrowser } from '@/components/kit/in-app-browser';
 import type { SimulationPersona } from '@/lib/types';
 
 interface Message {
@@ -21,6 +24,7 @@ interface Message {
   isOutgoing: boolean;
   status?: 'sent' | 'delivered' | 'read';
   isNew?: boolean;
+  imageUrl?: string;
 }
 
 export type ChatScenario = 'idle' | 'pass' | 'fail' | 'manual';
@@ -31,6 +35,9 @@ interface WhatsAppChatProps {
   vacancyId?: string;
   candidateName?: string;
   isActive?: boolean; // Only start conversation when active (visible)
+  agentType?: PlaygroundAgentType; // Agent type for playground chat (default: pre_screening)
+  contextId?: string; // The ID for the agent context (vacancy or collection)
+  onCollectionProgress?: (progress: CollectionProgress) => void;
 }
 
 // Pass scenario - candidate qualifies
@@ -128,35 +135,59 @@ const failScript: Omit<Message, 'id' | 'isNew'>[] = [
   },
 ];
 
-export function WhatsAppChat({ 
-  scenario = 'pass', 
+export function WhatsAppChat({
+  scenario = 'pass',
   resetKey = 0,
   vacancyId,
   candidateName = 'Test Kandidaat',
   isActive = true,
+  agentType = 'pre_screening',
+  contextId,
+  onCollectionProgress,
 }: WhatsAppChatProps) {
   // State for scripted scenarios (pass/fail without vacancyId)
   const [scriptedMessages, setScriptedMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isTyping, setIsTyping] = useState(false);
+  const [browserUrl, setBrowserUrl] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
-  
-  // Hook for real API chat in manual mode
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // The effective context ID — contextId takes priority, fallback to vacancyId for backward compat
+  const effectiveContextId = contextId || vacancyId || '';
+
+  // Hook for real API chat in manual mode (legacy pre-screening)
   const screeningChat = useScreeningChat(vacancyId || '');
-  
+
+  // Hook for playground chat (new unified endpoint)
+  const playgroundChat = usePlaygroundChat(effectiveContextId, { agentType });
+
+  // Forward collection progress to parent
+  useEffect(() => {
+    if (playgroundChat.collectionProgress && onCollectionProgress) {
+      onCollectionProgress(playgroundChat.collectionProgress);
+    }
+  }, [playgroundChat.collectionProgress, onCollectionProgress]);
+
   // Hook for simulation API (pass/fail with vacancyId)
   const simulationChat = useSimulationChat(vacancyId || '');
-  
+
+  // Use playground chat for non-pre_screening agents or when contextId is explicitly provided
+  const useNewEndpoint = agentType !== 'pre_screening' || !!contextId;
+
+  // The active chat hook for API mode
+  const activeChat = useNewEndpoint ? playgroundChat : screeningChat;
+
   // Determine which mode we're in:
   // - simulation mode: pass/fail scenarios WITH a vacancyId (uses real simulation API)
-  // - api mode: manual scenario WITH a vacancyId (interactive chat)
+  // - api mode: manual scenario WITH a contextId/vacancyId (interactive chat)
   // - scripted mode: pass/fail scenarios WITHOUT vacancyId (uses hardcoded scripts)
   const isSimulationMode = (scenario === 'pass' || scenario === 'fail') && !!vacancyId;
-  const isApiMode = scenario === 'manual' && !!vacancyId;
-  const isScriptedMode = (scenario === 'pass' || scenario === 'fail') && !vacancyId;
+  const isApiMode = scenario === 'manual' && !!effectiveContextId;
+
   
   // Get the right persona for simulation
   const getSimulationPersona = (): SimulationPersona => {
@@ -166,12 +197,11 @@ export function WhatsAppChat({
   };
   
   // Use appropriate messages based on mode
-  const messages = isSimulationMode 
-    ? simulationChat.messages 
-    : isApiMode 
-      ? screeningChat.messages 
+  const messages: Message[] = isSimulationMode
+    ? simulationChat.messages
+    : isApiMode
+      ? activeChat.messages
       : scriptedMessages;
-  const setMessages = isScriptedMode ? setScriptedMessages : undefined;
 
   // Select the appropriate script based on scenario (for scripted mode fallback)
   const conversationScript = scenario === 'fail' ? failScript : passScript;
@@ -217,13 +247,13 @@ export function WhatsAppChat({
         simulationChat.startSimulation(persona, undefined, candidateName);
       }, 50);
     }
-    // Reset API chat if in API mode (manual + vacancyId)
+    // Reset API chat if in API mode (manual + contextId/vacancyId)
     else if (isApiMode) {
-      screeningChat.resetChat();
-      
+      activeChat.resetChat();
+
       // Reset the ref so we can start fresh (needed when switching tabs)
       lastResetKeyRef.current = null;
-      
+
       // Use a small delay and ref to prevent duplicate starts when clicking rapidly
       const currentResetKey = resetKey;
       startTimeoutRef.current = setTimeout(() => {
@@ -232,7 +262,7 @@ export function WhatsAppChat({
           return; // Already started for this resetKey
         }
         lastResetKeyRef.current = currentResetKey;
-        screeningChat.startConversation(candidateName);
+        activeChat.startConversation(candidateName);
       }, 50);
     } else {
       lastResetKeyRef.current = null;
@@ -266,7 +296,7 @@ export function WhatsAppChat({
       }
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scenario, resetKey, vacancyId, isActive]);
+  }, [scenario, resetKey, vacancyId, contextId, isActive]);
 
   // Scroll to bottom with smooth animation
   const scrollToBottom = useCallback(() => {
@@ -354,6 +384,21 @@ export function WhatsAppChat({
     }
   }, [inputValue]);
 
+  // Handle image file selection
+  const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !isApiMode) return;
+
+    // Only accept images
+    if (!file.type.startsWith('image/')) return;
+
+    if (useNewEndpoint) {
+      playgroundChat.sendImage(file);
+    }
+
+    // Reset input so the same file can be selected again
+    e.target.value = '';
+  }, [isApiMode, useNewEndpoint, playgroundChat]);
 
   return (
     <div 
@@ -438,9 +483,36 @@ export function WhatsAppChat({
                 boxShadow: '0 1px 0.5px rgba(0, 0, 0, 0.1)',
               }}
             >
-              <p className="text-[15px] text-black leading-[20px] whitespace-pre-wrap">
-                {message.content}
-              </p>
+              {message.imageUrl && (
+                <img
+                  src={message.imageUrl}
+                  alt=""
+                  className="rounded-lg max-w-full mb-1"
+                  style={{ maxHeight: '200px', objectFit: 'cover' }}
+                />
+              )}
+              {message.content && (
+                <div className="text-[15px] text-black leading-[20px] [&>p]:mb-1 [&>p:last-child]:mb-0 [&>ul]:list-disc [&>ul]:list-inside [&>ul]:mb-1 [&>ol]:list-decimal [&>ol]:list-inside [&>ol]:mb-1 [&>li]:ml-0 [&_strong]:font-semibold [&_em]:italic [&_a]:text-[#007AFF] [&_a]:underline">
+                  <ReactMarkdown
+                    components={{
+                      a: ({ href, children }) => (
+                        <a
+                          href={href}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            if (href) setBrowserUrl(href);
+                          }}
+                          className="text-[#007AFF] underline cursor-pointer"
+                        >
+                          {children}
+                        </a>
+                      ),
+                    }}
+                  >
+                    {message.content}
+                  </ReactMarkdown>
+                </div>
+              )}
               
               <div className="flex items-center justify-end gap-1 mt-0.5">
                 <span className="text-[11px] text-gray-500">
@@ -461,7 +533,7 @@ export function WhatsAppChat({
         ))}
         
         {/* Typing indicator */}
-        {(isTyping || (isApiMode && screeningChat.isLoading) || (isSimulationMode && simulationChat.isRunning)) && (
+        {(isTyping || (isApiMode && activeChat.isLoading) || (isSimulationMode && simulationChat.isRunning)) && (
           <div 
             className="flex justify-start mb-1"
             style={{
@@ -514,8 +586,8 @@ export function WhatsAppChat({
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey && isApiMode) {
                 e.preventDefault();
-                if (inputValue.trim() && !screeningChat.isLoading) {
-                  screeningChat.sendMessage(inputValue.trim());
+                if (inputValue.trim() && !activeChat.isLoading) {
+                  activeChat.sendMessage(inputValue.trim());
                   setInputValue('');
                 }
               }
@@ -527,15 +599,25 @@ export function WhatsAppChat({
 
         </div>
         
-        <button className="h-9 pl-1 flex items-center justify-center text-gray-500 shrink-0">
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handleFileSelect}
+        />
+        <button
+          className="h-9 pl-1 flex items-center justify-center text-gray-500 shrink-0"
+          onClick={() => isApiMode && fileInputRef.current?.click()}
+        >
           <Camera className="w-5 h-5" />
         </button>
         
         <button 
           className="h-9 pl-1 flex items-center justify-center text-gray-500 shrink-0"
           onClick={() => {
-            if (isApiMode && inputValue.trim() && !screeningChat.isLoading) {
-              screeningChat.sendMessage(inputValue.trim());
+            if (isApiMode && inputValue.trim() && !activeChat.isLoading) {
+              activeChat.sendMessage(inputValue.trim());
               setInputValue('');
             }
           }}
@@ -552,6 +634,11 @@ export function WhatsAppChat({
       <div className="bg-[#f6f6f6] h-5 flex items-center justify-center">
         <div className="w-32 h-1 bg-black rounded-full" />
       </div>
+
+      {/* In-app browser overlay */}
+      {browserUrl && (
+        <InAppBrowser url={browserUrl} onClose={() => setBrowserUrl(null)} />
+      )}
     </div>
   );
 }

@@ -1,11 +1,13 @@
 'use client';
 
 import { useState, useMemo, useCallback } from 'react';
-import { Building2, MapPin, Phone, ArrowUp, ArrowDown, ChevronsUpDown, Power, Loader2 } from 'lucide-react';
+import { Building2, MapPin, FileText, ArrowUp, ArrowDown, ChevronsUpDown, Power, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Vacancy } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { updatePreScreeningStatus } from '@/lib/interview-api';
+import { updateVacancyAgentStatus } from '@/lib/document-collection-api';
+import { StatusBadge } from '@/components/kit/status-badge';
+import { Button } from '@/components/ui/button';
 import {
   Table,
   TableBody,
@@ -14,13 +16,18 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { ChannelIcons } from '@/components/kit/status';
-import { StatusBadge } from '@/components/kit/status-badge';
-import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 
-type SortKey = 'title' | 'candidatesCount' | 'completedCount' | 'qualifiedCount' | 'lastActivityAt';
+type SortKey = 'title' | 'active' | 'completed' | 'needsReview' | 'lastActivityAt';
 type SortDirection = 'asc' | 'desc' | null;
+
+export interface CollectionStats {
+  active: number;
+  completed: number;
+  needsReview: number;
+  total: number;
+  lastActivityAt?: string | null;
+}
 
 interface SortableHeaderProps {
   label: string;
@@ -61,12 +68,10 @@ function SortableHeader({ label, sortKey, currentSortKey, sortDirection, onSort,
   );
 }
 
-export interface PublishedVacanciesTableProps {
+export interface CollectionVacancyTableProps {
   vacancies: Vacancy[];
+  collectionStats: Map<string, CollectionStats>;
 }
-
-// Keep old name as alias for backwards compatibility
-export type GeneratedVacanciesTableProps = PublishedVacanciesTableProps;
 
 function formatRelativeDate(dateString: string | null | undefined) {
   if (!dateString) return '-';
@@ -84,7 +89,7 @@ function formatRelativeDate(dateString: string | null | undefined) {
   return date.toLocaleDateString('nl-BE', { day: 'numeric', month: 'short' });
 }
 
-export function PublishedVacanciesTable({ vacancies }: PublishedVacanciesTableProps) {
+export function CollectionVacancyTable({ vacancies, collectionStats }: CollectionVacancyTableProps) {
   const router = useRouter();
   const [sortKey, setSortKey] = useState<SortKey | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);
@@ -107,15 +112,15 @@ export function PublishedVacanciesTable({ vacancies }: PublishedVacanciesTablePr
     }
   };
 
-  const handleActivate = useCallback(async (e: React.MouseEvent, vacancyId: string) => {
+  const handleActivateAgent = useCallback(async (e: React.MouseEvent, vacancyId: string) => {
     e.stopPropagation();
     setActivatingId(vacancyId);
     try {
-      await updatePreScreeningStatus(vacancyId, true);
+      await updateVacancyAgentStatus(vacancyId, 'document_collection', { is_online: true });
       setActivatedIds(prev => new Set(prev).add(vacancyId));
-      toast.success('Pre-screening is geactiveerd');
+      toast.success('Agent is geactiveerd');
     } catch {
-      toast.error('Kon pre-screening niet activeren');
+      toast.error('Kon agent niet activeren');
     } finally {
       setActivatingId(null);
     }
@@ -128,26 +133,29 @@ export function PublishedVacanciesTable({ vacancies }: PublishedVacanciesTablePr
       let aValue: string | number | null | undefined;
       let bValue: string | number | null | undefined;
 
+      const aStats = collectionStats.get(a.id);
+      const bStats = collectionStats.get(b.id);
+
       switch (sortKey) {
         case 'title':
           aValue = a.title;
           bValue = b.title;
           break;
-        case 'candidatesCount':
-          aValue = a.candidatesCount;
-          bValue = b.candidatesCount;
+        case 'active':
+          aValue = aStats?.active ?? 0;
+          bValue = bStats?.active ?? 0;
           break;
-        case 'completedCount':
-          aValue = a.completedCount;
-          bValue = b.completedCount;
+        case 'completed':
+          aValue = aStats?.completed ?? 0;
+          bValue = bStats?.completed ?? 0;
           break;
-        case 'qualifiedCount':
-          aValue = a.qualifiedCount;
-          bValue = b.qualifiedCount;
+        case 'needsReview':
+          aValue = aStats?.needsReview ?? 0;
+          bValue = bStats?.needsReview ?? 0;
           break;
         case 'lastActivityAt':
-          aValue = a.lastActivityAt;
-          bValue = b.lastActivityAt;
+          aValue = aStats?.lastActivityAt ?? null;
+          bValue = bStats?.lastActivityAt ?? null;
           break;
       }
 
@@ -161,15 +169,15 @@ export function PublishedVacanciesTable({ vacancies }: PublishedVacanciesTablePr
       const comparison = String(aValue).localeCompare(String(bValue));
       return sortDirection === 'asc' ? comparison : -comparison;
     });
-  }, [vacancies, sortKey, sortDirection]);
+  }, [vacancies, collectionStats, sortKey, sortDirection]);
 
   if (vacancies.length === 0) {
     return (
       <div className="text-center py-12">
         <div className="w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center mx-auto mb-3">
-          <Phone className="w-6 h-6 text-gray-400" />
+          <FileText className="w-6 h-6 text-gray-400" />
         </div>
-        <p className="text-sm text-gray-500">Geen vacatures met pre-screening.</p>
+        <p className="text-sm text-gray-500">Geen vacatures met documentcollectie.</p>
       </div>
     );
   }
@@ -186,10 +194,9 @@ export function PublishedVacanciesTable({ vacancies }: PublishedVacanciesTablePr
             onSort={handleSort}
             className="w-full"
           />
-          <TableHead>Kanalen</TableHead>
           <SortableHeader
-            label="Kandidaten"
-            sortKey="candidatesCount"
+            label="Actief"
+            sortKey="active"
             currentSortKey={sortKey}
             sortDirection={sortDirection}
             onSort={handleSort}
@@ -197,15 +204,15 @@ export function PublishedVacanciesTable({ vacancies }: PublishedVacanciesTablePr
           />
           <SortableHeader
             label="Afgerond"
-            sortKey="completedCount"
+            sortKey="completed"
             currentSortKey={sortKey}
             sortDirection={sortDirection}
             onSort={handleSort}
             className="text-center"
           />
           <SortableHeader
-            label="Gekwalificeerd"
-            sortKey="qualifiedCount"
+            label="Review"
+            sortKey="needsReview"
             currentSortKey={sortKey}
             sortDirection={sortDirection}
             onSort={handleSort}
@@ -223,15 +230,15 @@ export function PublishedVacanciesTable({ vacancies }: PublishedVacanciesTablePr
       </TableHeader>
       <TableBody>
         {sortedVacancies.map((vacancy) => {
-          const hasActivity = vacancy.candidatesCount > 0;
-          const isOnline = vacancy.isOnline === true || activatedIds.has(vacancy.id);
+          const stats = collectionStats.get(vacancy.id);
+          const hasActivity = (stats?.total ?? 0) > 0;
+          const agentOnline = vacancy.agents?.preonboarding?.status === 'online' || activatedIds.has(vacancy.id);
 
           return (
             <TableRow
               key={vacancy.id}
-              data-testid={`published-vacancy-row-${vacancy.id}`}
               className="cursor-pointer"
-              onClick={() => router.push(`/pre-screening/detail/${vacancy.id}?mode=dashboard`)}
+              onClick={() => router.push(`/document-collection/vacancy/${vacancy.id}`)}
             >
               <TableCell>
                 <div className="min-w-0">
@@ -252,29 +259,26 @@ export function PublishedVacanciesTable({ vacancies }: PublishedVacanciesTablePr
                   </div>
                 </div>
               </TableCell>
-              <TableCell>
-                <ChannelIcons channels={vacancy.channels} />
-              </TableCell>
               <TableCell className="text-center">
                 <span className={`font-medium ${hasActivity ? 'text-gray-900' : 'text-gray-400'}`}>
-                  {hasActivity ? vacancy.candidatesCount : '-'}
+                  {hasActivity ? (stats?.active ?? 0) : '-'}
                 </span>
               </TableCell>
               <TableCell className="text-center">
                 <span className={`font-medium ${hasActivity ? 'text-gray-900' : 'text-gray-400'}`}>
-                  {hasActivity ? vacancy.completedCount : '-'}
+                  {hasActivity ? (stats?.completed ?? 0) : '-'}
                 </span>
               </TableCell>
               <TableCell className="text-center">
-                <span className={`font-medium ${hasActivity ? 'text-gray-900' : 'text-gray-400'}`}>
-                  {hasActivity ? vacancy.qualifiedCount : '-'}
+                <span className={`font-medium ${(stats?.needsReview ?? 0) > 0 ? 'text-orange-600' : hasActivity ? 'text-gray-900' : 'text-gray-400'}`}>
+                  {hasActivity ? (stats?.needsReview ?? 0) : '-'}
                 </span>
               </TableCell>
               <TableCell className="text-gray-500 text-sm">
-                {formatRelativeDate(vacancy.lastActivityAt)}
+                {formatRelativeDate(stats?.lastActivityAt)}
               </TableCell>
               <TableCell className="text-right">
-                {isOnline ? (
+                {agentOnline ? (
                   <StatusBadge label="Online" variant="green" />
                 ) : (
                   <Button
@@ -282,7 +286,7 @@ export function PublishedVacanciesTable({ vacancies }: PublishedVacanciesTablePr
                     size="sm"
                     className="gap-1.5 text-xs"
                     disabled={activatingId === vacancy.id}
-                    onClick={(e) => handleActivate(e, vacancy.id)}
+                    onClick={(e) => handleActivateAgent(e, vacancy.id)}
                   >
                     {activatingId === vacancy.id ? (
                       <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -300,6 +304,3 @@ export function PublishedVacanciesTable({ vacancies }: PublishedVacanciesTablePr
     </Table>
   );
 }
-
-// Keep old name as alias for backwards compatibility
-export const GeneratedVacanciesTable = PublishedVacanciesTable;

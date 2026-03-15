@@ -15,6 +15,8 @@ import {
   GlobalActivitiesResponse,
   ActivityActorType,
   ActivityChannel,
+  VacancyAgents,
+  AgentStatusInfo,
 } from './types';
 
 const API_BASE = '/api';
@@ -237,6 +239,44 @@ export async function deleteCandidateAttribute(
   }
 }
 
+// Transform list-based agents API response into the object shape the frontend expects
+interface AgentListItem {
+  type: string;
+  status: 'online' | 'offline' | null;
+  total_screenings?: number | null;
+  qualified_count?: number | null;
+  qualification_rate?: number | null;
+  last_activity_at?: string | null;
+}
+
+function transformAgentsList(agentsList: unknown): VacancyAgents {
+  const defaultAgent: AgentStatusInfo = { exists: false, status: null };
+  const result: VacancyAgents = {
+    prescreening: { ...defaultAgent },
+    preonboarding: { ...defaultAgent },
+    insights: { ...defaultAgent },
+  };
+
+  if (!Array.isArray(agentsList)) return result;
+
+  for (const agent of agentsList as AgentListItem[]) {
+    const mapped: AgentStatusInfo = {
+      exists: true,
+      status: agent.status,
+      total_screenings: agent.total_screenings ?? undefined,
+      qualified_count: agent.qualified_count ?? undefined,
+      qualification_rate: agent.qualification_rate ?? undefined,
+      last_activity_at: agent.last_activity_at ?? undefined,
+    };
+
+    if (agent.type === 'prescreening') result.prescreening = mapped;
+    else if (agent.type === 'document_collection') result.preonboarding = mapped;
+    else if (agent.type === 'insights') result.insights = mapped;
+  }
+
+  return result;
+}
+
 // Vacancies API (from backend)
 export interface GetVacanciesParams {
   limit?: number;
@@ -268,7 +308,19 @@ export async function getVacanciesFromAPI(params: GetVacanciesParams = {}): Prom
     throw new Error('Failed to fetch vacancies');
   }
 
-  return response.json();
+  const data = await response.json();
+
+  // Transform list-based agents into object shape for each vacancy
+  if (data.items) {
+    data.items = data.items.map((item: APIVacancyListItem & { agents: unknown }) => {
+      if (Array.isArray(item.agents)) {
+        return { ...item, agents: transformAgentsList(item.agents) };
+      }
+      return item;
+    });
+  }
+
+  return data;
 }
 
 export async function getVacancyDetail(vacancyId: string): Promise<APIVacancyDetail> {
@@ -278,14 +330,12 @@ export async function getVacancyDetail(vacancyId: string): Promise<APIVacancyDet
   }
   const data = await response.json();
 
-  // Ensure agents field exists
+  // Transform list-based agents into object shape
+  const agents = transformAgentsList(data.agents);
+
   return {
     ...data,
-    agents: data.agents || {
-      prescreening: { exists: false, status: null },
-      preonboarding: { exists: false, status: null },
-      insights: { exists: false, status: null },
-    },
+    agents,
     timeline: data.timeline || [],
   };
 }
@@ -296,6 +346,19 @@ export interface WorkstationSheetParam {
   param_value: string;
   notes: string | null;
   updated_at: string | null;
+}
+
+export async function patchVacancy(
+  vacancyId: string,
+  data: { start_date?: string | null }
+): Promise<{ id: string; start_date: string | null }> {
+  const response = await fetch(`${BACKEND_URL}/vacancies/${vacancyId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error('Failed to update vacancy');
+  return response.json();
 }
 
 export async function getWorkstationSheet(vacancyId: string): Promise<WorkstationSheetParam[]> {
@@ -378,6 +441,10 @@ export interface WorkflowStep {
 
 export interface TaskRow {
   id: string;
+  candidate_id: string | null;
+  vacancy_id: string | null;
+  application_id: string | null;
+  collection_id: string | null;
   candidate_name: string | null;
   vacancy_title: string | null;
   workflow_type: string;

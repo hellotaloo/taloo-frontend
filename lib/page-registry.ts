@@ -71,6 +71,7 @@ export const pageConfigs: Record<string, PageConfig> = {
 
   // Documentcollectie
   '/document-collection': { title: 'Documentcollectie', description: 'Verzamel documenten voor nieuwe medewerkers', icon: FileCheck },
+  '/document-collection/playground': { title: 'Documentcollectie playground', icon: Play },
 
   // Other features
   '/insights': { title: 'Pattern Finder', description: 'Ontdek verborgen patronen en optimaliseer je hiring proces', icon: ScanSearch },

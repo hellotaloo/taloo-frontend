@@ -5,7 +5,7 @@ import {
   X,
   FileText,
   CheckCircle2,
-  Clock,
+  Circle,
   Loader2,
   MessageCircle,
   XCircle,
@@ -75,7 +75,7 @@ const stageLabels: Record<string, string> = {
 };
 
 const itemStatusConfig: Record<DocumentStatus, { label: string; variant: 'blue' | 'green' | 'orange' | 'red' | 'gray'; icon: React.ReactNode }> = {
-  pending:  { label: 'Wachtend',      variant: 'gray',   icon: <Clock className="w-3.5 h-3.5 text-gray-400" /> },
+  pending:  { label: 'Wachtend',      variant: 'gray',   icon: <Circle className="w-3.5 h-3.5 text-gray-300" /> },
   asked:    { label: 'Gevraagd',      variant: 'blue',   icon: <MessageCircle className="w-3.5 h-3.5 text-blue-500" /> },
   received: { label: 'Ontvangen',     variant: 'orange',  icon: <Download className="w-3.5 h-3.5 text-yellow-500" /> },
   verified: { label: 'Geverifieerd',  variant: 'green',  icon: <CheckCircle2 className="w-3.5 h-3.5 text-green-500" /> },
@@ -273,10 +273,10 @@ export function CollectionDetailPane({
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue="overzicht" className="flex-1 flex flex-col min-h-0">
+      <Tabs defaultValue="tijdlijn" className="flex-1 flex flex-col min-h-0">
         <TabsList variant="line" className="px-6 shrink-0">
-          <TabsTrigger value="overzicht">Overzicht</TabsTrigger>
           <TabsTrigger value="tijdlijn">Tijdlijn</TabsTrigger>
+          <TabsTrigger value="overzicht">Overzicht</TabsTrigger>
           <TabsTrigger value="chat">Chat</TabsTrigger>
         </TabsList>
 
@@ -333,6 +333,115 @@ function ProgressBar({ label, collected, total }: { label: string; collected: nu
 }
 
 // =============================================================================
+// Document grouping helpers
+// =============================================================================
+
+type DocumentGroupEntry =
+  | { type: 'single'; group: string; items: [CollectionItemStatusResponse] }
+  | { type: 'grouped'; group: string; items: CollectionItemStatusResponse[] };
+
+function groupDocuments(documents: CollectionItemStatusResponse[]): DocumentGroupEntry[] {
+  const entries: DocumentGroupEntry[] = [];
+  const grouped: Record<string, CollectionItemStatusResponse[]> = {};
+  const ungrouped: CollectionItemStatusResponse[] = [];
+
+  for (const doc of documents) {
+    if (doc.group) {
+      if (!grouped[doc.group]) grouped[doc.group] = [];
+      grouped[doc.group].push(doc);
+    } else {
+      ungrouped.push(doc);
+    }
+  }
+
+  // Grouped items first
+  for (const [group, items] of Object.entries(grouped)) {
+    if (items.length === 1) {
+      entries.push({ type: 'single', group, items: [items[0]] });
+    } else {
+      entries.push({ type: 'grouped', group, items });
+    }
+  }
+
+  // Then ungrouped
+  for (const doc of ungrouped) {
+    entries.push({ type: 'single', group: doc.slug, items: [doc] });
+  }
+
+  return entries;
+}
+
+const GROUP_LABELS: Record<string, string> = {
+  identity: 'Identiteitsbewijs',
+};
+
+const WORK_AUTH_SLUGS = new Set(['prato_5', 'prato_9', 'prato_20', 'prato_101', 'prato_102']);
+
+function GroupedDocumentRow({ group, items }: { group: string; items: CollectionItemStatusResponse[] }) {
+  // Split into ID docs and work authorization docs
+  const idDocs = items.filter((i) => !WORK_AUTH_SLUGS.has(i.slug));
+  const workAuthDocs = items.filter((i) => WORK_AUTH_SLUGS.has(i.slug));
+
+  // ID row status
+  const idVerified = idDocs.some((i) => i.status === 'verified');
+  const idReceived = idDocs.some((i) => ['received', 'verified'].includes(i.status));
+  const idConfig = idVerified ? itemStatusConfig.verified : idReceived ? itemStatusConfig.received : itemStatusConfig.pending;
+
+  // Work auth row status
+  const workAuthReceived = workAuthDocs.some((i) => ['received', 'verified'].includes(i.status));
+
+  const label = GROUP_LABELS[group] ?? group;
+  const idNames = idDocs.map((i) => i.name).join(' / ');
+
+  return (
+    <div className="space-y-0.5">
+      {/* Main row: identity document */}
+      <div className={cn(
+        'flex items-center justify-between py-1.5 px-2.5 rounded-md text-sm',
+        idReceived ? 'bg-green-50/50' : 'bg-transparent',
+      )}>
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="shrink-0">{idConfig.icon}</div>
+          <div className="min-w-0">
+            <span className={cn('truncate', idReceived ? 'text-gray-900' : 'text-gray-500')}>
+              {label}
+            </span>
+            {idNames && (
+              <span className="text-[10px] text-gray-400 ml-1.5">{idNames}</span>
+            )}
+          </div>
+        </div>
+        <div className="flex items-center gap-2 shrink-0 ml-2">
+          {idDocs.some((i) => i.verification_passed) && (
+            <CheckCircle2 className="w-3.5 h-3.5 text-green-500" />
+          )}
+        </div>
+      </div>
+
+      {/* Sub-row: work authorization */}
+      {workAuthDocs.length > 0 && (
+        <div className={cn(
+          'flex items-center justify-between py-1 px-2.5 rounded-md text-sm',
+          workAuthReceived ? 'bg-green-50/50' : 'bg-transparent',
+        )}>
+          <div className="flex items-center gap-1.5 min-w-0 pl-8">
+            <ArrowRight className="w-3 h-3 text-gray-300 shrink-0" />
+            <span className={cn('text-xs', workAuthReceived ? 'text-gray-900' : 'text-gray-400')}>
+              Werkvergunning indien nodig
+            </span>
+          </div>
+          <div className="flex items-center gap-2 shrink-0 ml-2">
+            {workAuthDocs.some((i) => i.verification_passed) && (
+              <CheckCircle2 className="w-3.5 h-3.5 text-green-500" />
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// =============================================================================
 // Overzicht Tab
 // =============================================================================
 
@@ -355,9 +464,13 @@ function OverzichtTab({
             Documenten ({documents.filter((d) => d.status === 'verified').length}/{documents.length})
           </h3>
           <div className="space-y-1.5">
-            {documents.map((item) => (
-              <CollectionItemRow key={item.slug} item={item} />
-            ))}
+            {groupDocuments(documents).map((entry) =>
+              entry.type === 'single' ? (
+                <CollectionItemRow key={entry.items[0].slug} item={entry.items[0]} />
+              ) : (
+                <GroupedDocumentRow key={entry.group} group={entry.group} items={entry.items} />
+              ),
+            )}
           </div>
         </div>
       )}
@@ -402,35 +515,48 @@ function OverzichtTab({
 function CollectionItemRow({ item }: { item: CollectionItemStatusResponse }) {
   const config = itemStatusConfig[item.status] ?? itemStatusConfig.pending;
   const isCollected = ['received', 'verified'].includes(item.status);
+  const isStructured = item.value != null && typeof item.value === 'object';
 
   return (
-    <div className={cn(
-      'flex items-center justify-between py-1.5 px-2.5 rounded-md text-sm',
-      isCollected ? 'bg-green-50/50' : 'bg-transparent',
-    )}>
-      <div className="flex items-center gap-2.5 min-w-0">
-        <div className="shrink-0">{config.icon}</div>
-        <span className={cn(
-          'truncate',
-          isCollected ? 'text-gray-900' : 'text-gray-500',
-        )}>
-          {item.name}
-        </span>
-        {item.priority === 'recommended' && (
-          <span className="text-[10px] text-gray-400 shrink-0">(optioneel)</span>
-        )}
+    <div>
+      <div className={cn(
+        'flex items-center justify-between py-1.5 px-2.5 rounded-md text-sm',
+        isCollected ? 'bg-green-50/50' : 'bg-transparent',
+      )}>
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="shrink-0">{config.icon}</div>
+          <span className={cn(
+            'truncate',
+            isCollected ? 'text-gray-900' : 'text-gray-500',
+          )}>
+            {item.name}
+          </span>
+          {item.priority === 'recommended' && (
+            <span className="text-[10px] text-gray-400 shrink-0">(optioneel)</span>
+          )}
+        </div>
+        <div className="flex items-center gap-2 shrink-0 ml-2">
+          {item.value && !isStructured && (
+            <span className="text-xs text-gray-600 font-mono truncate max-w-[140px]">{item.value as string}</span>
+          )}
+          {item.verification_passed && (
+            <CheckCircle2 className="w-3.5 h-3.5 text-green-500" />
+          )}
+          {item.uploaded_at && (
+            <span className="text-[10px] text-gray-400">{formatTimestamp(item.uploaded_at)}</span>
+          )}
+        </div>
       </div>
-      <div className="flex items-center gap-2 shrink-0 ml-2">
-        {item.value && (
-          <span className="text-xs text-gray-600 font-mono truncate max-w-[140px]">{item.value}</span>
-        )}
-        {item.verification_passed && (
-          <CheckCircle2 className="w-3.5 h-3.5 text-green-500" />
-        )}
-        {item.uploaded_at && (
-          <span className="text-[10px] text-gray-400">{formatTimestamp(item.uploaded_at)}</span>
-        )}
-      </div>
+      {isStructured && isCollected && (
+        <div className="ml-8 space-y-0.5 mt-0.5">
+          {Object.entries(item.value as Record<string, string>).map(([key, val]) => (
+            <div key={key} className="flex items-center gap-2 py-0.5 px-2.5 text-xs">
+              <span className="text-gray-400 w-20 shrink-0 capitalize">{key}</span>
+              <span className="text-gray-600 font-mono truncate">{val}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -487,7 +613,7 @@ function TaskItemRow({ item, collectionId }: { item: CollectionItemStatusRespons
         {item.status === 'triggered' && (
           <span className="text-[10px] text-orange-500 font-medium">Gestart</span>
         )}
-        {isCompleted && item.value && (
+        {isCompleted && item.value && typeof item.value === 'string' && (
           <span className="text-xs text-gray-600 font-mono truncate max-w-[140px]">{item.value}</span>
         )}
         {item.verification_passed && (

@@ -7,6 +7,8 @@ import type {
   VerificationSchema,
   ScanMode,
   VerificationConfig,
+  Integration,
+  SyncWithEntry,
 } from './types';
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8080';
@@ -100,6 +102,7 @@ export async function getVerificationSchema(): Promise<VerificationSchema> {
 
 export interface PatchEntityBody {
   name?: string;
+  description?: string | null;
   category?: string;
   icon?: string;
   is_verifiable?: boolean;
@@ -108,6 +111,7 @@ export interface PatchEntityBody {
   scan_mode?: ScanMode;
   verification_config?: VerificationConfig | null;
   sort_order?: number;
+  ai_hint?: string | null;
 }
 
 export interface CreateEntityBody {
@@ -155,4 +159,44 @@ export async function patchOntologyEntity(
   });
   if (!response.ok) throw new Error('Failed to update entity');
   return response.json();
+}
+
+// =============================================================================
+// Integrations
+// =============================================================================
+
+export async function getIntegrations(): Promise<Integration[]> {
+  const url = `${BACKEND_URL}/ontology/integrations`;
+  const response = await authFetch(url);
+  if (!response.ok) throw new Error('Failed to fetch integrations');
+  return response.json();
+}
+
+// =============================================================================
+// Sync With
+// =============================================================================
+
+export async function addSyncWith(
+  entityId: string,
+  integrationId: string,
+  tableName = 'types_documents',
+  externalId?: string,
+): Promise<SyncWithEntry> {
+  const url = `${BACKEND_URL}/ontology/entities/${entityId}/sync-with?table_name=${tableName}`;
+  const response = await authFetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ integration_id: integrationId, external_id: externalId }),
+  });
+  if (!response.ok) throw new Error('Failed to add sync link');
+  return response.json();
+}
+
+export async function removeSyncWith(
+  entityId: string,
+  syncWithId: string,
+): Promise<void> {
+  const url = `${BACKEND_URL}/ontology/entities/${entityId}/sync-with/${syncWithId}`;
+  const response = await authFetch(url, { method: 'DELETE' });
+  if (!response.ok) throw new Error('Failed to remove sync link');
 }

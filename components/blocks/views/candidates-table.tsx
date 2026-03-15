@@ -100,19 +100,20 @@ export function CandidatesTable({ candidates, selectedId, onRowClick }: Candidat
       ),
     },
     {
-      key: 'synced',
-      header: 'Synced',
+      key: 'last_activity',
+      header: 'Laatste activiteit',
       sortable: true,
-      className: 'w-[140px]',
+      className: 'w-[160px]',
       accessor: (item) => item.last_activity || item.created_at || '',
       render: (item) => {
-        const syncDate = item.last_activity || item.created_at;
-        if (!syncDate) {
+        const activityDate = item.last_activity;
+        const fallbackDate = item.created_at;
+        if (!activityDate && !fallbackDate) {
           return <span className="text-gray-500 text-sm">-</span>;
         }
         return (
           <span className="text-gray-500 text-sm">
-            {formatRelativeDate(syncDate)}
+            {formatRelativeDate(activityDate || fallbackDate)}
           </span>
         );
       },

@@ -287,6 +287,10 @@ export function CandidatesPipeline({ searchQuery, onCandidateClick }: Candidates
       if (query && !c.candidate.full_name.toLowerCase().includes(query)) continue;
       map.get(c.stage)?.push(c);
     }
+    // Sort each column: most recently updated first
+    for (const list of map.values()) {
+      list.sort((a, b) => new Date(a.stage_updated_at).getTime() - new Date(b.stage_updated_at).getTime());
+    }
     return map;
   }, [candidacies, searchQuery]);
 

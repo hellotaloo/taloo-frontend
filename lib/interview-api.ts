@@ -321,11 +321,14 @@ interface BackendVacancy {
     whatsapp: boolean;
     cv: boolean;
   };
-  agents?: {
-    prescreening: { exists: boolean; status: 'online' | 'offline' | null };
-    preonboarding: { exists: boolean; status: 'online' | 'offline' | null };
-    insights: { exists: boolean; status: 'online' | 'offline' | null };
-  };
+  agents?: Array<{
+    type: string;
+    status: 'online' | 'offline' | null;
+    total_screenings?: number | null;
+    qualified_count?: number | null;
+    qualification_rate?: number | null;
+    last_activity_at?: string | null;
+  }>;
   // Recruiter and client
   recruiter_id?: string;
   recruiter?: BackendRecruiterSummary;
@@ -338,6 +341,36 @@ interface BackendVacancy {
   last_activity_at: string | null;
   // Publishing
   published_at: string | null;
+}
+
+const DEFAULT_AGENT_STATUS = { exists: false, status: null as 'online' | 'offline' | null };
+
+/** Transform list-based agents response into the object shape the frontend expects. */
+function transformAgents(agentsList?: BackendVacancy['agents']) {
+  const result = {
+    prescreening: { ...DEFAULT_AGENT_STATUS },
+    preonboarding: { ...DEFAULT_AGENT_STATUS },
+    insights: { ...DEFAULT_AGENT_STATUS },
+  };
+
+  if (!agentsList || !Array.isArray(agentsList)) return result;
+
+  for (const agent of agentsList) {
+    const mapped = {
+      exists: true,
+      status: agent.status,
+      total_screenings: agent.total_screenings ?? undefined,
+      qualified_count: agent.qualified_count ?? undefined,
+      qualification_rate: agent.qualification_rate ?? undefined,
+      last_activity_at: agent.last_activity_at ?? undefined,
+    };
+
+    if (agent.type === 'prescreening') result.prescreening = mapped;
+    else if (agent.type === 'document_collection') result.preonboarding = mapped;
+    else if (agent.type === 'insights') result.insights = mapped;
+  }
+
+  return result;
 }
 
 // Conversion helper
@@ -356,11 +389,7 @@ function convertVacancy(v: BackendVacancy): Vacancy {
     hasScreening: v.has_screening ?? false,
     isOnline: v.is_online ?? null,
     channels: v.channels ?? { voice: false, whatsapp: false, cv: false },
-    agents: v.agents ?? {
-      prescreening: { exists: false, status: null },
-      preonboarding: { exists: false, status: null },
-      insights: { exists: false, status: null },
-    },
+    agents: transformAgents(v.agents),
     recruiterId: v.recruiter_id,
     recruiter: v.recruiter,
     clientId: v.client_id,

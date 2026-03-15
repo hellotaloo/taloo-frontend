@@ -120,9 +120,7 @@ export function OntologyExtraction({ entity, onEntityChange }: OntologyExtractio
 
       {/* Field list */}
       <div className="space-y-1">
-        {fields.length === 0 && !adding && (
-          <p className="text-sm text-gray-400 py-1">Nog geen velden toegevoegd</p>
-        )}
+        {/* empty state removed — the "+ Veld toevoegen" button is sufficient */}
 
         {fields.map((field, index) =>
           editingIndex === index ? (
@@ -244,7 +242,7 @@ export function OntologyExtraction({ entity, onEntityChange }: OntologyExtractio
       ) : (
         <button
           onClick={() => setAdding(true)}
-          className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-600 transition-colors"
+          className="flex items-center gap-1.5 text-xs text-gray-900 hover:text-gray-600 transition-colors"
         >
           <Plus className="w-3.5 h-3.5" />
           Veld toevoegen

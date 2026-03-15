@@ -92,3 +92,48 @@ export async function triggerCollectionTask(
     throw new Error(`Failed to trigger task: ${response.status}`);
   }
 }
+
+// =============================================================================
+// Vacancy Agent Status
+// =============================================================================
+
+export interface VacancyAgentStatusResponse {
+  vacancy_id: string;
+  agent_type: string;
+  is_online: boolean;
+  created_at: string;
+}
+
+export async function getVacancyAgentStatus(
+  vacancyId: string,
+  agentType: string = 'document_collection'
+): Promise<VacancyAgentStatusResponse> {
+  const url = `${BACKEND_URL}/vacancies/${vacancyId}/agents/${agentType}/status`;
+
+  const response = await authFetch(url);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch agent status: ${response.status}`);
+  }
+
+  return response.json();
+}
+
+export async function updateVacancyAgentStatus(
+  vacancyId: string,
+  agentType: string,
+  data: { is_online: boolean }
+): Promise<VacancyAgentStatusResponse> {
+  const url = `${BACKEND_URL}/vacancies/${vacancyId}/agents/${agentType}/status`;
+
+  const response = await authFetch(url, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to update agent status: ${response.status}`);
+  }
+
+  return response.json();
+}

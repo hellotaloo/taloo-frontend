@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { cn } from '@/lib/utils';
 import { patchOntologyEntity } from '@/lib/ontology-api';
 import type { OntologyEntity, VerificationConfig } from '@/lib/types';
 import { toast } from 'sonner';
@@ -26,11 +25,7 @@ export interface OntologyVerificationProps {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function OntologyVerification({ entity, onEntityChange }: OntologyVerificationProps) {
-  // Only local state for is_verifiable (visibility) and textarea (controlled input)
   const [isVerifiable, setIsVerifiable] = useState(entity.is_verifiable);
-  const [instructions, setInstructions] = useState(
-    entity.verification_config?.additional_instructions ?? '',
-  );
 
   const config = entity.verification_config;
 
@@ -65,20 +60,6 @@ export function OntologyVerification({ entity, onEntityChange }: OntologyVerific
     } catch {
       onEntityChange({ verification_config: config });
       toast.error('Kon instelling niet opslaan');
-    }
-  }
-
-  async function handleInstructionsBlur() {
-    const trimmed = instructions.trim();
-    const prev = config?.additional_instructions ?? '';
-    if (trimmed === prev) return;
-    const newConfig = { ...(config ?? DEFAULT_CONFIG), additional_instructions: trimmed };
-    try {
-      await patchOntologyEntity(entity.id, { verification_config: newConfig });
-      onEntityChange({ verification_config: newConfig });
-    } catch {
-      setInstructions(prev);
-      toast.error('Kon instructies niet opslaan');
     }
   }
 
@@ -135,28 +116,6 @@ export function OntologyVerification({ entity, onEntityChange }: OntologyVerific
             </div>
           </div>
 
-          {/* Instructies */}
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-medium text-gray-500">Instructies voor de AI</label>
-              <span
-                className={cn(
-                  'text-xs tabular-nums',
-                  instructions.length >= 450 ? 'text-orange-500' : 'text-gray-400',
-                )}
-              >
-                {instructions.length}/500
-              </span>
-            </div>
-            <textarea
-              value={instructions}
-              onChange={(e) => setInstructions(e.target.value.slice(0, 500))}
-              onBlur={handleInstructionsBlur}
-              placeholder="bv. Controleer of het document een officieel stempel bevat..."
-              rows={3}
-              className="w-full resize-none rounded-md border border-input bg-background px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-0"
-            />
-          </div>
         </>
       )}
     </div>

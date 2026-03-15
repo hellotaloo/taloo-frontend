@@ -48,7 +48,6 @@ import {
   AttributeTypeDetailPanel,
   ATTRIBUTE_CATEGORY_OPTIONS,
   DATA_TYPE_OPTIONS,
-  COLLECTED_BY_OPTIONS,
 } from '@/components/blocks/attribute-type-panel';
 import { getOntologyEntities, getOntologyEntity, createOntologyEntity, getOntologyStats } from '@/lib/ontology-api';
 import { getAttributeTypes, createAttributeType } from '@/lib/attribute-types-api';
@@ -501,7 +500,6 @@ export default function OntologyPage() {
                       <TableHead className="w-12">#</TableHead>
                       <TableHead>Naam</TableHead>
                       <TableHead className="w-28">Type</TableHead>
-                      <TableHead className="text-right w-32">Verzameld door</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -531,16 +529,11 @@ export default function OntologyPage() {
                         <TableCell className="text-sm text-gray-500">
                           {DATA_TYPE_OPTIONS.find((o) => o.value === attr.data_type)?.label ?? attr.data_type}
                         </TableCell>
-                        <TableCell className="text-right text-sm text-gray-500">
-                          {attr.collected_by
-                            ? COLLECTED_BY_OPTIONS.find((o) => o.value === attr.collected_by)?.label ?? attr.collected_by
-                            : '-'}
-                        </TableCell>
                       </TableRow>
                     ))}
                     {filteredAttrItems.length === 0 && (
                       <TableRow>
-                        <TableCell colSpan={4} className="text-center py-10 text-sm text-gray-500">
+                        <TableCell colSpan={3} className="text-center py-10 text-sm text-gray-500">
                           {searchQuery
                             ? `Geen resultaten voor "${searchQuery}"`
                             : 'Geen attribuuttypes gevonden'}

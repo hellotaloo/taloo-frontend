@@ -37,7 +37,7 @@ import { StatusBadge } from '@/components/kit/status-badge';
 import { MarkdownContent } from '@/components/kit/markdown-content';
 import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
-import { getCandidates, getWorkstationSheet, setWorkstationSheetParam, deleteWorkstationSheetParam, getMedicalRisks, type WorkstationSheetParam, type MedicalRiskOption } from '@/lib/api';
+import { getCandidates, getWorkstationSheet, setWorkstationSheetParam, deleteWorkstationSheetParam, getMedicalRisks, patchVacancy, type WorkstationSheetParam, type MedicalRiskOption } from '@/lib/api';
 import { getCandidacies, createCandidacy } from '@/lib/candidacy-api';
 import { APIVacancyDetail, APIActivityResponse, APIApplicantSummary, VacancyAgents, AgentStatusInfo, Candidacy, CandidacyStage, APICandidateListItem } from '@/lib/types';
 import { toast } from 'sonner';
@@ -194,10 +194,12 @@ function AgentCard({ type, agent }: { type: string; agent: AgentStatusInfo }) {
             <p className="text-xs text-gray-500">{config.description}</p>
           </div>
         </div>
-        <StatusBadge
-          label={agent.status === 'online' ? 'Online' : 'Offline'}
-          variant={agent.status === 'online' ? 'green' : 'gray'}
-        />
+        {agent.status !== null && (
+          <StatusBadge
+            label={agent.status === 'online' ? 'Online' : 'Offline'}
+            variant={agent.status === 'online' ? 'green' : 'gray'}
+          />
+        )}
       </div>
 
       {/* Stats */}
@@ -842,6 +844,72 @@ function ApplicantRow({ applicant }: { applicant: APIApplicantSummary }) {
   );
 }
 
+// ─── Inline start date editor ────────────────────────────────────────────────
+
+function StartDateField({ vacancyId, value }: { vacancyId: string; value?: string | null }) {
+  const [editing, setEditing] = useState(false);
+  const [savedValue, setSavedValue] = useState(value ?? '');
+  const [dateValue, setDateValue] = useState(value ?? '');
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    setSavedValue(value ?? '');
+    setDateValue(value ?? '');
+  }, [value]);
+
+  const handleSave = async (newValue: string) => {
+    setSaving(true);
+    try {
+      await patchVacancy(vacancyId, { start_date: newValue || null });
+      setSavedValue(newValue);
+      setEditing(false);
+      toast.success('Startdatum opgeslagen');
+    } catch {
+      toast.error('Opslaan mislukt');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const formattedDate = savedValue
+    ? new Date(savedValue + 'T00:00:00').toLocaleDateString('nl-BE', { day: 'numeric', month: 'long', year: 'numeric' })
+    : null;
+
+  if (editing) {
+    return (
+      <div className="flex items-center gap-1">
+        <Input
+          type="date"
+          value={dateValue}
+          onChange={(e) => setDateValue(e.target.value)}
+          className="h-7 text-xs w-36"
+          disabled={saving}
+          autoFocus
+        />
+        <Button size="sm" className="h-7 text-[10px] px-2" onClick={() => handleSave(dateValue)} disabled={saving}>
+          {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : 'OK'}
+        </Button>
+        <button onClick={() => { setEditing(false); setDateValue(savedValue); }} className="p-1 rounded hover:bg-gray-200">
+          <X className="w-3 h-3 text-gray-400" />
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <button
+      onClick={() => setEditing(true)}
+      className="text-sm font-semibold text-gray-900 hover:text-gray-600 transition-colors group"
+    >
+      {formattedDate ? (
+        <span>{formattedDate}</span>
+      ) : (
+        <span className="text-gray-400 font-normal group-hover:text-gray-500">Instellen</span>
+      )}
+    </button>
+  );
+}
+
 export function VacancyDetailPane({ vacancy, isLoading, onClose, onCandidateClick }: VacancyDetailPaneProps) {
   if (isLoading) {
     return (
@@ -907,18 +975,12 @@ export function VacancyDetailPane({ vacancy, isLoading, onClose, onCandidateClic
             </p>
           </div>
 
-          {/* Completed */}
+          {/* Start date */}
           <div className="bg-gray-50 rounded-lg p-3">
             <p className="text-[10px] font-medium text-gray-500 uppercase tracking-wide mb-1">
-              Afgerond
+              Startdatum
             </p>
-            {vacancy.candidates_count > 0 ? (
-              <p className="text-sm font-semibold text-gray-900">
-                {vacancy.completed_count}/{vacancy.candidates_count}
-              </p>
-            ) : (
-              <span className="text-sm text-gray-400">-</span>
-            )}
+            <StartDateField vacancyId={vacancy.id} value={vacancy.start_date} />
           </div>
 
           {/* Qualified */}

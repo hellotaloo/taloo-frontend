@@ -6,6 +6,7 @@ import type {
   AttributeDataType,
   AttributeCollectedBy,
   AttributeOption,
+  AttributeFieldDefinition,
 } from './types';
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8080';
@@ -56,6 +57,7 @@ export interface CreateAttributeTypeBody {
   category: AttributeCategory;
   data_type: AttributeDataType;
   options?: AttributeOption[];
+  fields?: AttributeFieldDefinition[] | null;
   icon?: string;
   is_default?: boolean;
   collected_by?: AttributeCollectedBy | null;
@@ -88,11 +90,13 @@ export interface PatchAttributeTypeBody {
   category?: AttributeCategory;
   data_type?: AttributeDataType;
   options?: AttributeOption[] | null;
+  fields?: AttributeFieldDefinition[] | null;
   icon?: string | null;
   is_default?: boolean;
   is_active?: boolean;
   collected_by?: AttributeCollectedBy | null;
   sort_order?: number;
+  ai_hint?: string | null;
 }
 
 export async function patchAttributeType(

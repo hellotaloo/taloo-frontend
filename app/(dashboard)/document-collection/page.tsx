@@ -1,33 +1,76 @@
 'use client';
 
-import { FileCheck, CheckCircle2, Loader2, FileText, AlertCircle, Settings, List } from 'lucide-react';
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import type { CollectionStatus, DocumentCollectionFullDetailResponse, DocumentCollectionResponse } from '@/lib/types';
+import { FileCheck, CheckCircle2, Loader2, FileText, AlertCircle, Settings, Play, Briefcase, ArrowUp, ArrowDown, ChevronsUpDown, Eye } from 'lucide-react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import type { DocumentCollectionFullDetailResponse, Vacancy } from '@/lib/types';
 import { getDocumentCollections, getDocumentCollection } from '@/lib/document-collection-api';
+import { getPreOnboardingVacancies } from '@/lib/interview-api';
+import { getActivityTasks, type TaskRow } from '@/lib/api';
 import { useRealtimeTable } from '@/hooks/use-realtime-table';
+import { cn, formatRelativeDate } from '@/lib/utils';
 import { MetricCard } from '@/components/kit/metric-card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { CollectionTable, CollectionDetailPane } from '@/components/blocks/collection-table';
-import { Sheet, SheetContent } from '@/components/ui/sheet';
+import { CollectionDetailPane } from '@/components/blocks/collection-table';
+import { CollectionVacancyTable } from '@/components/blocks/collection-vacancy-table';
+import type { CollectionStats } from '@/components/blocks/collection-vacancy-table';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { PageLayout, PageLayoutHeader, PageLayoutContent } from '@/components/layout/page-layout';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { ActivityStatusBadge, SLABadge, translateStepLabel } from '@/components/kit/activity-helpers';
+import { Timeline } from '@/components/kit/timeline/timeline';
+import { TimelineNode } from '@/components/kit/timeline/timeline-node';
+import { Check, Circle, AlertTriangle, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 
-type FilterTab = 'all' | CollectionStatus;
+type SortKey = 'candidate_name' | 'vacancy_title' | 'current_step_label' | 'status' | 'sla' | 'time_ago';
+type SortDirection = 'asc' | 'desc' | null;
 
 export default function DocumentCollectionPage() {
-  const [collections, setCollections] = useState<DocumentCollectionResponse[]>([]);
+  // Activity tasks state
+  const [tasks, setTasks] = useState<TaskRow[]>([]);
+  const [tasksLoading, setTasksLoading] = useState(true);
+  const [selectedTask, setSelectedTask] = useState<TaskRow | null>(null);
+
+  // Collection detail pane state (for opening from task row)
+  const [collectionDetail, setCollectionDetail] = useState<DocumentCollectionFullDetailResponse | null>(null);
+  const [collectionDetailLoading, setCollectionDetailLoading] = useState(false);
+  const [collectionDetailOpen, setCollectionDetailOpen] = useState(false);
+
+  // Sorting
+  const [sortKey, setSortKey] = useState<SortKey | null>(null);
+  const [sortDirection, setSortDirection] = useState<SortDirection>(null);
+
+  // Collections for metrics + vacancy stats (keep existing fetch)
+  const [collections, setCollections] = useState<{ status: string; vacancy_id?: string; completed_at?: string; updated_at: string }[]>([]);
   const [total, setTotal] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<FilterTab>('active');
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [selectedDetail, setSelectedDetail] = useState<DocumentCollectionFullDetailResponse | null>(null);
-  const [detailLoading, setDetailLoading] = useState(false);
+  const [metricsLoading, setMetricsLoading] = useState(true);
 
-  const selectedIdRef = useRef(selectedId);
-  selectedIdRef.current = selectedId;
+  // Vacancies
+  const [vacancies, setVacancies] = useState<Vacancy[]>([]);
+  const [vacanciesLoading, setVacanciesLoading] = useState(true);
 
-  const fetchData = useCallback(async () => {
+  // Fetch activity tasks (active status, then filter for document_collection on frontend)
+  const fetchTasks = useCallback(async () => {
+    try {
+      const response = await getActivityTasks({ status: 'active', limit: 100 });
+      setTasks(response.tasks);
+    } catch (error) {
+      console.error('Failed to fetch activity tasks:', error);
+    } finally {
+      setTasksLoading(false);
+    }
+  }, []);
+
+  // Fetch collections for metrics
+  const fetchCollections = useCallback(async () => {
     try {
       const data = await getDocumentCollections({ limit: 200 });
       setCollections(data.items);
@@ -35,87 +78,175 @@ export default function DocumentCollectionPage() {
     } catch (error) {
       console.error('Failed to load document collections:', error);
     } finally {
-      setLoading(false);
+      setMetricsLoading(false);
     }
   }, []);
 
-  const fetchDetail = useCallback((id: string) => {
-    setDetailLoading(true);
-    getDocumentCollection(id)
-      .then(setSelectedDetail)
-      .catch(() => setSelectedDetail(null))
-      .finally(() => setDetailLoading(false));
+  const fetchVacancies = useCallback(async () => {
+    try {
+      const data = await getPreOnboardingVacancies('generated');
+      setVacancies(data.vacancies);
+    } catch (error) {
+      console.error('Failed to load vacancies:', error);
+    } finally {
+      setVacanciesLoading(false);
+    }
   }, []);
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    fetchTasks();
+    fetchCollections();
+    fetchVacancies();
+  }, [fetchTasks, fetchCollections, fetchVacancies]);
 
-  useEffect(() => {
-    if (!selectedId) {
-      setSelectedDetail(null);
-      return;
-    }
-    fetchDetail(selectedId);
-  }, [selectedId, fetchDetail]);
+  // Realtime updates
+  useRealtimeTable({
+    schema: 'agents',
+    table: 'workflows',
+    onUpdate: () => { fetchTasks(); },
+  });
 
-  // --- Realtime: refresh list + detail on collection changes ---
   useRealtimeTable({
     schema: 'agents',
     table: 'document_collections',
     event: '*',
-    onUpdate: () => {
-      fetchData();
-      if (selectedIdRef.current) fetchDetail(selectedIdRef.current);
-    },
-  });
-
-  // --- Realtime: refresh detail on new messages or uploads ---
-  useRealtimeTable({
-    schema: 'agents',
-    table: 'document_collection_session_turns',
-    event: 'INSERT',
-    onUpdate: () => {
-      if (selectedIdRef.current) fetchDetail(selectedIdRef.current);
-    },
+    onUpdate: () => { fetchCollections(); },
   });
 
   useRealtimeTable({
     schema: 'agents',
     table: 'document_collection_uploads',
     event: '*',
-    onUpdate: () => {
-      fetchData();
-      if (selectedIdRef.current) fetchDetail(selectedIdRef.current);
-    },
+    onUpdate: () => { fetchCollections(); },
   });
 
-  const handleCloseDetail = useCallback(() => {
-    setSelectedId(null);
-  }, []);
+  useRealtimeTable({
+    schema: 'ats',
+    table: 'vacancy_agents',
+    event: '*',
+    onUpdate: () => { fetchVacancies(); },
+  });
 
+  // Filter tasks: only document_collection, active or stuck
+  const filteredTasks = useMemo(() => {
+    return tasks.filter(t => t.workflow_type === 'document_collection');
+  }, [tasks]);
+
+  // Metrics from collections
   const stats = useMemo(() => {
     const active = collections.filter(c => c.status === 'active').length;
     const completed = collections.filter(c => c.status === 'completed').length;
     const needsReview = collections.filter(c => c.status === 'needs_review').length;
     const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
-
     return { active, completed, needsReview, completionRate };
   }, [collections, total]);
 
-  const filtered = useMemo(() => {
-    if (activeTab === 'all') return collections;
-    return collections.filter(c => c.status === activeTab);
-  }, [collections, activeTab]);
+  // Vacancy stats from collections
+  const collectionStatsByVacancy = useMemo(() => {
+    const map = new Map<string, CollectionStats>();
+    for (const c of collections) {
+      if (!c.vacancy_id) continue;
+      const existing = map.get(c.vacancy_id) || { active: 0, completed: 0, needsReview: 0, total: 0, lastActivityAt: null as string | null };
+      existing.total++;
+      if (c.status === 'active') existing.active++;
+      if (c.status === 'completed') existing.completed++;
+      if (c.status === 'needs_review') existing.needsReview++;
+      const activityDate = c.completed_at || c.updated_at;
+      if (activityDate && (!existing.lastActivityAt || activityDate > existing.lastActivityAt)) {
+        existing.lastActivityAt = activityDate;
+      }
+      map.set(c.vacancy_id, existing);
+    }
+    return map;
+  }, [collections]);
 
-  const countByStatus = useMemo(() => ({
-    active: collections.filter(c => c.status === 'active').length,
-    completed: collections.filter(c => c.status === 'completed').length,
-    needs_review: collections.filter(c => c.status === 'needs_review').length,
-    abandoned: collections.filter(c => c.status === 'abandoned').length,
-  }), [collections]);
+  // Sorting
+  const handleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      if (sortDirection === 'asc') setSortDirection('desc');
+      else if (sortDirection === 'desc') { setSortKey(null); setSortDirection(null); }
+      else setSortDirection('asc');
+    } else {
+      setSortKey(key);
+      setSortDirection('asc');
+    }
+  };
 
-  if (loading) {
+  const sortedTasks = [...filteredTasks].sort((a, b) => {
+    if (!sortKey || !sortDirection) {
+      return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+    }
+    if (sortKey === 'sla') {
+      const aSeconds = a.time_remaining_seconds ?? Infinity;
+      const bSeconds = b.time_remaining_seconds ?? Infinity;
+      return sortDirection === 'asc' ? aSeconds - bSeconds : bSeconds - aSeconds;
+    }
+    let aValue = '';
+    let bValue = '';
+    switch (sortKey) {
+      case 'candidate_name': aValue = a.candidate_name || ''; bValue = b.candidate_name || ''; break;
+      case 'vacancy_title': aValue = a.vacancy_title || ''; bValue = b.vacancy_title || ''; break;
+      case 'current_step_label': aValue = a.current_step_label; bValue = b.current_step_label; break;
+      case 'status': aValue = a.is_stuck ? 'stuck' : a.status; bValue = b.is_stuck ? 'stuck' : b.status; break;
+      case 'time_ago': aValue = a.time_ago; bValue = b.time_ago; break;
+    }
+    return sortDirection === 'asc' ? aValue.localeCompare(bValue) : bValue.localeCompare(aValue);
+  });
+
+  // Open collection detail from task
+  const handleOpenCollectionDetail = async (task: TaskRow) => {
+    if (!task.collection_id) return;
+    setSelectedTask(null);
+    setCollectionDetailOpen(true);
+    setCollectionDetailLoading(true);
+    try {
+      const detail = await getDocumentCollection(task.collection_id);
+      setCollectionDetail(detail);
+    } catch {
+      setCollectionDetail(null);
+    } finally {
+      setCollectionDetailLoading(false);
+    }
+  };
+
+  const handleCloseCollectionDetail = () => {
+    setCollectionDetailOpen(false);
+    setCollectionDetail(null);
+  };
+
+  // Sortable header
+  const SortableHeader = ({ column, label, className }: { column: SortKey; label: string; className?: string }) => {
+    const isSorted = sortKey === column;
+    return (
+      <TableHead
+        className={cn(
+          'font-medium cursor-pointer select-none hover:bg-gray-50 transition-colors',
+          isSorted && 'bg-gray-50',
+          className
+        )}
+        onClick={() => handleSort(column)}
+      >
+        <div className="flex items-center gap-2">
+          <span>{label}</span>
+          <span className="inline-flex items-center">
+            {isSorted ? (
+              sortDirection === 'asc' ? (
+                <ArrowUp className="w-4 h-4 text-gray-700" />
+              ) : (
+                <ArrowDown className="w-4 h-4 text-gray-700" />
+              )
+            ) : (
+              <ChevronsUpDown className="w-4 h-4 text-gray-400" />
+            )}
+          </span>
+        </div>
+      </TableHead>
+    );
+  };
+
+  const isLoading = tasksLoading && metricsLoading;
+
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center py-24">
         <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
@@ -125,111 +256,297 @@ export default function DocumentCollectionPage() {
   }
 
   return (
-  <>
-    <PageLayout>
-      <PageLayoutHeader
-        action={
-          <Link href="/document-collection/settings">
-            <Button variant="outline" size="sm" className="gap-2">
-              <Settings className="w-4 h-4" />
-              Instellingen
-            </Button>
-          </Link>
-        }
-      />
-      <PageLayoutContent>
-        {/* Metrics */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <MetricCard
-            title="Actieve collecties"
-            value={stats.active}
-            label="Lopend"
-            icon={FileText}
-            variant="blue"
-          />
-          <MetricCard
-            title="Afrondingspercentage"
-            value={`${stats.completionRate}%`}
-            label="Alle collecties"
-            icon={CheckCircle2}
-            variant="dark"
-            progress={stats.completionRate}
-          />
-          <MetricCard
-            title="Volledig verzameld"
-            value={stats.completed}
-            label="Afgerond"
-            icon={FileCheck}
-            variant="lime"
-          />
-          <MetricCard
-            title="Review nodig"
-            value={stats.needsReview}
-            label="Wacht op verificatie"
-            icon={AlertCircle}
-            variant="pink"
-          />
-        </div>
-
-        {/* Status filter tabs */}
-        <Tabs
-          defaultValue="active"
-          value={activeTab}
-          onValueChange={(v) => setActiveTab(v as FilterTab)}
-          className="space-y-2"
-        >
-          <TabsList variant="line">
-            <TabsTrigger value="active">
-              Actief
-              <CountBadge count={countByStatus.active} />
-            </TabsTrigger>
-            <TabsTrigger value="completed">
-              Compleet
-              <CountBadge count={countByStatus.completed} />
-            </TabsTrigger>
-            <TabsTrigger value="needs_review">
-              Review nodig
-              <CountBadge count={countByStatus.needs_review} />
-            </TabsTrigger>
-            <TabsTrigger value="abandoned">
-              Afgebroken
-              <CountBadge count={countByStatus.abandoned} />
-            </TabsTrigger>
-            <TabsTrigger value="all">
-              <List className="w-3.5 h-3.5" />
-              Alle
-              <CountBadge count={total} />
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value={activeTab}>
-            <CollectionTable
-              collections={filtered}
-              selectedId={selectedId}
-              onSelectCollection={setSelectedId}
-            />
-          </TabsContent>
-        </Tabs>
-      </PageLayoutContent>
-    </PageLayout>
-
-    <Sheet open={!!selectedId} onOpenChange={(open) => !open && handleCloseDetail()}>
-      <SheetContent side="right" className="w-full sm:max-w-[720px] p-0" showCloseButton={false}>
-        <CollectionDetailPane
-          collection={selectedDetail}
-          isLoading={detailLoading}
-          onClose={handleCloseDetail}
+    <>
+      <PageLayout>
+        <PageLayoutHeader
+          action={
+            <div className="flex items-center gap-2">
+              <Link href="/document-collection/playground">
+                <Button variant="outline" size="sm" className="gap-2">
+                  <Play className="w-4 h-4" />
+                  Playground
+                </Button>
+              </Link>
+              <Link href="/document-collection/settings">
+                <Button variant="outline" size="sm" className="gap-2">
+                  <Settings className="w-4 h-4" />
+                  Instellingen
+                </Button>
+              </Link>
+            </div>
+          }
         />
-      </SheetContent>
-    </Sheet>
-  </>
-  );
-}
+        <PageLayoutContent>
+          {/* Metrics */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            <MetricCard
+              title="Actieve collecties"
+              value={stats.active}
+              label="Lopend"
+              icon={FileText}
+              variant="blue"
+            />
+            <MetricCard
+              title="Afrondingspercentage"
+              value={`${stats.completionRate}%`}
+              label="Alle collecties"
+              icon={CheckCircle2}
+              variant="dark"
+              progress={stats.completionRate}
+            />
+            <MetricCard
+              title="Volledig verzameld"
+              value={stats.completed}
+              label="Afgerond"
+              icon={FileCheck}
+              variant="lime"
+            />
+            <MetricCard
+              title="Review nodig"
+              value={stats.needsReview}
+              label="Wacht op verificatie"
+              icon={AlertCircle}
+              variant="pink"
+            />
+          </div>
 
-function CountBadge({ count }: { count: number }) {
-  return (
-    <span className="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-500 text-white">
-      {count}
-    </span>
+          {/* Tabs: Activiteiten / Vacatures */}
+          <Tabs defaultValue="activities" className="space-y-2">
+            <TabsList variant="line">
+              <TabsTrigger value="activities">
+                <Play className="w-3.5 h-3.5" />
+                Activiteiten
+                <span className="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-500 text-white">
+                  {filteredTasks.length}
+                </span>
+              </TabsTrigger>
+              <TabsTrigger value="vacancies">
+                <Briefcase className="w-3.5 h-3.5" />
+                Vacatures
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="activities">
+              {tasksLoading && filteredTasks.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-64 text-gray-400 pt-2">
+                  <Loader2 className="w-8 h-8 mb-4 animate-spin" />
+                  <p className="text-sm">Taken laden...</p>
+                </div>
+              ) : filteredTasks.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-64 text-gray-400 pt-2">
+                  <div className="relative mb-6">
+                    <div className="w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center">
+                      <div className="w-3 h-3 rounded-full bg-gray-400" />
+                    </div>
+                    <div className="absolute inset-0 w-12 h-12 rounded-full border-2 border-gray-300 animate-ping [animation-duration:2s]" />
+                    <div className="absolute inset-0 w-12 h-12 rounded-full border border-gray-200 animate-ping [animation-duration:2s] [animation-delay:500ms]" />
+                  </div>
+                  <p className="text-sm text-gray-500">
+                    Geen actieve documentcollecties
+                  </p>
+                </div>
+              ) : (
+                <div className="relative w-full overflow-auto pt-2">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <SortableHeader column="candidate_name" label="Kandidaat" />
+                        <SortableHeader column="vacancy_title" label="Vacature" />
+                        <SortableHeader column="current_step_label" label="Stap" />
+                        <SortableHeader column="status" label="Status" />
+                        <SortableHeader column="sla" label="SLA" />
+                        <SortableHeader column="time_ago" label="Laatste Update" />
+                        <TableHead className="w-[50px]" />
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {sortedTasks.map((task, index) => (
+                        <TableRow
+                          key={task.id}
+                          className="group hover:bg-gray-50/50 cursor-pointer"
+                          style={{ animation: `fade-in-up 0.3s ease-out ${index * 30}ms backwards` }}
+                          onClick={() => setSelectedTask(task)}
+                        >
+                          <TableCell className="font-medium">
+                            {task.candidate_name || <span className="text-gray-400">-</span>}
+                          </TableCell>
+                          <TableCell>
+                            {task.vacancy_title || <span className="text-gray-400">-</span>}
+                          </TableCell>
+                          <TableCell>
+                            <div className="min-w-0">
+                              <span className="text-gray-900 inline-flex items-center gap-1.5">
+                                {task.current_step_label.includes('Generating') && (
+                                  <Loader2 className="w-3.5 h-3.5 animate-spin text-gray-400" />
+                                )}
+                                {translateStepLabel(task.current_step_label)}
+                              </span>
+                              {task.step_detail && (
+                                <span className="block text-xs text-gray-500 mt-0.5">{task.step_detail}</span>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <ActivityStatusBadge status={task.status} isStuck={task.is_stuck} />
+                          </TableCell>
+                          <TableCell>
+                            <SLABadge
+                              status={task.status}
+                              isStuck={task.is_stuck}
+                              timeRemainingSeconds={task.time_remaining_seconds}
+                            />
+                          </TableCell>
+                          <TableCell className="text-gray-500 text-sm">
+                            {formatRelativeDate(task.updated_at)}
+                          </TableCell>
+                          <TableCell>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0"
+                              onClick={(e) => { e.stopPropagation(); setSelectedTask(task); }}
+                            >
+                              <Eye className="w-4 h-4 text-gray-500" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+
+                  <p className="text-sm text-gray-500 mt-2">
+                    {filteredTasks.length} {filteredTasks.length === 1 ? 'collectie' : 'collecties'} actief
+                  </p>
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="vacancies">
+              {vacanciesLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+                  <span className="ml-2 text-sm text-gray-500">Vacatures laden...</span>
+                </div>
+              ) : (
+                <CollectionVacancyTable
+                  vacancies={vacancies}
+                  collectionStats={collectionStatsByVacancy}
+                />
+              )}
+            </TabsContent>
+          </Tabs>
+        </PageLayoutContent>
+      </PageLayout>
+
+      {/* Workflow Detail Sheet */}
+      <Sheet open={!!selectedTask} onOpenChange={(open) => !open && setSelectedTask(null)}>
+        <SheetContent className="sm:max-w-md">
+          <SheetHeader className="border-b pb-4">
+            <SheetTitle>Workflow Details</SheetTitle>
+            <SheetDescription>
+              {selectedTask?.candidate_name || 'Onbekend'} — {selectedTask?.vacancy_title || 'Geen vacature'}
+            </SheetDescription>
+          </SheetHeader>
+
+          {selectedTask && (
+            <div className="py-6 px-4">
+              <div className="mb-6 space-y-2">
+                <div className="flex items-center gap-2">
+                  <ActivityStatusBadge status={selectedTask.status} isStuck={selectedTask.is_stuck} />
+                </div>
+                {selectedTask.step_detail && (
+                  <p className="text-sm text-gray-600">{selectedTask.step_detail}</p>
+                )}
+                <p className="text-xs text-gray-400">Laatste update: {formatRelativeDate(selectedTask.updated_at)}</p>
+              </div>
+
+              {/* Open collection detail */}
+              {selectedTask.collection_id && (
+                <button
+                  onClick={() => handleOpenCollectionDetail(selectedTask)}
+                  className="w-full mb-6 flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-colors text-left group"
+                >
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900 truncate">Documentcollectie</p>
+                    <p className="text-xs text-gray-500">Bekijk details</p>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-gray-600 transition-colors" />
+                </button>
+              )}
+
+              {/* Workflow steps timeline */}
+              <div className="border-t pt-6">
+                <h4 className="text-sm font-medium text-gray-900 mb-4">Workflow Voortgang</h4>
+                <Timeline>
+                  {selectedTask.workflow_steps?.map((step, index) => {
+                    const dotColor = step.status === 'completed' ? 'green'
+                      : step.status === 'failed' ? 'orange'
+                      : 'default';
+
+                    return (
+                      <TimelineNode
+                        key={step.id}
+                        animationDelay={index * 100}
+                        isLast={index === selectedTask.workflow_steps.length - 1}
+                        dotColor={dotColor}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={cn(
+                            'flex items-center justify-center w-6 h-6 rounded-full',
+                            step.status === 'completed' && 'bg-green-500 text-white',
+                            step.status === 'current' && 'bg-blue-500 text-white',
+                            step.status === 'pending' && 'bg-gray-50 text-gray-500',
+                            step.status === 'failed' && 'bg-red-500 text-white',
+                          )}>
+                            {step.status === 'completed' ? (
+                              <Check className="w-3.5 h-3.5" />
+                            ) : step.status === 'failed' ? (
+                              <AlertTriangle className="w-3.5 h-3.5" />
+                            ) : (
+                              <Circle className="w-3 h-3" />
+                            )}
+                          </div>
+                          <div>
+                            <span className={cn(
+                              'text-sm font-medium',
+                              step.status === 'completed' && 'text-green-600',
+                              step.status === 'current' && 'text-blue-600',
+                              step.status === 'pending' && 'text-gray-500',
+                              step.status === 'failed' && 'text-red-600',
+                            )}>
+                              {translateStepLabel(step.label)}
+                            </span>
+                            {step.status === 'current' && (
+                              <span className="ml-2 text-xs text-blue-600 animate-pulse">Actief</span>
+                            )}
+                          </div>
+                        </div>
+                      </TimelineNode>
+                    );
+                  })}
+                </Timeline>
+              </div>
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
+
+      {/* Collection Detail Sheet */}
+      <Sheet open={collectionDetailOpen} onOpenChange={(open) => { if (!open) handleCloseCollectionDetail(); }}>
+        <SheetContent side="right" className="w-full sm:max-w-[720px] p-0" showCloseButton={false}>
+          {collectionDetailLoading ? (
+            <div className="flex items-center justify-center h-full">
+              <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+            </div>
+          ) : (
+            <CollectionDetailPane
+              collection={collectionDetail}
+              isLoading={collectionDetailLoading}
+              onClose={handleCloseCollectionDetail}
+            />
+          )}
+        </SheetContent>
+      </Sheet>
+    </>
   );
 }
