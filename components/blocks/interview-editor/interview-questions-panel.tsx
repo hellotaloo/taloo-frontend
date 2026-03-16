@@ -281,7 +281,7 @@ export function InterviewQuestionsPanel({ questions, isGenerating = false, highl
       {/* Update records */}
       <TimelineItem animationDelay={updateRecordsDelay} isLast>
         <div className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-gray-300 rounded-full bg-white">
-          <Image src="/salesforc-logo-cloud.png" alt="Salesforce" width={14} height={14} className="object-contain" />
+          <Image src="/vendors/recruitnow.png" alt="Salesforce" width={14} height={14} className="object-contain" />
           <span className="text-xs font-medium text-gray-600">Update ATS</span>
         </div>
       </TimelineItem>

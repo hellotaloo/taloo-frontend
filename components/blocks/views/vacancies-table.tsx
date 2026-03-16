@@ -184,7 +184,7 @@ export function VacanciesTable({ vacancies, selectedId, onRowClick }: VacanciesT
       render: () => (
         <span className="inline-flex items-center justify-center">
           <Image
-            src="/salesforc-logo-cloud.png"
+            src="/vendors/recruitnow.png"
             alt="Salesforce"
             width={16}
             height={11}

@@ -1,6 +1,6 @@
 'use client';
 
-import { Loader2, Settings, Play, Briefcase, ArrowUp, ArrowDown, ChevronsUpDown, Eye } from 'lucide-react';
+import { Loader2, Info, Settings, Play, Briefcase, ArrowUp, ArrowDown, ChevronsUpDown, Eye } from 'lucide-react';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import type { DocumentCollectionFullDetailResponse, AgentVacancy, AgentDashboardStats } from '@/lib/types';
 import { getDocumentCollection } from '@/lib/document-collection-api';
@@ -12,7 +12,7 @@ import { MetricCard } from '@/components/kit/metric-card';
 import { getStatIcon } from '@/lib/agent-utils';
 import { CollectionDetailPane } from '@/components/blocks/collection-table';
 import { CollectionVacancyTable } from '@/components/blocks/collection-vacancy-table';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
+import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { PageLayout, PageLayoutHeader, PageLayoutContent } from '@/components/layout/page-layout';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -25,9 +25,18 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { ActivityStatusBadge, SLABadge, translateStepLabel } from '@/components/kit/activity-helpers';
-import { Timeline } from '@/components/kit/timeline/timeline';
-import { TimelineNode } from '@/components/kit/timeline/timeline-node';
-import { Check, Circle, AlertTriangle, ChevronRight } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import Link from 'next/link';
 
 type SortKey = 'candidate_name' | 'vacancy_title' | 'current_step_label' | 'status' | 'sla' | 'time_ago';
@@ -37,7 +46,6 @@ export default function DocumentCollectionPage() {
   // Activity tasks state
   const [tasks, setTasks] = useState<TaskRow[]>([]);
   const [tasksLoading, setTasksLoading] = useState(true);
-  const [selectedTask, setSelectedTask] = useState<TaskRow | null>(null);
 
   // Collection detail pane state (for opening from task row)
   const [collectionDetail, setCollectionDetail] = useState<DocumentCollectionFullDetailResponse | null>(null);
@@ -51,6 +59,10 @@ export default function DocumentCollectionPage() {
   // Dashboard stats from backend
   const [stats, setStats] = useState<AgentDashboardStats | null>(null);
   const [metricsLoading, setMetricsLoading] = useState(true);
+
+  // Auto-generate
+  const [autoGenerate, setAutoGenerate] = useState(true);
+  const [showAutoGenerateConfirm, setShowAutoGenerateConfirm] = useState(false);
 
   // Vacancies
   const [vacancies, setVacancies] = useState<AgentVacancy[]>([]);
@@ -162,7 +174,6 @@ export default function DocumentCollectionPage() {
   // Open collection detail from task
   const handleOpenCollectionDetail = async (task: TaskRow) => {
     if (!task.collection_id) return;
-    setSelectedTask(null);
     setCollectionDetailOpen(true);
     setCollectionDetailLoading(true);
     try {
@@ -178,6 +189,20 @@ export default function DocumentCollectionPage() {
   const handleCloseCollectionDetail = () => {
     setCollectionDetailOpen(false);
     setCollectionDetail(null);
+  };
+
+  // Auto-generate toggle
+  const handleAutoGenerateToggle = (checked: boolean) => {
+    if (checked) {
+      setShowAutoGenerateConfirm(true);
+    } else {
+      setAutoGenerate(false);
+    }
+  };
+
+  const confirmAutoGenerate = () => {
+    setAutoGenerate(true);
+    setShowAutoGenerateConfirm(false);
   };
 
   // Sortable header
@@ -266,22 +291,45 @@ export default function DocumentCollectionPage() {
 
           {/* Tabs: Activiteiten / Vacatures */}
           <Tabs defaultValue="activities" className="space-y-2">
-            <TabsList variant="line">
-              <TabsTrigger value="activities">
-                <Play className="w-3.5 h-3.5" />
-                Activiteiten
-                <span className="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-500 text-white">
-                  {filteredTasks.length}
-                </span>
-              </TabsTrigger>
-              <TabsTrigger value="vacancies">
-                <Briefcase className="w-3.5 h-3.5" />
-                Vacatures
-                <span className="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-500 text-white">
-                  {vacancies.length}
-                </span>
-              </TabsTrigger>
-            </TabsList>
+            <div className="flex items-center justify-between">
+              <TabsList variant="line">
+                <TabsTrigger value="activities">
+                  <Play className="w-3.5 h-3.5" />
+                  Activiteiten
+                  <span className="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-500 text-white">
+                    {filteredTasks.length}
+                  </span>
+                </TabsTrigger>
+                <TabsTrigger value="vacancies">
+                  <Briefcase className="w-3.5 h-3.5" />
+                  Vacatures
+                  <span className="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-500 text-white">
+                    {vacancies.length}
+                  </span>
+                </TabsTrigger>
+              </TabsList>
+
+              <div className="flex items-center gap-2">
+                <label htmlFor="auto-generate-dc" className="text-sm text-gray-600">
+                  Automatisch genereren
+                </label>
+                <Switch
+                  id="auto-generate-dc"
+                  checked={autoGenerate}
+                  onCheckedChange={handleAutoGenerateToggle}
+                />
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button type="button" className="text-gray-400 hover:text-gray-600 transition-colors">
+                      <Info className="w-4 h-4" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="max-w-[240px]">
+                    Indien ingeschakeld wordt voor elke nieuwe kandidaat automatisch een documentcollectie gestart. Collecties kunnen altijd later worden aangepast.
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+            </div>
 
             <TabsContent value="activities">
               {tasksLoading && filteredTasks.length === 0 ? (
@@ -322,7 +370,7 @@ export default function DocumentCollectionPage() {
                           key={task.id}
                           className="group hover:bg-gray-50/50 cursor-pointer"
                           style={{ animation: `fade-in-up 0.3s ease-out ${index * 30}ms backwards` }}
-                          onClick={() => setSelectedTask(task)}
+                          onClick={() => handleOpenCollectionDetail(task)}
                         >
                           <TableCell className="font-medium">
                             {task.candidate_name || <span className="text-gray-400">-</span>}
@@ -361,7 +409,7 @@ export default function DocumentCollectionPage() {
                               variant="ghost"
                               size="sm"
                               className="h-8 w-8 p-0"
-                              onClick={(e) => { e.stopPropagation(); setSelectedTask(task); }}
+                              onClick={(e) => { e.stopPropagation(); handleOpenCollectionDetail(task); }}
                             >
                               <Eye className="w-4 h-4 text-gray-500" />
                             </Button>
@@ -391,101 +439,36 @@ export default function DocumentCollectionPage() {
               )}
             </TabsContent>
           </Tabs>
+
+          {/* Auto-generate Confirmation Dialog */}
+          <AlertDialog open={showAutoGenerateConfirm} onOpenChange={setShowAutoGenerateConfirm}>
+            <AlertDialogContent className="max-w-md">
+              <AlertDialogHeader>
+                <AlertDialogTitle>Automatisch genereren inschakelen?</AlertDialogTitle>
+                <AlertDialogDescription asChild>
+                  <div className="space-y-2 text-sm text-gray-600">
+                    <p>
+                      Documentcollecties worden automatisch gestart voor alle toekomstige kandidaten.
+                    </p>
+                    <p className="text-gray-500 text-xs">
+                      Je kunt individuele collecties altijd bewerken of uitschakelen.
+                    </p>
+                  </div>
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Annuleren</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={confirmAutoGenerate}
+                  className="bg-green-600 hover:bg-green-700 focus:ring-green-500"
+                >
+                  Inschakelen
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </PageLayoutContent>
       </PageLayout>
-
-      {/* Workflow Detail Sheet */}
-      <Sheet open={!!selectedTask} onOpenChange={(open) => !open && setSelectedTask(null)}>
-        <SheetContent className="sm:max-w-md">
-          <SheetHeader className="border-b pb-4">
-            <SheetTitle>Workflow Details</SheetTitle>
-            <SheetDescription>
-              {selectedTask?.candidate_name || 'Onbekend'} — {selectedTask?.vacancy_title || 'Geen vacature'}
-            </SheetDescription>
-          </SheetHeader>
-
-          {selectedTask && (
-            <div className="py-6 px-4">
-              <div className="mb-6 space-y-2">
-                <div className="flex items-center gap-2">
-                  <ActivityStatusBadge status={selectedTask.status} isStuck={selectedTask.is_stuck} />
-                </div>
-                {selectedTask.step_detail && (
-                  <p className="text-sm text-gray-600">{selectedTask.step_detail}</p>
-                )}
-                <p className="text-xs text-gray-400">Laatste update: {formatRelativeDate(selectedTask.updated_at)}</p>
-              </div>
-
-              {/* Open collection detail */}
-              {selectedTask.collection_id && (
-                <button
-                  onClick={() => handleOpenCollectionDetail(selectedTask)}
-                  className="w-full mb-6 flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-colors text-left group"
-                >
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 truncate">Documentcollectie</p>
-                    <p className="text-xs text-gray-500">Bekijk details</p>
-                  </div>
-                  <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-gray-600 transition-colors" />
-                </button>
-              )}
-
-              {/* Workflow steps timeline */}
-              <div className="border-t pt-6">
-                <h4 className="text-sm font-medium text-gray-900 mb-4">Workflow Voortgang</h4>
-                <Timeline>
-                  {selectedTask.workflow_steps?.map((step, index) => {
-                    const dotColor = step.status === 'completed' ? 'green'
-                      : step.status === 'failed' ? 'orange'
-                      : 'default';
-
-                    return (
-                      <TimelineNode
-                        key={step.id}
-                        animationDelay={index * 100}
-                        isLast={index === selectedTask.workflow_steps.length - 1}
-                        dotColor={dotColor}
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className={cn(
-                            'flex items-center justify-center w-6 h-6 rounded-full',
-                            step.status === 'completed' && 'bg-green-500 text-white',
-                            step.status === 'current' && 'bg-blue-500 text-white',
-                            step.status === 'pending' && 'bg-gray-50 text-gray-500',
-                            step.status === 'failed' && 'bg-red-500 text-white',
-                          )}>
-                            {step.status === 'completed' ? (
-                              <Check className="w-3.5 h-3.5" />
-                            ) : step.status === 'failed' ? (
-                              <AlertTriangle className="w-3.5 h-3.5" />
-                            ) : (
-                              <Circle className="w-3 h-3" />
-                            )}
-                          </div>
-                          <div>
-                            <span className={cn(
-                              'text-sm font-medium',
-                              step.status === 'completed' && 'text-green-600',
-                              step.status === 'current' && 'text-blue-600',
-                              step.status === 'pending' && 'text-gray-500',
-                              step.status === 'failed' && 'text-red-600',
-                            )}>
-                              {translateStepLabel(step.label)}
-                            </span>
-                            {step.status === 'current' && (
-                              <span className="ml-2 text-xs text-blue-600 animate-pulse">Actief</span>
-                            )}
-                          </div>
-                        </div>
-                      </TimelineNode>
-                    );
-                  })}
-                </Timeline>
-              </div>
-            </div>
-          )}
-        </SheetContent>
-      </Sheet>
 
       {/* Collection Detail Sheet */}
       <Sheet open={collectionDetailOpen} onOpenChange={(open) => { if (!open) handleCloseCollectionDetail(); }}>

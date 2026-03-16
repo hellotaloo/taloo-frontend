@@ -41,7 +41,7 @@ const services: Service[] = [
   },
   {
     name: 'Salesforce',
-    icon: '/salesforc-logo-cloud.png',
+    icon: '/vendors/recruitnow.png',
     status: 'online',
     description: 'Sync enabled',
   },

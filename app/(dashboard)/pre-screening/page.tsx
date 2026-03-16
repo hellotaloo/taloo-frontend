@@ -1,17 +1,19 @@
 'use client';
 
-import { Loader2, Info, Settings, Play, Briefcase, ArrowUp, ArrowDown, ChevronsUpDown, Eye, Check, Circle, AlertTriangle, ChevronRight, RefreshCw } from 'lucide-react';
+import { Loader2, Info, Settings, Play, Briefcase, ArrowUp, ArrowDown, ChevronsUpDown, Eye, RefreshCw } from 'lucide-react';
 import { useState, useEffect, useCallback, useMemo, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import type { AgentVacancy, AgentDashboardStats } from '@/lib/types';
-import { getPreScreeningVacancies, getPreScreeningStats } from '@/lib/interview-api';
+import { getPreScreeningVacancies, getPreScreeningStats, getApplications } from '@/lib/interview-api';
 import { getStatIcon } from '@/lib/agent-utils';
 import { getActivityTasks, type TaskRow } from '@/lib/api';
 import { MetricCard, ChannelCard } from '@/components/kit/metric-card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PublishedVacanciesTable } from '@/components/blocks/vacancy-table';
+import { ApplicationDetailPane, type Application as ComponentApplication } from '@/components/blocks/application-dashboard';
+import { convertToComponentApplication } from '@/lib/pre-screening-utils';
 import { PageLayout, PageLayoutHeader, PageLayoutContent } from '@/components/layout/page-layout';
 import { useAtsImport } from '@/hooks/use-ats-import';
 import { useRealtimeTable } from '@/hooks/use-realtime-table';
@@ -25,13 +27,7 @@ import {
 } from '@/components/ui/table';
 import { Switch } from '@/components/ui/switch';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-} from '@/components/ui/sheet';
+import { Sheet, SheetContent } from '@/components/ui/sheet';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -43,8 +39,6 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { ActivityStatusBadge, SLABadge, translateStepLabel } from '@/components/kit/activity-helpers';
-import { Timeline } from '@/components/kit/timeline/timeline';
-import { TimelineNode } from '@/components/kit/timeline/timeline-node';
 import { cn, formatRelativeDate } from '@/lib/utils';
 
 type SortKey = 'candidate_name' | 'vacancy_title' | 'current_step_label' | 'status' | 'sla' | 'time_ago';
@@ -57,7 +51,11 @@ function PreScreeningContent() {
   // Activity tasks state
   const [tasks, setTasks] = useState<TaskRow[]>([]);
   const [tasksLoading, setTasksLoading] = useState(true);
-  const [selectedTask, setSelectedTask] = useState<TaskRow | null>(null);
+
+  // Application detail pane state
+  const [applicationDetail, setApplicationDetail] = useState<ComponentApplication | null>(null);
+  const [applicationDetailLoading, setApplicationDetailLoading] = useState(false);
+  const [applicationDetailOpen, setApplicationDetailOpen] = useState(false);
 
   // Vacancies state
   const [vacancies, setVacancies] = useState<AgentVacancy[]>([]);
@@ -158,6 +156,27 @@ function PreScreeningContent() {
   const confirmAutoGenerate = () => {
     setAutoGenerate(true);
     setShowAutoGenerateConfirm(false);
+  };
+
+  // Open application detail from task row
+  const handleOpenApplicationDetail = async (task: TaskRow) => {
+    if (!task.vacancy_id || !task.application_id) return;
+    setApplicationDetailOpen(true);
+    setApplicationDetailLoading(true);
+    try {
+      const data = await getApplications(task.vacancy_id);
+      const app = data.applications.find(a => a.id === task.application_id);
+      setApplicationDetail(app ? convertToComponentApplication(app) : null);
+    } catch {
+      setApplicationDetail(null);
+    } finally {
+      setApplicationDetailLoading(false);
+    }
+  };
+
+  const handleCloseApplicationDetail = () => {
+    setApplicationDetailOpen(false);
+    setApplicationDetail(null);
   };
 
   // Tab handling
@@ -410,7 +429,7 @@ function PreScreeningContent() {
                           key={task.id}
                           className="group hover:bg-gray-50/50 cursor-pointer"
                           style={{ animation: `fade-in-up 0.3s ease-out ${index * 30}ms backwards` }}
-                          onClick={() => setSelectedTask(task)}
+                          onClick={() => handleOpenApplicationDetail(task)}
                         >
                           <TableCell className="font-medium">
                             {task.candidate_name || <span className="text-gray-400">-</span>}
@@ -449,7 +468,7 @@ function PreScreeningContent() {
                               variant="ghost"
                               size="sm"
                               className="h-8 w-8 p-0"
-                              onClick={(e) => { e.stopPropagation(); setSelectedTask(task); }}
+                              onClick={(e) => { e.stopPropagation(); handleOpenApplicationDetail(task); }}
                             >
                               <Eye className="w-4 h-4 text-gray-500" />
                             </Button>
@@ -513,96 +532,18 @@ function PreScreeningContent() {
         </PageLayoutContent>
       </PageLayout>
 
-      {/* Workflow Detail Sheet */}
-      <Sheet open={!!selectedTask} onOpenChange={(open) => !open && setSelectedTask(null)}>
-        <SheetContent className="sm:max-w-md">
-          <SheetHeader className="border-b pb-4">
-            <SheetTitle>Workflow Details</SheetTitle>
-            <SheetDescription>
-              {selectedTask?.candidate_name || 'Onbekend'} — {selectedTask?.vacancy_title || 'Geen vacature'}
-            </SheetDescription>
-          </SheetHeader>
-
-          {selectedTask && (
-            <div className="py-6 px-4">
-              <div className="mb-6 space-y-2">
-                <div className="flex items-center gap-2">
-                  <ActivityStatusBadge status={selectedTask.status} isStuck={selectedTask.is_stuck} />
-                </div>
-                {selectedTask.step_detail && (
-                  <p className="text-sm text-gray-600">{selectedTask.step_detail}</p>
-                )}
-                <p className="text-xs text-gray-400">Laatste update: {formatRelativeDate(selectedTask.updated_at)}</p>
-              </div>
-
-              {/* Link to screening detail */}
-              {selectedTask.vacancy_id && (
-                <Link
-                  href={`/pre-screening/detail/${selectedTask.vacancy_id}?mode=dashboard`}
-                  onClick={() => setSelectedTask(null)}
-                  className="w-full mb-6 flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-colors text-left group"
-                >
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 truncate">Screening resultaat</p>
-                    <p className="text-xs text-gray-500">Bekijk details</p>
-                  </div>
-                  <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-gray-600 transition-colors" />
-                </Link>
-              )}
-
-              {/* Workflow steps timeline */}
-              <div className="border-t pt-6">
-                <h4 className="text-sm font-medium text-gray-900 mb-4">Workflow Voortgang</h4>
-                <Timeline>
-                  {selectedTask.workflow_steps?.map((step, index) => {
-                    const dotColor = step.status === 'completed' ? 'green'
-                      : step.status === 'failed' ? 'orange'
-                      : 'default';
-
-                    return (
-                      <TimelineNode
-                        key={step.id}
-                        animationDelay={index * 100}
-                        isLast={index === selectedTask.workflow_steps.length - 1}
-                        dotColor={dotColor}
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className={cn(
-                            'flex items-center justify-center w-6 h-6 rounded-full',
-                            step.status === 'completed' && 'bg-green-500 text-white',
-                            step.status === 'current' && 'bg-blue-500 text-white',
-                            step.status === 'pending' && 'bg-gray-50 text-gray-500',
-                            step.status === 'failed' && 'bg-red-500 text-white',
-                          )}>
-                            {step.status === 'completed' ? (
-                              <Check className="w-3.5 h-3.5" />
-                            ) : step.status === 'failed' ? (
-                              <AlertTriangle className="w-3.5 h-3.5" />
-                            ) : (
-                              <Circle className="w-3 h-3" />
-                            )}
-                          </div>
-                          <div>
-                            <span className={cn(
-                              'text-sm font-medium',
-                              step.status === 'completed' && 'text-green-600',
-                              step.status === 'current' && 'text-blue-600',
-                              step.status === 'pending' && 'text-gray-500',
-                              step.status === 'failed' && 'text-red-600',
-                            )}>
-                              {translateStepLabel(step.label)}
-                            </span>
-                            {step.status === 'current' && (
-                              <span className="ml-2 text-xs text-blue-600 animate-pulse">Actief</span>
-                            )}
-                          </div>
-                        </div>
-                      </TimelineNode>
-                    );
-                  })}
-                </Timeline>
-              </div>
+      {/* Application Detail Sheet */}
+      <Sheet open={applicationDetailOpen} onOpenChange={(open) => { if (!open) handleCloseApplicationDetail(); }}>
+        <SheetContent side="right" className="w-full sm:max-w-[720px] p-0" showCloseButton={false}>
+          {applicationDetailLoading ? (
+            <div className="flex items-center justify-center h-full">
+              <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
             </div>
+          ) : (
+            <ApplicationDetailPane
+              application={applicationDetail}
+              onClose={handleCloseApplicationDetail}
+            />
           )}
         </SheetContent>
       </Sheet>

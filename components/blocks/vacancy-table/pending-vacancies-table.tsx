@@ -252,7 +252,7 @@ export function ConceptVacanciesTable({ vacancies, generationStatus, isImporting
               </TableCell>
               <TableCell className="text-center">
                 <Image
-                  src="/salesforc-logo-cloud.png"
+                  src="/vendors/recruitnow.png"
                   alt="Salesforce"
                   width={16}
                   height={11}

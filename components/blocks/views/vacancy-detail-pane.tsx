@@ -1044,7 +1044,7 @@ export function VacancyDetailPane({ vacancy, isLoading, onClose, onCandidateClic
               className="flex items-center gap-1.5 text-gray-500 hover:text-gray-700 transition-colors"
             >
               <Image
-                src="/salesforc-logo-cloud.png"
+                src="/vendors/recruitnow.png"
                 alt="Salesforce"
                 width={14}
                 height={10}

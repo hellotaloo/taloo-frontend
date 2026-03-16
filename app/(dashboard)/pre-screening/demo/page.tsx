@@ -25,8 +25,8 @@ import type { Vacancy, AgentVacancy } from '@/lib/types';
 
 const VOICE_OPTIONS: VoiceOption[] = [
   {
-    id: 'anne',
-    name: 'Anne',
+    id: 'liv',
+    name: 'Liv',
     description: 'Warm en professioneel',
     gender: 'female',
     voiceId: 'ANHrhmaFeVN0QJaa0PhL',
@@ -96,7 +96,7 @@ const START_AGENT_OPTIONS: { id: StartAgent; label: string; description: string 
 
 export default function PreScreeningDemoPage() {
   // Voice selection
-  const [selectedVoice, setSelectedVoice] = useState('anne');
+  const [selectedVoice, setSelectedVoice] = useState('liv');
   const [voiceSelectOpen, setVoiceSelectOpen] = useState(false);
   const selectedVoiceData = VOICE_OPTIONS.find(v => v.id === selectedVoice);
 
