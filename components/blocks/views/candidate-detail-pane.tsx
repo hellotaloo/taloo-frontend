@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, type ReactNode } from 'react';
 import {
   X,
   Mail,
@@ -28,11 +28,13 @@ import {
   FileCheck,
   Pencil,
   Trash2,
+  Info,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import {
   Select,
   SelectContent,
@@ -193,7 +195,7 @@ const STAGE_LABELS: Record<CandidacyStage, string> = {
   qualified: 'Gekwalificeerd',
   interview_planned: 'Interview gepland',
   interview_done: 'Interview afgerond',
-  offer: 'Aanbod',
+  offer: 'Onboarden & contract',
   placed: 'Geplaatst',
   rejected: 'Afgewezen',
   withdrawn: 'Teruggetrokken',
@@ -654,18 +656,123 @@ const CATEGORY_CONFIG: Record<string, { label: string; icon: typeof Tag }> = {
 };
 
 const SOURCE_LABELS: Record<string, string> = {
-  pre_screening: 'Pre-screening',
+  pre_screening: 'Pre-screening agent',
   contract: 'Contract',
   manual: 'Handmatig',
   cv_analysis: 'CV-analyse',
+  document_collection_agent: 'Document collectie agent',
 };
 
-function formatAttributeValue(attr: AttributeSummary): string {
+const SOURCE_KOPPELING: Record<string, string> = {
+  document_collection_agent: 'PratoFlex',
+};
+
+function AttributeSourceInfo({ source }: { source: string }) {
+  const label = SOURCE_LABELS[source] ?? source;
+  const koppeling = SOURCE_KOPPELING[source];
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button className="p-0.5 rounded-full text-gray-300 hover:text-gray-500 transition-colors">
+          <Info className="w-3.5 h-3.5" />
+        </button>
+      </TooltipTrigger>
+      <TooltipContent side="top" className="max-w-xs">
+        <div className="space-y-0.5 text-xs">
+          <div>
+            <span className="text-gray-400">Bron: </span>
+            <span>{label}</span>
+          </div>
+          {koppeling && (
+            <div>
+              <span className="text-gray-400">Koppeling: </span>
+              <span>{koppeling}</span>
+            </div>
+          )}
+        </div>
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
+function tryParseJson(value: string): Record<string, unknown> | null {
+  if (!value.startsWith('{') && !value.startsWith('[')) return null;
+  try {
+    const parsed = JSON.parse(value);
+    if (typeof parsed === 'object' && parsed !== null) return parsed;
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function isAddressLike(data: Record<string, unknown>): boolean {
+  const keys = Object.keys(data);
+  return ['street', 'postcode', 'city', 'stad'].some((k) => keys.includes(k));
+}
+
+function isContactLike(data: Record<string, unknown>): boolean {
+  const keys = Object.keys(data);
+  return keys.includes('name') && keys.includes('phone');
+}
+
+function formatAddress(data: Record<string, unknown>): string {
+  const street = data.street ?? '';
+  const number = data.number ?? '';
+  const city = data.stad ?? data.city ?? '';
+  const postcode = data.postcode ?? '';
+  const country = data.country ?? '';
+
+  const line1 = [street, number].filter(Boolean).join(' ');
+  const line2 = [postcode, city].filter(Boolean).join(' ');
+  return [line1, line2, country].filter(Boolean).join(', ');
+}
+
+function JsonValue({ data }: { data: Record<string, unknown> }) {
+  const entries = Object.entries(data).filter(
+    ([, v]) => v !== null && v !== undefined && v !== ''
+  );
+  if (entries.length === 0) return <span className="text-gray-400">-</span>;
+
+  // Format addresses nicely
+  if (isAddressLike(data)) {
+    return <span className="text-sm text-gray-900">{formatAddress(data)}</span>;
+  }
+
+  // Format contacts nicely
+  if (isContactLike(data)) {
+    return (
+      <div className="text-sm text-gray-900">
+        <span>{String(data.name)}</span>
+        {data.phone != null && (
+          <span className="text-gray-500 ml-2">{formatPhoneNumber(String(data.phone))}</span>
+        )}
+      </div>
+    );
+  }
+
+  // Generic fallback — clean key-value display
+  return (
+    <div className="text-sm text-gray-900 space-y-0.5">
+      {entries.map(([key, val]) => (
+        <div key={key}>
+          <span className="text-gray-400 text-xs mr-1.5">{key}:</span>
+          <span>{typeof val === 'object' ? JSON.stringify(val) : String(val)}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function formatAttributeValue(attr: AttributeSummary): ReactNode {
   if (attr.value === undefined || attr.value === null) return '-';
 
   switch (attr.data_type) {
-    case 'boolean':
-      return attr.value === 'true' ? 'Ja' : 'Nee';
+    case 'boolean': {
+      const v = attr.value.toLowerCase();
+      return (v === 'true' || v === 'ja' || v === 'yes' || v === '1') ? 'Ja' : 'Nee';
+    }
     case 'date': {
       const d = new Date(attr.value);
       return d.toLocaleDateString('nl-BE', { day: 'numeric', month: 'short', year: 'numeric' });
@@ -680,8 +787,11 @@ function formatAttributeValue(attr: AttributeSummary): string {
         .map((v) => attr.options?.find((o) => o.value === v.trim())?.label ?? v.trim())
         .join(', ');
     }
-    default:
+    default: {
+      const json = tryParseJson(attr.value);
+      if (json) return <JsonValue data={json} />;
       return attr.value;
+    }
   }
 }
 
@@ -790,62 +900,95 @@ function AttributesSection({ attributes, candidateId, onRefresh, onAddClick }: A
               <CategoryIcon className="w-3.5 h-3.5 text-gray-400" />
               <span className="text-xs font-medium text-gray-500">{config.label}</span>
             </div>
-            <div className="space-y-1.5">
-              {grouped[category].map((attr) => (
-                <div
-                  key={attr.id}
-                  className="group flex items-center justify-between p-2.5 bg-gray-50 rounded-lg"
-                >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className="text-sm text-gray-700 truncate">{attr.name}</span>
-                    {attr.verified && (
-                      <CheckCircle className="w-3.5 h-3.5 text-green-500 shrink-0" />
+            <div className="rounded-lg border border-gray-100 divide-y divide-gray-100 bg-white">
+              {grouped[category].map((attr) => {
+                const isJson = attr.value != null && tryParseJson(attr.value) !== null;
+                const jsonData = attr.value != null ? tryParseJson(attr.value) : null;
+                const isAddress = jsonData != null && isAddressLike(jsonData);
+                // Addresses can be shown inline even though they're JSON
+                const showInline = !isJson || isAddress;
+
+                return (
+                  <div
+                    key={attr.id}
+                    className={cn(
+                      "group relative px-3 py-2.5 hover:pr-12",
+                      showInline ? "flex items-center justify-between gap-3" : "flex flex-col gap-1"
                     )}
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    {editingId === attr.id ? (
-                      <InlineAttributeEditor
-                        attr={attr}
-                        value={editValue}
-                        onChange={setEditValue}
-                        onSave={(v) => saveEdit(attr, v)}
-                        onCancel={cancelEdit}
-                        saving={saving}
-                      />
+                  >
+                    {showInline ? (
+                      <>
+                        <div className="flex items-center gap-2 min-w-0 shrink-0">
+                          <span className="text-sm text-gray-500">{attr.name}</span>
+                          {attr.verified && (
+                            <CheckCircle className="w-3.5 h-3.5 text-green-500 shrink-0" />
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 min-w-0 justify-end">
+                          {editingId === attr.id ? (
+                            <InlineAttributeEditor
+                              attr={attr}
+                              value={editValue}
+                              onChange={setEditValue}
+                              onSave={(v) => saveEdit(attr, v)}
+                              onCancel={cancelEdit}
+                              saving={saving}
+                            />
+                          ) : (
+                            <>
+                              <span className="text-sm font-medium text-gray-900 truncate">
+                                {formatAttributeValue(attr)}
+                              </span>
+                              {attr.source && attr.source !== 'manual' && (
+                                <AttributeSourceInfo source={attr.source} />
+                              )}
+                            </>
+                          )}
+                        </div>
+                      </>
                     ) : (
                       <>
-                        <span className="text-sm font-medium text-gray-900">
-                          {formatAttributeValue(attr)}
-                        </span>
-                        {attr.source && (
-                          <span className="text-[10px] text-gray-400 bg-gray-100 rounded px-1.5 py-0.5">
-                            {SOURCE_LABELS[attr.source] ?? attr.source}
-                          </span>
-                        )}
-                        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button
-                            onClick={() => startEdit(attr)}
-                            className="p-1 rounded hover:bg-gray-200 transition-colors"
-                          >
-                            <Pencil className="w-3 h-3 text-gray-400" />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(attr)}
-                            disabled={deletingId === attr.id}
-                            className="p-1 rounded hover:bg-red-50 transition-colors disabled:opacity-50"
-                          >
-                            {deletingId === attr.id ? (
-                              <Loader2 className="w-3 h-3 animate-spin text-gray-400" />
-                            ) : (
-                              <Trash2 className="w-3 h-3 text-gray-400 hover:text-red-500" />
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="text-sm text-gray-500">{attr.name}</span>
+                            {attr.verified && (
+                              <CheckCircle className="w-3.5 h-3.5 text-green-500 shrink-0" />
                             )}
-                          </button>
+                          </div>
+                          {attr.source && attr.source !== 'manual' && (
+                            <AttributeSourceInfo source={attr.source} />
+                          )}
+                        </div>
+                        <div className="pl-0.5">
+                          {formatAttributeValue(attr)}
                         </div>
                       </>
                     )}
+                    {/* Hover actions — absolutely positioned past the info icon */}
+                    {editingId !== attr.id && (
+                      <div className="absolute right-1 top-1/2 -translate-y-1/2 hidden group-hover:flex items-center gap-0.5">
+                        <button
+                          onClick={() => startEdit(attr)}
+                          className="p-1 rounded hover:bg-gray-100 transition-colors"
+                        >
+                          <Pencil className="w-3 h-3 text-gray-400" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(attr)}
+                          disabled={deletingId === attr.id}
+                          className="p-1 rounded hover:bg-red-50 transition-colors disabled:opacity-50"
+                        >
+                          {deletingId === attr.id ? (
+                            <Loader2 className="w-3 h-3 animate-spin text-gray-400" />
+                          ) : (
+                            <Trash2 className="w-3 h-3 text-gray-400 hover:text-red-500" />
+                          )}
+                        </button>
+                      </div>
+                    )}
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         );

@@ -1164,6 +1164,9 @@ export interface Candidacy {
   vacancy: CandidacyVacancy | null;
   latest_application: CandidacyApplicationSummary | null;
   linked_vacancies?: LinkedVacancy[];
+  recruiter_verification: boolean;
+  recruiter_verification_reason: string | null;
+  contract_url: string | null;
 }
 
 export interface CandidaciesResponse {

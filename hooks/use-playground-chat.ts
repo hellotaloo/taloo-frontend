@@ -59,6 +59,7 @@ export type PlaygroundAgentType = 'pre_screening' | 'document_collection';
 
 interface UsePlaygroundChatOptions {
   agentType: PlaygroundAgentType;
+  liveMode?: boolean;
 }
 
 export function usePlaygroundChat(contextId: string, options: UsePlaygroundChatOptions) {
@@ -187,6 +188,7 @@ export function usePlaygroundChat(contextId: string, options: UsePlaygroundChatO
 
       if (sessionId) body.session_id = sessionId;
       if (candidateName) body.candidate_name = candidateName;
+      if (options.liveMode) body.live_mode = true;
 
       const response = await fetch(`${getBackendUrl()}/playground/chat`, {
         method: 'POST',
@@ -281,6 +283,7 @@ export function usePlaygroundChat(contextId: string, options: UsePlaygroundChatO
       }
 
       if (sessionId) body.session_id = sessionId;
+      if (options.liveMode) body.live_mode = true;
 
       // Abort any previous in-flight request
       if (abortControllerRef.current) {

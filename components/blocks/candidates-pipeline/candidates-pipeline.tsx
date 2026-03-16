@@ -12,12 +12,13 @@ import {
   useDroppable,
   useDraggable,
 } from '@dnd-kit/core';
-import { Loader2, Phone, MessageCircle, FileText, Calendar } from 'lucide-react';
+import { Loader2, Phone, MessageCircle, FileText, Calendar, AlertTriangle, ExternalLink } from 'lucide-react';
 import { cn, formatRelativeDate, formatTimestamp } from '@/lib/utils';
 import { getCandidacies, patchCandidacy } from '@/lib/candidacy-api';
 import { supabase } from '@/lib/supabase';
 import type { Candidacy, CandidacyStage, PlacementCreate } from '@/lib/types';
 import { toast } from 'sonner';
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { PlacementDialog } from '@/components/blocks/placement-dialog';
 
 // ─── Stage config ─────────────────────────────────────────────────────────────
@@ -28,7 +29,7 @@ const STAGE_CONFIG: Record<CandidacyStage, string> = {
   qualified: 'Gekwalificeerd',
   interview_planned: 'Interview gepland',
   interview_done: 'Interview afgerond',
-  offer: 'Aanbod',
+  offer: 'Onboarden & contract',
   placed: 'Geplaatst',
   rejected: 'Afgewezen',
   withdrawn: 'Teruggetrokken',
@@ -131,6 +132,39 @@ function PipelineCard({ candidacy, stage, onClick, muted }: PipelineCardProps) {
             </span>
           </div>
         )}
+        {/* Recruiter verification warning */}
+        {candidacy.recruiter_verification && (
+          <div className="mt-1">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-md bg-orange-50 text-orange-600">
+                  <AlertTriangle className="w-3 h-3 shrink-0" />
+                  Verificatie nodig
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="top">
+                {candidacy.recruiter_verification_reason || 'Recruiter verificatie vereist'}
+              </TooltipContent>
+            </Tooltip>
+          </div>
+        )}
+
+        {/* Contract link */}
+        {candidacy.contract_url && (
+          <div className="mt-1">
+            <a
+              href={candidacy.contract_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-md bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <ExternalLink className="w-3 h-3 shrink-0" />
+              Contract
+            </a>
+          </div>
+        )}
+
         {candidacy.vacancy && (
           <div className="mt-1">
             <span className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-md bg-gray-100 text-gray-500 max-w-full">

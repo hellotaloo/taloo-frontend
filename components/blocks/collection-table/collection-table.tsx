@@ -24,7 +24,7 @@ const stageLabels: Record<CandidacyStage, string> = {
   qualified:          'Gekwalificeerd',
   interview_planned:  'Interview gepland',
   interview_done:     'Interview afgerond',
-  offer:              'Aanbod',
+  offer:              'Onboarden & contract',
   placed:             'Geplaatst',
   rejected:           'Afgewezen',
   withdrawn:          'Teruggetrokken',

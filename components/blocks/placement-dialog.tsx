@@ -71,7 +71,7 @@ export function PlacementDialog({ candidacy, open, onOpenChange, onConfirm }: Pl
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Plaatsing bevestigen</DialogTitle>
+          <DialogTitle>Onboarding & contract</DialogTitle>
           <DialogDescription>
             {candidateName} wordt geplaatst op <strong>{vacancyTitle}</strong>.
             Vul de plaatsingsgegevens in om de plaatsing te bevestigen.
@@ -107,7 +107,7 @@ export function PlacementDialog({ candidacy, open, onOpenChange, onConfirm }: Pl
 
           <div className="flex items-center justify-between gap-4 rounded-md border px-3 py-2.5">
             <div className="min-w-0">
-              <Label htmlFor="create_contract" className="cursor-pointer">Contract aanmaken</Label>
+              <Label htmlFor="create_contract" className="cursor-pointer">Agent contract aanmaken</Label>
               <p className="text-xs text-gray-500 mt-0.5">
                 {regime === 'day'
                   ? 'Agent genereert het contract en verstuurt het 15 min. voor aanvang ter ondertekening'

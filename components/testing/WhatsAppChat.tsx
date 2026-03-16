@@ -38,6 +38,7 @@ interface WhatsAppChatProps {
   isActive?: boolean; // Only start conversation when active (visible)
   agentType?: PlaygroundAgentType; // Agent type for playground chat (default: pre_screening)
   contextId?: string; // The ID for the agent context (vacancy or collection)
+  liveMode?: boolean; // When true, persist collected data to real candidate records
   onCollectionProgress?: (progress: CollectionProgress) => void;
 }
 
@@ -144,6 +145,7 @@ export function WhatsAppChat({
   isActive = true,
   agentType = 'pre_screening',
   contextId,
+  liveMode,
   onCollectionProgress,
 }: WhatsAppChatProps) {
   const clock = useClock();
@@ -166,7 +168,7 @@ export function WhatsAppChat({
   const screeningChat = useScreeningChat(vacancyId || '');
 
   // Hook for playground chat (new unified endpoint)
-  const playgroundChat = usePlaygroundChat(effectiveContextId, { agentType });
+  const playgroundChat = usePlaygroundChat(effectiveContextId, { agentType, liveMode });
 
   // Forward collection progress to parent
   useEffect(() => {
@@ -199,6 +201,10 @@ export function WhatsAppChat({
           const data = await res.json();
           const msgs = data.messages || [];
           if (msgs.length > 0) {
+            // Update collection progress if included
+            if (data.collection_progress && onCollectionProgress) {
+              onCollectionProgress(data.collection_progress);
+            }
             // Trigger slide-out animation
             setBrowserClosing(true);
             // Show messages after animation completes + small pause

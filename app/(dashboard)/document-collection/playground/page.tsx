@@ -30,6 +30,7 @@ import ReactMarkdown from 'react-markdown';
 import type { CollectionProgress } from '@/hooks/use-playground-chat';
 import { cn, formatTimestamp } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
 import { StatusBadge } from '@/components/kit/status-badge';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { IPhoneMockup } from '@/components/blocks/phone-simulator';
@@ -80,6 +81,7 @@ export default function DocumentCollectionPlayground() {
   const isViewMode = chatMode === 'view';
   const [chatResetKey, setChatResetKey] = useState(0);
   const [collectionProgress, setCollectionProgress] = useState<CollectionProgress | null>(null);
+  const [liveMode, setLiveMode] = useState(false);
 
   const selectedIdRef = useRef(selectedId);
   selectedIdRef.current = selectedId;
@@ -302,6 +304,7 @@ export default function DocumentCollectionPlayground() {
                     candidateName={detail?.candidate_name || 'Kandidaat'}
                     resetKey={chatResetKey}
                     isActive={true}
+                    liveMode={liveMode}
                     onCollectionProgress={setCollectionProgress}
                   />
                 </IPhoneMockup>
@@ -341,6 +344,17 @@ export default function DocumentCollectionPlayground() {
                   >
                     <RotateCcw className="w-4 h-4" />
                   </button>
+                  <div className="flex items-center gap-1.5 ml-2 pl-2 border-l border-gray-200">
+                    <Switch
+                      id="live-mode"
+                      checked={liveMode}
+                      onCheckedChange={setLiveMode}
+                      className="scale-75"
+                    />
+                    <label htmlFor="live-mode" className="text-xs text-gray-500 cursor-pointer select-none">
+                      Live
+                    </label>
+                  </div>
                 </div>
               </div>
             ) : detail ? (
@@ -387,6 +401,17 @@ export default function DocumentCollectionPlayground() {
                   >
                     <RotateCcw className="w-4 h-4" />
                   </button>
+                  <div className="flex items-center gap-1.5 ml-2 pl-2 border-l border-gray-200">
+                    <Switch
+                      id="live-mode-view"
+                      checked={liveMode}
+                      onCheckedChange={setLiveMode}
+                      className="scale-75"
+                    />
+                    <label htmlFor="live-mode-view" className="text-xs text-gray-500 cursor-pointer select-none">
+                      Live
+                    </label>
+                  </div>
                 </div>
               </div>
             ) : null}
@@ -435,7 +460,6 @@ const STEP_LABELS: Record<string, string> = {
   collect_documents: 'Optioneel',
   medical_screening: 'Medisch',
   contract_signing: 'Contract',
-  closing: 'Afsluiting',
 };
 
 function ConversationStepProgress({ steps }: { steps: { step: number; type: string; description: string; completed: boolean; current: boolean }[] }) {

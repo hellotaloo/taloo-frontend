@@ -23,6 +23,8 @@ import {
   XCircle,
   MoreHorizontal,
   X,
+  AlertTriangle,
+  ExternalLink,
 } from 'lucide-react';
 import { cn, formatRelativeDate, formatPhoneNumber } from '@/lib/utils';
 import { getCandidacies, patchCandidacy, createCandidacy } from '@/lib/candidacy-api';
@@ -40,6 +42,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { toast } from 'sonner';
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 
 // ─── Stage config ─────────────────────────────────────────────────────────────
 
@@ -54,7 +57,7 @@ const STAGE_CONFIG: Record<CandidacyStage, StageConfig> = {
   qualified: { label: 'Gekwalificeerd' },
   interview_planned: { label: 'Interview gepland' },
   interview_done: { label: 'Interview afgerond' },
-  offer: { label: 'Aanbod' },
+  offer: { label: 'Onboarden & contract' },
   placed: { label: 'Geplaatst' },
   rejected: { label: 'Afgewezen', archive: true },
   withdrawn: { label: 'Teruggetrokken', archive: true },
@@ -185,6 +188,39 @@ function KanbanCard({ candidacy, muted, onCardClick, onArchive }: KanbanCardProp
                 Mislukt
               </span>
             )}
+          </div>
+        )}
+
+        {/* Recruiter verification warning */}
+        {candidacy.recruiter_verification && (
+          <div className="mt-2 pointer-events-auto">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-md bg-orange-50 text-orange-600">
+                  <AlertTriangle className="w-3 h-3 shrink-0" />
+                  Verificatie nodig
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="top">
+                {candidacy.recruiter_verification_reason || 'Recruiter verificatie vereist'}
+              </TooltipContent>
+            </Tooltip>
+          </div>
+        )}
+
+        {/* Contract link */}
+        {candidacy.contract_url && (
+          <div className="mt-1 pointer-events-auto">
+            <a
+              href={candidacy.contract_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-md bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <ExternalLink className="w-3 h-3 shrink-0" />
+              Contract
+            </a>
           </div>
         )}
       </div>

@@ -68,7 +68,7 @@ const stageLabels: Record<string, string> = {
   qualified: 'Gekwalificeerd',
   interview_planned: 'Gesprek gepland',
   interview_done: 'Gesprek afgerond',
-  offer: 'Aanbod',
+  offer: 'Onboarden & contract',
   placed: 'Geplaatst',
   rejected: 'Afgewezen',
   withdrawn: 'Teruggetrokken',
