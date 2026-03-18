@@ -126,7 +126,6 @@ export default function AdminPage() {
                 icon={Plug}
                 animationDelay={350}
                 testId="admin-card-integrations"
-                comingSoon
               />
             </div>
           </section>

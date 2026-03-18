@@ -36,6 +36,7 @@ import {
   Mic,
   Phone,
   Play,
+  Plug,
   ScanSearch,
   Settings,
   Users,
@@ -80,6 +81,7 @@ export const pageConfigs: Record<string, PageConfig> = {
   // Admin section
   '/admin': { title: 'Instellingen', description: 'Beheer instellingen en configuraties', icon: Settings },
 '/admin/ontology': { title: 'Ontology', icon: Boxes },
+  '/admin/integrations': { title: 'Externe integraties', icon: Plug },
 
   // Agent settings
   '/agent-settings/voice': { title: 'Voice Agent', description: 'Configure voice settings and test demo calls', icon: Mic },
@@ -104,6 +106,9 @@ export const dynamicRoutes: Array<{ pattern: RegExp; config: PageConfig }> = [
   // Documentcollectie dynamic routes
   { pattern: /^\/document-collection\/detail\//, config: { title: 'Documentcollectie', icon: FileCheck } },
   { pattern: /^\/document-collection\/generate\//, config: { title: 'Documentcollectie', icon: FileCheck } },
+
+  // Integration detail routes
+  { pattern: /^\/admin\/integrations\/[^/]+$/, config: { title: 'Integratie', icon: Plug } },
 
 ];
 
