@@ -233,7 +233,7 @@ function PipelineColumn({ stage, candidacies, onCardClick }: PipelineColumnProps
       <div
         ref={setNodeRef}
         className={cn(
-          'flex-1 flex flex-col gap-2 rounded-xl p-2 min-h-[120px] transition-colors',
+          'flex-1 flex flex-col gap-2 rounded-xl p-2 transition-colors',
           isOver ? 'bg-gray-200/80 ring-2 ring-brand-dark-blue/20' : isTerminal ? 'bg-gray-100/40' : 'bg-gray-100/60',
         )}
       >
@@ -412,13 +412,13 @@ export function CandidatesPipeline({ searchQuery, onCandidateClick }: Candidates
   const terminalStages = VISIBLE_STAGES.filter((s) => TERMINAL_STAGES.includes(s));
 
   return (
-    <>
+    <div className="flex flex-col flex-1 min-h-0">
       <DndContext
         sensors={sensors}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
-        <div className="flex gap-3 overflow-x-auto pb-4">
+        <div className="flex gap-3 overflow-x-auto pb-4 flex-1 min-h-0">
           {activeStages.map((stage) => (
             <PipelineColumn
               key={stage}
@@ -450,6 +450,6 @@ export function CandidatesPipeline({ searchQuery, onCandidateClick }: Candidates
         onOpenChange={(open) => !open && setPlacementCandidate(null)}
         onConfirm={handlePlacementConfirm}
       />
-    </>
+    </div>
   );
 }

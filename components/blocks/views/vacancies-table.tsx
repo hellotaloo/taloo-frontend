@@ -250,6 +250,16 @@ export function VacanciesTable({ vacancies, selectedId, onRowClick }: VacanciesT
     },
   ];
 
+  if (vacancies.length === 0) {
+    return (
+      <DataTableEmpty
+        icon={Briefcase}
+        title="Geen vacatures gevonden"
+        description="Er zijn nog geen vacatures die voldoen aan je zoekopdracht."
+      />
+    );
+  }
+
   return (
     <DataTable
       data={vacancies}
@@ -260,15 +270,7 @@ export function VacanciesTable({ vacancies, selectedId, onRowClick }: VacanciesT
       onRowClick={onRowClick}
     >
       <DataTableHeader />
-      <DataTableBody
-        emptyState={
-          <DataTableEmpty
-            icon={Briefcase}
-            title="Geen vacatures gevonden"
-            description="Er zijn nog geen vacatures die voldoen aan je zoekopdracht."
-          />
-        }
-      />
+      <DataTableBody />
     </DataTable>
   );
 }

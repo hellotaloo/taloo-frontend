@@ -105,6 +105,16 @@ export function CustomersTable({ customers }: CustomersTableProps) {
     },
   ];
 
+  if (customers.length === 0) {
+    return (
+      <DataTableEmpty
+        icon={Building2}
+        title="Geen klanten gevonden"
+        description="Er zijn nog geen klanten die voldoen aan je zoekopdracht."
+      />
+    );
+  }
+
   return (
     <DataTable
       data={customers}
@@ -113,15 +123,7 @@ export function CustomersTable({ customers }: CustomersTableProps) {
       defaultSortDirection="desc"
     >
       <DataTableHeader />
-      <DataTableBody
-        emptyState={
-          <DataTableEmpty
-            icon={Building2}
-            title="Geen klanten gevonden"
-            description="Er zijn nog geen klanten die voldoen aan je zoekopdracht."
-          />
-        }
-      />
+      <DataTableBody />
     </DataTable>
   );
 }

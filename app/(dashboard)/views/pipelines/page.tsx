@@ -45,8 +45,8 @@ export default function PipelinePage() {
     <>
       <PageLayout>
         <PageLayoutHeader />
-        <PageLayoutContent>
-          <div className="flex items-center justify-between gap-4 mb-4">
+        <PageLayoutContent contentClassName="flex flex-col">
+          <div className="flex items-center justify-between gap-4 mb-4 shrink-0">
             <Tabs value="alle">
               <TabsList variant="line">
                 <TabsTrigger value="alle">

@@ -120,6 +120,16 @@ export function CandidatesTable({ candidates, selectedId, onRowClick }: Candidat
     },
   ];
 
+  if (candidates.length === 0) {
+    return (
+      <DataTableEmpty
+        icon={Users}
+        title="Geen kandidaten gevonden"
+        description="Er zijn nog geen kandidaten die voldoen aan je zoekopdracht."
+      />
+    );
+  }
+
   return (
     <DataTable
       data={candidates}
@@ -130,15 +140,7 @@ export function CandidatesTable({ candidates, selectedId, onRowClick }: Candidat
       onRowClick={onRowClick}
     >
       <DataTableHeader />
-      <DataTableBody
-        emptyState={
-          <DataTableEmpty
-            icon={Users}
-            title="Geen kandidaten gevonden"
-            description="Er zijn nog geen kandidaten die voldoen aan je zoekopdracht."
-          />
-        }
-      />
+      <DataTableBody />
     </DataTable>
   );
 }
