@@ -1,7 +1,6 @@
 'use client';
 
-import * as React from 'react';
-import Image from 'next/image';
+import { type ElementType, useCallback, useEffect, useState } from 'react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -9,51 +8,24 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  getSystemStatus,
+  type ServiceStatusItem,
+  type IntegrationStatusItem,
+  type SystemStatusResponse,
+} from '@/lib/api';
+import {
+  Bot,
+  Globe,
+  MessageCircle,
+  Mic,
+  RefreshCw,
+  Server,
+} from 'lucide-react';
 
-type ServiceStatus = 'online' | 'offline' | 'degraded';
+type StatusValue = 'online' | 'offline' | 'degraded' | 'not_configured' | 'unknown';
 
-interface Service {
-  name: string;
-  icon: string;
-  status: ServiceStatus;
-  description?: string;
-}
-
-// Mock service statuses - in a real app, these would come from an API
-const services: Service[] = [
-  {
-    name: 'Taloo Agent',
-    icon: '/taloo-icon-big.svg',
-    status: 'online',
-    description: 'AI agent is operational',
-  },
-  {
-    name: 'WhatsApp',
-    icon: '/whatsapp.png',
-    status: 'online',
-    description: 'Connected and ready',
-  },
-  {
-    name: 'Voice (Twilio)',
-    icon: '/phone.png',
-    status: 'online',
-    description: 'All lines active',
-  },
-  {
-    name: 'Salesforce',
-    icon: '/vendors/recruitnow.png',
-    status: 'online',
-    description: 'Sync enabled',
-  },
-];
-
-function getOverallStatus(services: Service[]): ServiceStatus {
-  if (services.some((s) => s.status === 'offline')) return 'offline';
-  if (services.some((s) => s.status === 'degraded')) return 'degraded';
-  return 'online';
-}
-
-function getStatusColor(status: ServiceStatus): string {
+function getStatusColor(status: StatusValue): string {
   switch (status) {
     case 'online':
       return 'bg-green-500';
@@ -61,32 +33,108 @@ function getStatusColor(status: ServiceStatus): string {
       return 'bg-yellow-500';
     case 'offline':
       return 'bg-red-500';
+    case 'not_configured':
+      return 'bg-gray-300';
+    case 'unknown':
+      return 'bg-gray-400';
   }
 }
 
-function getStatusText(status: ServiceStatus): string {
+function getOverallLabel(status: string): string {
   switch (status) {
     case 'online':
-      return 'Online';
+      return 'Operationeel';
     case 'degraded':
-      return 'Degraded';
+      return 'Verstoord';
     case 'offline':
       return 'Offline';
+    default:
+      return 'Onbekend';
   }
 }
 
-function StatusDot({ status, size = 'sm' }: { status: ServiceStatus; size?: 'sm' | 'xs' }) {
+const serviceIcons: Record<string, ElementType> = {
+  platform: Server,
+  llm: Bot,
+  voice: Mic,
+  whatsapp: MessageCircle,
+};
+
+function StatusDot({ status, size = 'sm' }: { status: StatusValue; size?: 'sm' | 'xs' }) {
   const sizeClasses = size === 'sm' ? 'w-2 h-2' : 'w-1.5 h-1.5';
   return (
     <span className={`${sizeClasses} rounded-full ${getStatusColor(status)} inline-block`} />
   );
 }
 
+function ServiceRow({ item }: { item: ServiceStatusItem }) {
+  const Icon = serviceIcons[item.slug] ?? Globe;
+  return (
+    <div className="flex items-center gap-3 px-2 py-1.5 rounded-sm">
+      <Icon className="w-4 h-4 text-gray-400 shrink-0" />
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-sm font-medium text-gray-700 truncate">
+            {item.name}
+          </span>
+          <StatusDot status={item.status as StatusValue} size="xs" />
+        </div>
+        <p className="text-xs text-gray-500 truncate">{item.description}</p>
+      </div>
+    </div>
+  );
+}
+
+function IntegrationRow({ item }: { item: IntegrationStatusItem }) {
+  return (
+    <div className="flex items-center gap-3 px-2 py-1.5 rounded-sm">
+      <Globe className="w-4 h-4 text-gray-400 shrink-0" />
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-sm font-medium text-gray-700 truncate">
+            {item.name}
+          </span>
+          <StatusDot status={item.status as StatusValue} size="xs" />
+        </div>
+        <p className="text-xs text-gray-500 truncate">{item.description}</p>
+      </div>
+    </div>
+  );
+}
+
 export function SystemStatus() {
-  const overallStatus = getOverallStatus(services);
+  const [data, setData] = useState<SystemStatusResponse | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [open, setOpen] = useState(false);
+
+  const fetchStatus = useCallback(async () => {
+    setLoading(true);
+    try {
+      const result = await getSystemStatus();
+      setData(result);
+    } catch (err) {
+      console.error('Failed to fetch system status:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Fetch on first open, then refresh every time dropdown opens
+  useEffect(() => {
+    if (open) {
+      fetchStatus();
+    }
+  }, [open, fetchStatus]);
+
+  // Also fetch on mount for the initial dot color
+  useEffect(() => {
+    fetchStatus();
+  }, [fetchStatus]);
+
+  const overallStatus = (data?.overall ?? 'unknown') as StatusValue;
 
   return (
-    <DropdownMenu>
+    <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
         <button
           className="flex items-center gap-1.5 px-2 py-1 text-sm text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded transition-colors focus:outline-none"
@@ -100,43 +148,47 @@ export function SystemStatus() {
           </span>
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-64">
+      <DropdownMenuContent align="end" className="w-72">
         <DropdownMenuLabel className="flex items-center justify-between">
-          <span>System Status</span>
+          <span>Systeemstatus</span>
           <span className="flex items-center gap-1.5 text-xs font-normal text-gray-500">
-            <StatusDot status={overallStatus} size="xs" />
-            {getStatusText(overallStatus)}
+            {loading ? (
+              <RefreshCw className="w-3 h-3 animate-spin" />
+            ) : (
+              <StatusDot status={overallStatus} size="xs" />
+            )}
+            {getOverallLabel(data?.overall ?? 'unknown')}
           </span>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
+
+        {/* Services */}
         <div className="p-1">
-          {services.map((service) => (
-            <div
-              key={service.name}
-              className="flex items-center gap-3 px-2 py-2 rounded-sm hover:bg-gray-50"
-            >
-              <div className="w-5 h-5 relative shrink-0">
-                <Image
-                  src={service.icon}
-                  alt={service.name}
-                  fill
-                  className="object-contain"
-                />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-sm font-medium text-gray-700 truncate">
-                    {service.name}
-                  </span>
-                  <StatusDot status={service.status} size="xs" />
-                </div>
-                {service.description && (
-                  <p className="text-xs text-gray-500 truncate">{service.description}</p>
-                )}
-              </div>
-            </div>
+          <p className="px-2 py-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
+            Services
+          </p>
+          {data?.services.map((service) => (
+            <ServiceRow key={service.slug} item={service} />
           ))}
+          {!data && !loading && (
+            <p className="px-2 py-2 text-xs text-gray-400">Niet beschikbaar</p>
+          )}
         </div>
+
+        {/* Integrations (only show if there are any) */}
+        {data && data.integrations.length > 0 && (
+          <>
+            <DropdownMenuSeparator />
+            <div className="p-1">
+              <p className="px-2 py-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
+                Integraties
+              </p>
+              {data.integrations.map((integration) => (
+                <IntegrationRow key={integration.slug} item={integration} />
+              ))}
+            </div>
+          </>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );

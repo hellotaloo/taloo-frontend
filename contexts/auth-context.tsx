@@ -8,6 +8,7 @@ import {
   getCurrentUser,
   logout as apiLogout,
   getGoogleLoginUrl,
+  getMicrosoftLoginUrl,
 } from '@/lib/auth-api';
 
 interface AuthContextType {
@@ -17,6 +18,7 @@ interface AuthContextType {
   isLoading: boolean;
   isAuthenticated: boolean;
   login: (redirectTo?: string) => void;
+  loginWithMicrosoft: (redirectTo?: string) => void;
   devLogin: () => Promise<void>;
   logout: () => Promise<void>;
   switchWorkspace: (workspaceId: string) => void;
@@ -113,6 +115,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
     window.location.href = getGoogleLoginUrl(redirectTo || '/');
   }, []);
 
+  // Redirect to Microsoft OAuth login
+  const loginWithMicrosoft = useCallback((redirectTo?: string) => {
+    window.location.href = getMicrosoftLoginUrl(redirectTo || '/');
+  }, []);
+
   // Development-only login
   const devLogin = useCallback(async () => {
     try {
@@ -152,11 +159,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // Switch workspace
   const switchWorkspace = useCallback((workspaceId: string) => {
     const workspace = workspaces.find(ws => ws.id === workspaceId);
-    if (workspace) {
-      setCurrentWorkspaceId(workspaceId);
+    if (workspace && workspaceId !== currentWorkspaceId) {
       localStorage.setItem(AUTH_STORAGE_KEYS.workspaceId, workspaceId);
+      // Reload to refetch all workspace-scoped data
+      window.location.reload();
     }
-  }, [workspaces]);
+  }, [workspaces, currentWorkspaceId]);
 
   const value: AuthContextType = {
     user,
@@ -165,6 +173,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     isLoading,
     isAuthenticated: !!user,
     login,
+    loginWithMicrosoft,
     devLogin,
     logout,
     switchWorkspace,

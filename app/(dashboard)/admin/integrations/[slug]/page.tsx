@@ -2,20 +2,12 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { ArrowLeft, Database, Loader2, Trash2, Video } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
-import {
-  PageLayout,
-  PageLayoutHeader,
-  PageLayoutContent,
-} from '@/components/layout/page-layout';
-import { StatusBadge, type StatusBadgeVariant } from '@/components/kit/status-badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
 import {
   AlertDialog,
   AlertDialogContent,
@@ -34,34 +26,10 @@ import {
   getCredentialFields,
   saveCredentials,
   runHealthCheck,
-  updateConnection,
   deleteConnection,
+  updateConnection,
 } from '@/lib/integrations-api';
-import { formatRelativeDate } from '@/lib/utils';
-
-// --- Provider config ---
-
-const providerMeta: Record<string, { icon: React.ElementType; vendor: string }> = {
-  connexys: { icon: Database, vendor: 'Bullhorn' },
-  microsoft: { icon: Video, vendor: 'Teams & Outlook' },
-};
-
-function getStatusDisplay(connection?: ConnectionResponse): {
-  label: string;
-  variant: StatusBadgeVariant;
-} {
-  if (!connection || !connection.has_credentials) {
-    return { label: 'Niet geconfigureerd', variant: 'gray' };
-  }
-  switch (connection.health_status) {
-    case 'healthy':
-      return { label: 'Verbonden', variant: 'green' };
-    case 'unhealthy':
-      return { label: 'Verbinding mislukt', variant: 'red' };
-    default:
-      return { label: 'Niet getest', variant: 'orange' };
-  }
-}
+import { getProviderBlueprint } from '@/lib/integration-registry';
 
 /** Pretty-print a snake_case field name as a label */
 function fieldLabel(name: string): string {
@@ -71,18 +39,16 @@ function fieldLabel(name: string): string {
     .join(' ');
 }
 
-// --- Main page ---
-
-export default function IntegrationDetailPage() {
+export default function IntegrationConnectionPage() {
   const params = useParams();
   const router = useRouter();
   const slug = params.slug as string;
-  const meta = providerMeta[slug];
+  const blueprint = getProviderBlueprint(slug);
 
   const [connection, setConnection] = useState<ConnectionResponse | null>(null);
-  const [loading, setLoading] = useState(true);
   const [integrationName, setIntegrationName] = useState('');
   const [integrationDescription, setIntegrationDescription] = useState('');
+  const [loading, setLoading] = useState(true);
 
   // Dynamic form
   const [fields, setFields] = useState<CredentialField[]>([]);
@@ -92,8 +58,9 @@ export default function IntegrationDetailPage() {
   // Health check
   const [checking, setChecking] = useState(false);
 
-  // Toggle
-  const [toggling, setToggling] = useState(false);
+  // Advanced settings
+  const [sfObject, setSfObject] = useState('');
+  const [savingSettings, setSavingSettings] = useState(false);
 
   // Delete
   const [showDelete, setShowDelete] = useState(false);
@@ -118,7 +85,6 @@ export default function IntegrationDetailPage() {
       setIntegrationDescription(integration.description);
       setFields(credentialFields);
 
-      // Initialize empty form values from schema fields
       const empty: Record<string, string> = {};
       for (const f of credentialFields) {
         empty[f.name] = '';
@@ -126,7 +92,10 @@ export default function IntegrationDetailPage() {
       setFormValues(empty);
 
       const conn = connections.find((c) => c.integration.slug === slug);
-      if (conn) setConnection(conn);
+      if (conn) {
+        setConnection(conn);
+        setSfObject(conn.settings?.sf_object ?? '');
+      }
     } catch {
       toast.error('Kon gegevens niet laden');
     } finally {
@@ -171,17 +140,19 @@ export default function IntegrationDetailPage() {
     }
   };
 
-  const handleToggle = async (active: boolean) => {
+  const handleSaveSettings = async () => {
     if (!connection) return;
-    setToggling(true);
+    setSavingSettings(true);
     try {
-      const updated = await updateConnection(connection.id, { is_active: active });
+      const updated = await updateConnection(connection.id, {
+        settings: { sf_object: sfObject.trim() || undefined },
+      });
       setConnection(updated);
-      toast.success(active ? 'Integratie geactiveerd' : 'Integratie gedeactiveerd');
+      toast.success('Instellingen opgeslagen');
     } catch {
-      toast.error('Bijwerken mislukt');
+      toast.error('Opslaan mislukt');
     } finally {
-      setToggling(false);
+      setSavingSettings(false);
     }
   };
 
@@ -203,165 +174,174 @@ export default function IntegrationDetailPage() {
     .filter((f) => f.required)
     .every((f) => formValues[f.name]?.trim() !== '');
 
-  const Icon = meta?.icon ?? Database;
-  const vendor = meta?.vendor ?? '';
-  const status = getStatusDisplay(connection ?? undefined);
+  const Icon = blueprint.icon;
+  const vendor = blueprint.vendor;
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+      </div>
+    );
+  }
 
   return (
-    <PageLayout>
-      <PageLayoutHeader>
-        <div className="flex items-center justify-between w-full">
-          <div className="flex items-center gap-3">
-            <Link href="/admin/integrations" className="text-gray-400 hover:text-gray-600 transition-colors">
-              <ArrowLeft className="w-5 h-5" />
-            </Link>
-            <h1 className="text-lg font-semibold text-gray-900">{integrationName || slug}</h1>
+    <div className="space-y-8 max-w-2xl">
+      {/* Integration info card */}
+      <div
+        className="rounded-xl border border-gray-200 bg-white p-5 space-y-4"
+        style={{ animation: 'fade-in-up 0.3s ease-out backwards' }}
+      >
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg bg-brand-dark-blue flex items-center justify-center">
+            <Icon className="w-5 h-5 text-white" />
           </div>
-          {connection?.has_credentials && (
-            <div className="flex items-center gap-4">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handleHealthCheck(connection.id)}
-                disabled={checking}
-              >
-                {checking && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                Testen
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-gray-400 hover:text-red-600"
-                onClick={() => setShowDelete(true)}
-              >
-                <Trash2 className="w-4 h-4" />
-                Verwijderen
-              </Button>
-            </div>
-          )}
+          <div>
+            <h3 className="font-semibold text-gray-900">{integrationName || slug}</h3>
+            {vendor && <p className="text-xs text-gray-500">{vendor}</p>}
+          </div>
         </div>
-      </PageLayoutHeader>
 
-      <PageLayoutContent>
-        {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
-          </div>
+        <p className="text-sm text-gray-500">{integrationDescription}</p>
+      </div>
+
+      {/* Credentials form */}
+      <div
+        className="rounded-xl border border-gray-200 bg-white p-5 space-y-5"
+        style={{ animation: 'fade-in-up 0.3s ease-out 100ms backwards' }}
+      >
+        <div>
+          <h3 className="font-semibold text-gray-900">Credentials</h3>
+          <p className="text-sm text-gray-500 mt-1">
+            {connection?.has_credentials
+              ? 'Vul nieuwe waarden in om de credentials te overschrijven.'
+              : 'Vul de credentials in om de verbinding te maken.'}
+          </p>
+        </div>
+
+        {fields.length === 0 ? (
+          <p className="text-sm text-gray-400">Geen velden beschikbaar voor deze integratie.</p>
         ) : (
-          <div className="max-w-xl space-y-8">
-            {/* Integration info card */}
-            <div
-              className="rounded-xl border border-gray-200 bg-white p-5 space-y-4"
-              style={{ animation: 'fade-in-up 0.3s ease-out backwards' }}
-            >
-              <div className="flex items-start justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-brand-dark-blue flex items-center justify-center">
-                    <Icon className="w-5 h-5 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-900">{integrationName || slug}</h3>
-                    {vendor && <p className="text-xs text-gray-500">{vendor}</p>}
-                  </div>
-                </div>
-                {connection?.has_credentials && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-gray-500">Actief</span>
-                    <Switch
-                      checked={connection.is_active}
-                      onCheckedChange={handleToggle}
-                      disabled={toggling}
-                    />
-                  </div>
-                )}
+          <div className="space-y-4">
+            {fields.map((field) => (
+              <div key={field.name} className="space-y-2">
+                <Label htmlFor={field.name}>
+                  {fieldLabel(field.name)}
+                  {!field.required && (
+                    <span className="text-gray-400 font-normal ml-1">(optioneel)</span>
+                  )}
+                </Label>
+                <Input
+                  id={field.name}
+                  type={field.type}
+                  value={formValues[field.name] ?? ''}
+                  onChange={(e) =>
+                    setFormValues((prev) => ({ ...prev, [field.name]: e.target.value }))
+                  }
+                  placeholder={connection?.credential_hints?.[field.name] || field.description}
+                  required={field.required}
+                />
               </div>
-
-              <p className="text-sm text-gray-500">{integrationDescription}</p>
-
-              <div className="flex items-center gap-3">
-                <StatusBadge label={status.label} variant={status.variant} />
-                {connection?.last_health_check_at && (
-                  <span className="text-xs text-gray-400">
-                    Laatste check: {formatRelativeDate(connection.last_health_check_at)}
-                  </span>
-                )}
-              </div>
-            </div>
-
-            {/* Credentials form — dynamically rendered from OpenAPI schema */}
-            <div
-              className="rounded-xl border border-gray-200 bg-white p-5 space-y-5"
-              style={{ animation: 'fade-in-up 0.3s ease-out 100ms backwards' }}
-            >
-              <div>
-                <h3 className="font-semibold text-gray-900">Credentials</h3>
-                <p className="text-sm text-gray-500 mt-1">
-                  {connection?.has_credentials
-                    ? 'Vul nieuwe waarden in om de credentials te overschrijven.'
-                    : 'Vul de credentials in om de verbinding te maken.'}
-                </p>
-              </div>
-
-              {fields.length === 0 ? (
-                <p className="text-sm text-gray-400">Geen velden beschikbaar voor deze integratie.</p>
-              ) : (
-                <div className="space-y-4">
-                  {fields.map((field) => (
-                    <div key={field.name} className="space-y-2">
-                      <Label htmlFor={field.name}>
-                        {fieldLabel(field.name)}
-                        {!field.required && (
-                          <span className="text-gray-400 font-normal ml-1">(optioneel)</span>
-                        )}
-                      </Label>
-                      <Input
-                        id={field.name}
-                        type={field.type}
-                        value={formValues[field.name] ?? ''}
-                        onChange={(e) =>
-                          setFormValues((prev) => ({ ...prev, [field.name]: e.target.value }))
-                        }
-                        placeholder={field.description}
-                        required={field.required}
-                      />
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              <div className="flex justify-end pt-2">
-                <Button onClick={handleSave} disabled={saving || !isFormValid}>
-                  {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-                  Opslaan
-                </Button>
-              </div>
-            </div>
+            ))}
           </div>
         )}
 
-        {/* Delete Confirm Dialog */}
-        <AlertDialog open={showDelete} onOpenChange={setShowDelete}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Integratie verwijderen</AlertDialogTitle>
-              <AlertDialogDescription>
-                Weet je zeker dat je deze integratie wilt verwijderen? Alle opgeslagen credentials worden permanent verwijderd.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel disabled={deleting}>Annuleren</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={handleDelete}
-                disabled={deleting}
-                className="bg-red-600 hover:bg-red-700"
-              >
-                {deleting && <Loader2 className="w-4 h-4 animate-spin" />}
-                Verwijderen
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      </PageLayoutContent>
-    </PageLayout>
+        <div className="flex justify-end gap-2 pt-2">
+          {connection?.has_credentials && (
+            <Button variant="outline" onClick={() => handleHealthCheck(connection.id)} disabled={checking}>
+              {checking && <Loader2 className="w-4 h-4 animate-spin" />}
+              Testen
+            </Button>
+          )}
+          <Button onClick={handleSave} disabled={saving || !isFormValid}>
+            {saving && <Loader2 className="w-4 h-4 animate-spin" />}
+            Opslaan
+          </Button>
+        </div>
+      </div>
+
+      {/* Advanced settings — Connexys only */}
+      {connection?.has_credentials && slug === 'connexys' && (
+        <div
+          className="rounded-xl border border-gray-200 bg-white p-5 space-y-4"
+          style={{ animation: 'fade-in-up 0.3s ease-out 150ms backwards' }}
+        >
+          <div>
+            <h3 className="font-semibold text-gray-900">Geavanceerde instellingen</h3>
+            <p className="text-sm text-gray-500 mt-1">
+              Configuratie voor het ophalen van vacaturegegevens uit Salesforce.
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="sf-object">Salesforce object</Label>
+            <Input
+              id="sf-object"
+              value={sfObject}
+              onChange={(e) => setSfObject(e.target.value)}
+              placeholder="cxsrec__cxsPosition__c"
+              className="font-mono text-sm"
+            />
+            <p className="text-xs text-gray-400">
+              De API-naam van het vacature-object in Salesforce. Laat leeg voor de standaardwaarde.
+            </p>
+          </div>
+
+          <div className="flex justify-end">
+            <Button onClick={handleSaveSettings} disabled={savingSettings} size="sm">
+              {savingSettings && <Loader2 className="w-4 h-4 animate-spin" />}
+              Opslaan
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Danger zone */}
+      {connection && (
+        <div
+          className="rounded-xl border border-red-200 bg-red-50/50 p-5"
+          style={{ animation: 'fade-in-up 0.3s ease-out 250ms backwards' }}
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-semibold text-red-900">Integratie verwijderen</h3>
+              <p className="text-sm text-red-700/70 mt-1">
+                Alle opgeslagen credentials worden permanent verwijderd.
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              className="border-red-300 text-red-700 hover:bg-red-100"
+              onClick={() => setShowDelete(true)}
+            >
+              Verwijderen
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirm Dialog */}
+      <AlertDialog open={showDelete} onOpenChange={setShowDelete}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Integratie verwijderen</AlertDialogTitle>
+            <AlertDialogDescription>
+              Weet je zeker dat je deze integratie wilt verwijderen? Alle opgeslagen credentials worden permanent verwijderd.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Annuleren</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={deleting}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {deleting && <Loader2 className="w-4 h-4 animate-spin" />}
+              Verwijderen
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
   );
 }

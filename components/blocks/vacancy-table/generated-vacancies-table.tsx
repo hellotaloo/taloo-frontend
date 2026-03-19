@@ -1,13 +1,12 @@
 'use client';
 
-import { useState, useMemo, useCallback } from 'react';
-import { Building2, MapPin, Phone, ArrowUp, ArrowDown, ChevronsUpDown, Power, Loader2, AlertTriangle, ArrowRight } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Building2, MapPin, Phone, ArrowUp, ArrowDown, ChevronsUpDown, AlertTriangle, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { AgentVacancy } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { getStatValue } from '@/lib/agent-utils';
-import { updatePreScreeningStatus } from '@/lib/interview-api';
 import type { ImportVacancy } from '@/hooks/use-ats-import';
 import {
   Table,
@@ -18,8 +17,6 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { StatusBadge } from '@/components/kit/status-badge';
-import { Button } from '@/components/ui/button';
-import { toast } from 'sonner';
 
 type SortKey = 'title' | 'candidatesCount' | 'completedCount' | 'qualifiedCount' | 'lastActivityAt';
 type SortDirection = 'asc' | 'desc' | null;
@@ -92,9 +89,6 @@ export function PublishedVacanciesTable({ vacancies, generationStatus, isImporti
   const router = useRouter();
   const [sortKey, setSortKey] = useState<SortKey | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);
-  const [activatingId, setActivatingId] = useState<string | null>(null);
-  const [activatedIds, setActivatedIds] = useState<Set<string>>(new Set());
-
   const handleSort = (key: SortKey) => {
     if (sortKey === key) {
       if (sortDirection === 'asc') {
@@ -110,20 +104,6 @@ export function PublishedVacanciesTable({ vacancies, generationStatus, isImporti
       setSortDirection('asc');
     }
   };
-
-  const handleActivate = useCallback(async (e: React.MouseEvent, vacancyId: string) => {
-    e.stopPropagation();
-    setActivatingId(vacancyId);
-    try {
-      await updatePreScreeningStatus(vacancyId, true);
-      setActivatedIds(prev => new Set(prev).add(vacancyId));
-      toast.success('Pre-screening is geactiveerd');
-    } catch {
-      toast.error('Kon pre-screening niet activeren');
-    } finally {
-      setActivatingId(null);
-    }
-  }, []);
 
   const sortedVacancies = useMemo(() => {
     const base = generationStatus ? [...vacancies].reverse() : vacancies;
@@ -266,7 +246,7 @@ export function PublishedVacanciesTable({ vacancies, generationStatus, isImporti
           const completedCount = getStatValue(vacancy.stats, 'completed_count');
           const qualifiedCount = getStatValue(vacancy.stats, 'qualified_count');
           const hasActivity = candidatesCount > 0;
-          const isOnline = vacancy.agent_online === true || activatedIds.has(vacancy.id);
+          const isOnline = vacancy.agent_online === true;
           const genStatus = generationStatus?.get(vacancy.id);
 
           return (
@@ -348,20 +328,14 @@ export function PublishedVacanciesTable({ vacancies, generationStatus, isImporti
                 ) : isOnline ? (
                   <StatusBadge label="Online" variant="green" />
                 ) : (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="gap-1.5 text-xs"
-                    disabled={activatingId === vacancy.id}
-                    onClick={(e) => handleActivate(e, vacancy.id)}
+                  <Link
+                    href={`/pre-screening/detail/${vacancy.id}`}
+                    onClick={(e) => e.stopPropagation()}
+                    className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
                   >
-                    {activatingId === vacancy.id ? (
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    ) : (
-                      <Power className="w-3.5 h-3.5" />
-                    )}
-                    Activeer
-                  </Button>
+                    Genereren
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
                 )}
               </TableCell>
             </TableRow>

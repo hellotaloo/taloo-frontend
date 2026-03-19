@@ -19,6 +19,7 @@ export interface ConnectionResponse {
   integration: IntegrationResponse;
   is_active: boolean;
   has_credentials: boolean;
+  credential_hints: Record<string, string>;
   health_status: 'healthy' | 'unhealthy' | 'unknown';
   last_health_check_at: string | null;
   settings: Record<string, unknown>;
@@ -86,6 +87,30 @@ export async function getCredentialFields(slug: string): Promise<CredentialField
   }));
 }
 
+// --- Mapping Types ---
+
+export interface MappingFieldInfo {
+  name: string;
+  label: string;
+  type: string;
+  required: boolean;
+  description: string;
+}
+
+export interface SourceFieldInfo {
+  name: string;
+  label: string;
+  category: string;
+  sf_type?: string;
+}
+
+export interface MappingSchemaResponse {
+  target_fields: MappingFieldInfo[];
+  source_fields: SourceFieldInfo[];
+  default_mapping: Record<string, { template: string }>;
+  current_mapping: Record<string, { template: string }> | null;
+}
+
 // --- API Functions ---
 
 export async function getIntegrations(): Promise<IntegrationResponse[]> {
@@ -137,4 +162,18 @@ export async function deleteConnection(connectionId: string): Promise<void> {
     method: 'DELETE',
   });
   if (!response.ok) throw new Error('Failed to delete connection');
+}
+
+export async function getMappingSchema(connectionId: string): Promise<MappingSchemaResponse> {
+  const response = await authFetch(`${BACKEND_URL}/integrations/connections/${connectionId}/mapping-schema`);
+  if (!response.ok) throw new Error('Failed to fetch mapping schema');
+  return response.json();
+}
+
+export async function discoverSourceFields(connectionId: string): Promise<SourceFieldInfo[]> {
+  const response = await authFetch(`${BACKEND_URL}/integrations/connections/${connectionId}/discover-fields`, {
+    method: 'POST',
+  });
+  if (!response.ok) throw new Error('Failed to discover source fields');
+  return response.json();
 }

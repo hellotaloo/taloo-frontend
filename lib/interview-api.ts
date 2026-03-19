@@ -1,3 +1,5 @@
+import { authFetch } from './api';
+
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8080';
 
 export interface InterviewQuestion {
@@ -34,7 +36,7 @@ export async function generateInterview(
   onEvent: StatusCallback,
   sessionId?: string
 ): Promise<{ interview: Interview; sessionId: string; message: string }> {
-  const response = await fetch(`${BACKEND_URL}/interview/generate`, {
+  const response = await authFetch(`${BACKEND_URL}/interview/generate`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -97,7 +99,7 @@ export async function reorderQuestions(
   knockoutOrder?: string[],
   qualificationOrder?: string[]
 ): Promise<Interview> {
-  const response = await fetch(`${BACKEND_URL}/interview/reorder`, {
+  const response = await authFetch(`${BACKEND_URL}/interview/reorder`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -127,7 +129,7 @@ export async function addQuestion(
   question: string,
   idealAnswer?: string
 ): Promise<{ added: string; question: InterviewQuestion; interview: Interview }> {
-  const response = await fetch(`${BACKEND_URL}/interview/add`, {
+  const response = await authFetch(`${BACKEND_URL}/interview/add`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -159,7 +161,7 @@ export async function deleteQuestion(
   sessionId: string,
   questionId: string
 ): Promise<{ deleted: string; interview: Interview }> {
-  const response = await fetch(`${BACKEND_URL}/interview/delete`, {
+  const response = await authFetch(`${BACKEND_URL}/interview/delete`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -188,7 +190,7 @@ export async function sendFeedback(
   const requestId = `sf-${Date.now()}`;
   console.log(`[sendFeedback ${requestId}] Starting request for session: ${sessionId} at ${new Date().toISOString()}`);
   
-  const response = await fetch(`${BACKEND_URL}/interview/feedback`, {
+  const response = await authFetch(`${BACKEND_URL}/interview/feedback`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ session_id: sessionId, message: userMessage }),
@@ -438,7 +440,7 @@ interface BackendDashboardStats {
  * Fetch dashboard-level aggregate statistics
  */
 export async function getDashboardStats(): Promise<DashboardStats> {
-  const response = await fetch(`${BACKEND_URL}/stats`);
+  const response = await authFetch(`${BACKEND_URL}/stats`);
 
   if (!response.ok) {
     throw new Error(`Failed to fetch stats: ${response.status} ${response.statusText}`);
@@ -473,7 +475,7 @@ export async function getVacancies(params?: {
   if (params?.offset) searchParams.set('offset', params.offset.toString());
 
   const url = `${BACKEND_URL}/vacancies${searchParams.toString() ? '?' + searchParams : ''}`;
-  const response = await fetch(url);
+  const response = await authFetch(url);
 
   if (!response.ok) {
     throw new Error(`Failed to fetch vacancies: ${response.status} ${response.statusText}`);
@@ -491,7 +493,7 @@ export async function getVacancies(params?: {
  * Fetch a single vacancy by ID
  */
 export async function getVacancy(vacancyId: string): Promise<Vacancy> {
-  const response = await fetch(`${BACKEND_URL}/vacancies/${vacancyId}`);
+  const response = await authFetch(`${BACKEND_URL}/vacancies/${vacancyId}`);
 
   if (!response.ok) {
     if (response.status === 404) {
@@ -523,7 +525,7 @@ export async function getPreScreeningVacancies(
 
   const queryString = searchParams.toString();
   const url = `${BACKEND_URL}/agents/prescreening/vacancies${queryString ? '?' + queryString : ''}`;
-  const response = await fetch(url);
+  const response = await authFetch(url);
 
   if (!response.ok) {
     throw new Error(`Failed to fetch pre-screening vacancies: ${response.status} ${response.statusText}`);
@@ -545,7 +547,7 @@ export async function getPreOnboardingVacancies(
 
   const queryString = searchParams.toString();
   const url = `${BACKEND_URL}/agents/preonboarding/vacancies${queryString ? '?' + queryString : ''}`;
-  const response = await fetch(url);
+  const response = await authFetch(url);
 
   if (!response.ok) {
     throw new Error(`Failed to fetch pre-onboarding vacancies: ${response.status} ${response.statusText}`);
@@ -558,7 +560,7 @@ export async function getPreOnboardingVacancies(
  * Fetch aggregate dashboard stats for the pre-screening overview page.
  */
 export async function getPreScreeningStats(): Promise<AgentDashboardStats> {
-  const response = await fetch(`${BACKEND_URL}/agents/prescreening/stats`);
+  const response = await authFetch(`${BACKEND_URL}/agents/prescreening/stats`);
 
   if (!response.ok) {
     throw new Error(`Failed to fetch pre-screening stats: ${response.status} ${response.statusText}`);
@@ -571,7 +573,7 @@ export async function getPreScreeningStats(): Promise<AgentDashboardStats> {
  * Fetch aggregate dashboard stats for the document collection overview page.
  */
 export async function getPreOnboardingStats(): Promise<AgentDashboardStats> {
-  const response = await fetch(`${BACKEND_URL}/agents/preonboarding/stats`);
+  const response = await authFetch(`${BACKEND_URL}/agents/preonboarding/stats`);
 
   if (!response.ok) {
     throw new Error(`Failed to fetch pre-onboarding stats: ${response.status} ${response.statusText}`);
@@ -612,7 +614,7 @@ export interface NavigationCounts {
  * Single request instead of fetching full vacancy lists.
  */
 export async function getNavigationCounts(): Promise<NavigationCounts> {
-  const response = await fetch(`${BACKEND_URL}/agents/counts`);
+  const response = await authFetch(`${BACKEND_URL}/agents/counts`);
 
   if (!response.ok) {
     throw new Error(`Failed to fetch navigation counts: ${response.status} ${response.statusText}`);
@@ -719,7 +721,7 @@ export async function getApplications(
   if (params?.offset) searchParams.set('offset', params.offset.toString());
 
   const url = `${BACKEND_URL}/vacancies/${vacancyId}/applications${searchParams.toString() ? '?' + searchParams : ''}`;
-  const response = await fetch(url);
+  const response = await authFetch(url);
 
   if (!response.ok) {
     throw new Error('Failed to fetch applications');
@@ -802,7 +804,7 @@ export async function savePreScreening(
   vacancyId: string,
   config: PreScreeningInput
 ): Promise<SavePreScreeningResponse> {
-  const response = await fetch(`${BACKEND_URL}/vacancies/${vacancyId}/pre-screening`, {
+  const response = await authFetch(`${BACKEND_URL}/vacancies/${vacancyId}/pre-screening`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(config),
@@ -821,12 +823,12 @@ export async function savePreScreening(
  * Returns null if no pre-screening exists.
  */
 export async function getPreScreening(vacancyId: string): Promise<PreScreening | null> {
-  let response = await fetch(`${BACKEND_URL}/vacancies/${vacancyId}/pre-screening`);
+  let response = await authFetch(`${BACKEND_URL}/vacancies/${vacancyId}/pre-screening`);
 
   // Retry once after a short delay — the pre-screening may still be finalizing
   if (response.status >= 500) {
     await new Promise(r => setTimeout(r, 1500));
-    response = await fetch(`${BACKEND_URL}/vacancies/${vacancyId}/pre-screening`);
+    response = await authFetch(`${BACKEND_URL}/vacancies/${vacancyId}/pre-screening`);
   }
 
   if (response.status === 404) {
@@ -845,7 +847,7 @@ export async function getPreScreening(vacancyId: string): Promise<PreScreening |
  * Resets vacancy status to `new`.
  */
 export async function deletePreScreening(vacancyId: string): Promise<void> {
-  const response = await fetch(`${BACKEND_URL}/vacancies/${vacancyId}/pre-screening`, {
+  const response = await authFetch(`${BACKEND_URL}/vacancies/${vacancyId}/pre-screening`, {
     method: 'DELETE',
   });
 
@@ -915,7 +917,7 @@ export async function publishPreScreening(
   vacancyId: string,
   options: PublishPreScreeningRequest = {}
 ): Promise<PublishPreScreeningResponse> {
-  const response = await fetch(`${BACKEND_URL}/vacancies/${vacancyId}/pre-screening/publish`, {
+  const response = await authFetch(`${BACKEND_URL}/vacancies/${vacancyId}/pre-screening/publish`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -941,7 +943,7 @@ export async function updatePreScreeningStatus(
   vacancyId: string,
   isOnline: boolean
 ): Promise<UpdateStatusResponse> {
-  const response = await fetch(`${BACKEND_URL}/vacancies/${vacancyId}/pre-screening/status`, {
+  const response = await authFetch(`${BACKEND_URL}/vacancies/${vacancyId}/pre-screening/status`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ is_online: isOnline }),
@@ -966,7 +968,7 @@ export async function updateChannelStatus(
   vacancyId: string,
   options: UpdateChannelStatusRequest
 ): Promise<UpdateChannelStatusResponse> {
-  const response = await fetch(`${BACKEND_URL}/vacancies/${vacancyId}/pre-screening/status`, {
+  const response = await authFetch(`${BACKEND_URL}/vacancies/${vacancyId}/pre-screening/status`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(options),
@@ -1023,7 +1025,7 @@ export interface InterviewAnalysisResponse {
 export async function getInterviewAnalysis(
   vacancyId: string
 ): Promise<InterviewAnalysisResponse | null> {
-  const response = await fetch(
+  const response = await authFetch(
     `${BACKEND_URL}/vacancies/${vacancyId}/pre-screening/analysis`
   );
 
@@ -1066,7 +1068,7 @@ export async function runSimulation(
   options?: SimulationRequest,
   signal?: AbortSignal
 ): Promise<void> {
-  const response = await fetch(`${BACKEND_URL}/vacancies/${vacancyId}/simulate`, {
+  const response = await authFetch(`${BACKEND_URL}/vacancies/${vacancyId}/simulate`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -1146,7 +1148,7 @@ export async function listSimulations(
   if (params?.offset) searchParams.set('offset', params.offset.toString());
 
   const url = `${BACKEND_URL}/vacancies/${vacancyId}/simulations${searchParams.toString() ? '?' + searchParams : ''}`;
-  const response = await fetch(url);
+  const response = await authFetch(url);
 
   if (!response.ok) {
     throw new Error('Failed to fetch simulations');
@@ -1162,7 +1164,7 @@ export async function getSimulation(
   vacancyId: string,
   simulationId: string
 ): Promise<Simulation> {
-  const response = await fetch(`${BACKEND_URL}/vacancies/${vacancyId}/simulations/${simulationId}`);
+  const response = await authFetch(`${BACKEND_URL}/vacancies/${vacancyId}/simulations/${simulationId}`);
 
   if (!response.ok) {
     if (response.status === 404) {
@@ -1181,7 +1183,7 @@ export async function deleteSimulation(
   vacancyId: string,
   simulationId: string
 ): Promise<{ status: string; id: string }> {
-  const response = await fetch(`${BACKEND_URL}/vacancies/${vacancyId}/simulations/${simulationId}`, {
+  const response = await authFetch(`${BACKEND_URL}/vacancies/${vacancyId}/simulations/${simulationId}`, {
     method: 'DELETE',
   });
 
@@ -1197,7 +1199,7 @@ export async function deleteSimulation(
  * connected recruitment tracking system (Salesforce, Bullhorn, etc.).
  */
 export async function triggerRtsSync(): Promise<{ status: string; synced: number }> {
-  const response = await fetch(`${BACKEND_URL}/vacancies/sync`, {
+  const response = await authFetch(`${BACKEND_URL}/vacancies/sync`, {
     method: 'POST',
   });
 
@@ -1276,7 +1278,7 @@ export interface PreScreeningConfigUpdate {
  * Fetch the global pre-screening agent configuration.
  */
 export async function getPreScreeningConfig(): Promise<PreScreeningConfig> {
-  const response = await fetch(`${BACKEND_URL}/pre-screening/config`);
+  const response = await authFetch(`${BACKEND_URL}/pre-screening/config`);
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({ detail: 'Failed to fetch config' }));
@@ -1293,7 +1295,7 @@ export async function getPreScreeningConfig(): Promise<PreScreeningConfig> {
 export async function updatePreScreeningConfig(
   updates: PreScreeningConfigUpdate
 ): Promise<PreScreeningConfig> {
-  const response = await fetch(`${BACKEND_URL}/pre-screening/config`, {
+  const response = await authFetch(`${BACKEND_URL}/pre-screening/config`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(updates),
@@ -1302,6 +1304,35 @@ export async function updatePreScreeningConfig(
   if (!response.ok) {
     const error = await response.json().catch(() => ({ detail: 'Failed to update config' }));
     throw new Error(error.detail || 'Failed to update pre-screening config');
+  }
+
+  return response.json();
+}
+
+/**
+ * Get the current auto-generate toggle state for pre-screening.
+ */
+export async function getAutoGenerate(): Promise<{ auto_generate: boolean }> {
+  const response = await authFetch(`${BACKEND_URL}/pre-screening/auto-generate`);
+
+  if (!response.ok) {
+    return { auto_generate: true }; // Default to enabled
+  }
+
+  return response.json();
+}
+
+/**
+ * Toggle auto-generate for pre-screening on/off.
+ */
+export async function setAutoGenerate(enabled: boolean): Promise<{ auto_generate: boolean }> {
+  const response = await authFetch(`${BACKEND_URL}/pre-screening/auto-generate?enabled=${enabled}`, {
+    method: 'PUT',
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: 'Failed to update auto-generate' }));
+    throw new Error(error.detail || 'Failed to update auto-generate setting');
   }
 
   return response.json();

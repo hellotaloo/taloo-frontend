@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Database, Video, Loader2 } from 'lucide-react';
+import { ArrowLeft, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 import {
@@ -10,7 +10,7 @@ import {
   PageLayoutHeader,
   PageLayoutContent,
 } from '@/components/layout/page-layout';
-import { StatusBadge, type StatusBadgeVariant } from '@/components/kit/status-badge';
+import { StatusBadge } from '@/components/kit/status-badge';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import {
@@ -22,32 +22,7 @@ import {
   updateConnection,
 } from '@/lib/integrations-api';
 import { formatRelativeDate } from '@/lib/utils';
-
-// --- Provider config ---
-
-type ProviderSlug = 'connexys' | 'microsoft';
-
-const providerMeta: Record<ProviderSlug, { icon: React.ElementType }> = {
-  connexys: { icon: Database },
-  microsoft: { icon: Video },
-};
-
-function getStatusDisplay(connection?: ConnectionResponse): {
-  label: string;
-  variant: StatusBadgeVariant;
-} {
-  if (!connection || !connection.has_credentials) {
-    return { label: 'Niet geconfigureerd', variant: 'gray' };
-  }
-  switch (connection.health_status) {
-    case 'healthy':
-      return { label: 'Verbonden', variant: 'green' };
-    case 'unhealthy':
-      return { label: 'Verbinding mislukt', variant: 'red' };
-    default:
-      return { label: 'Niet getest', variant: 'orange' };
-  }
-}
+import { getProviderBlueprint, getStatusDisplay } from '@/lib/integration-registry';
 
 // --- Main page ---
 
@@ -142,11 +117,11 @@ export default function IntegrationsPage() {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {integrations.map((integration, idx) => {
-                const slug = integration.slug as ProviderSlug;
-                const meta = providerMeta[slug];
+                const slug = integration.slug;
+                const bp = getProviderBlueprint(slug);
                 const connection = getConnection(integration.id);
                 const status = getStatusDisplay(connection);
-                const Icon = meta?.icon ?? Database;
+                const Icon = bp.icon;
                 const isChecking = checkingId === connection?.id;
                 const isToggling = togglingId === connection?.id;
 

@@ -20,9 +20,9 @@ import {
   APIVacancyListItem,
   APIVacancyDetail,
 } from '@/lib/types';
-import { getCandidates, getCandidate, getVacanciesFromAPI, getVacancyDetail } from '@/lib/api';
+import { getCandidates, getCandidate, getVacanciesFromAPI, getVacancyDetail, getClients } from '@/lib/api';
 import { useRealtimeTable } from '@/hooks/use-realtime-table';
-import { mockClients } from './mock-data';
+import type { APIClient } from '@/lib/types';
 
 export type ViewsTab = 'vacancies' | 'candidates' | 'customers';
 
@@ -57,6 +57,10 @@ export function ViewsContent({ activeTab }: ViewsContentProps) {
   const [apiVacancies, setApiVacancies] = useState<APIVacancyListItem[]>([]);
   const [vacanciesLoading, setVacanciesLoading] = useState(true);
   const [vacanciesError, setVacanciesError] = useState<string | null>(null);
+
+  // API clients state
+  const [apiClients, setApiClients] = useState<APIClient[]>([]);
+  const [clientsLoading, setClientsLoading] = useState(true);
 
   // Selected vacancy detail state
   const [selectedVacancyId, setSelectedVacancyId] = useState<string | null>(null);
@@ -103,9 +107,23 @@ export function ViewsContent({ activeTab }: ViewsContentProps) {
     }
   }, []);
 
+  // Fetch clients from API
+  const fetchClients = useCallback(async () => {
+    setClientsLoading(true);
+    try {
+      const response = await getClients({ limit: 100 });
+      setApiClients(response.items);
+    } catch (error) {
+      console.error('Failed to fetch clients:', error);
+    } finally {
+      setClientsLoading(false);
+    }
+  }, []);
+
   // Initial fetch
   useEffect(() => { fetchCandidates(); }, [fetchCandidates]);
   useEffect(() => { fetchVacancies(); }, [fetchVacancies]);
+  useEffect(() => { fetchClients(); }, [fetchClients]);
 
   // Re-fetch lists when source tables change
   useRealtimeTable({
@@ -230,23 +248,23 @@ export function ViewsContent({ activeTab }: ViewsContentProps) {
   // Filter customers — no archived status, so 'archived' sub-tab returns empty
   const filteredCustomers = useMemo(() => {
     if (subTab === 'archived') return [];
-    if (!searchQuery) return mockClients;
+    if (!searchQuery) return apiClients;
     const query = searchQuery.toLowerCase();
-    return mockClients.filter(
-      (c) =>
+    return apiClients.filter(
+      (c: APIClient) =>
         c.name.toLowerCase().includes(query) ||
         (c.contact_name && c.contact_name.toLowerCase().includes(query)) ||
         (c.contact_email && c.contact_email.toLowerCase().includes(query)) ||
         (c.industry && c.industry.toLowerCase().includes(query)) ||
         (c.location && c.location.toLowerCase().includes(query))
     );
-  }, [searchQuery, subTab]);
+  }, [searchQuery, subTab, apiClients]);
 
   // Counts for sub-tab badges
   const allCounts: Record<string, number> = {
     vacancies: apiVacancies.length,
     candidates: apiCandidates.length,
-    customers: mockClients.length,
+    customers: apiClients.length,
   };
   const archivedCounts: Record<string, number> = {
     vacancies: apiVacancies.filter(v => archivedVacancyStatuses.has(v.status)).length,

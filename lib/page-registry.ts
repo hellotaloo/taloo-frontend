@@ -109,6 +109,9 @@ export const dynamicRoutes: Array<{ pattern: RegExp; config: PageConfig }> = [
 
   // Integration detail routes
   { pattern: /^\/admin\/integrations\/[^/]+$/, config: { title: 'Integratie', icon: Plug } },
+  { pattern: /^\/admin\/integrations\/[^/]+\/mapping\/import/, config: { title: 'Vacature import', icon: Plug } },
+  { pattern: /^\/admin\/integrations\/[^/]+\/mapping\/export/, config: { title: 'Data terugkoppeling', icon: Plug } },
+  { pattern: /^\/admin\/integrations\/[^/]+\/mapping/, config: { title: 'Mapping', icon: Plug } },
 
 ];
 

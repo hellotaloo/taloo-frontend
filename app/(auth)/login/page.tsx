@@ -11,8 +11,9 @@ import { useAuth } from "@/contexts/auth-context";
 
 export default function LoginPage() {
   const [isLoading, setIsLoading] = React.useState(false);
+  const [isMicrosoftLoading, setIsMicrosoftLoading] = React.useState(false);
   const [isDevLoading, setIsDevLoading] = React.useState(false);
-  const { login, devLogin, isAuthenticated, isLoading: authLoading } = useAuth();
+  const { login, loginWithMicrosoft, devLogin, isAuthenticated, isLoading: authLoading } = useAuth();
   const router = useRouter();
 
   // Redirect if already authenticated
@@ -25,6 +26,11 @@ export default function LoginPage() {
   const handleGoogleLogin = () => {
     setIsLoading(true);
     login('/');
+  };
+
+  const handleMicrosoftLogin = () => {
+    setIsMicrosoftLoading(true);
+    loginWithMicrosoft('/');
   };
 
   const handleDevLogin = async () => {
@@ -118,11 +124,28 @@ export default function LoginPage() {
               </svg>
               {isLoading ? "Doorverwijzen..." : "Login met Google"}
             </Button>
+
+            {/* Microsoft Login */}
+            <Button
+              variant="outline"
+              className="w-full h-11 text-gray-700 font-medium"
+              type="button"
+              onClick={handleMicrosoftLogin}
+              disabled={isMicrosoftLoading}
+            >
+              <svg className="w-5 h-5 mr-2" viewBox="0 0 21 21">
+                <rect x="1" y="1" width="9" height="9" fill="#F25022" />
+                <rect x="1" y="11" width="9" height="9" fill="#00A4EF" />
+                <rect x="11" y="1" width="9" height="9" fill="#7FBA00" />
+                <rect x="11" y="11" width="9" height="9" fill="#FFB900" />
+              </svg>
+              {isMicrosoftLoading ? "Doorverwijzen..." : "Login met Microsoft"}
+            </Button>
           </div>
 
           {/* Footer */}
           <p className="text-center text-sm text-gray-500">
-            Gebruik Google login om in te loggen op je Taloo account.{" "}
+            Log in met Google of Microsoft om toegang te krijgen tot je Taloo account.{" "}
             <br />
             Geen account?{" "}
             <a href="#" className="text-blue-600 hover:underline">

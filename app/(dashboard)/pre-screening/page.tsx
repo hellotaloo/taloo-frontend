@@ -6,7 +6,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import type { AgentVacancy, AgentDashboardStats } from '@/lib/types';
-import { getPreScreeningVacancies, getPreScreeningStats, getApplications } from '@/lib/interview-api';
+import { getPreScreeningVacancies, getPreScreeningStats, getApplications, getAutoGenerate, setAutoGenerate as setAutoGenerateApi } from '@/lib/interview-api';
 import { getStatIcon } from '@/lib/agent-utils';
 import { getActivityTasks, type TaskRow } from '@/lib/api';
 import { MetricCard, ChannelCard } from '@/components/kit/metric-card';
@@ -66,8 +66,8 @@ function PreScreeningContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Auto-generate
-  const [autoGenerate, setAutoGenerate] = useState(true);
+  // Auto-generate (default false until fetched to avoid flash)
+  const [autoGenerate, setAutoGenerate] = useState(false);
   const [showAutoGenerateConfirm, setShowAutoGenerateConfirm] = useState(false);
 
   // Sorting for activities table
@@ -114,6 +114,11 @@ function PreScreeningContent() {
     }
   }, []);
 
+  // Fetch auto-generate setting from backend
+  useEffect(() => {
+    getAutoGenerate().then(({ auto_generate }) => setAutoGenerate(auto_generate));
+  }, []);
+
   useEffect(() => {
     fetchTasks();
     fetchVacancies();
@@ -145,17 +150,28 @@ function PreScreeningContent() {
   }, [tasks]);
 
   // Auto-generate toggle
-  const handleAutoGenerateToggle = (checked: boolean) => {
+  const handleAutoGenerateToggle = async (checked: boolean) => {
     if (checked) {
       setShowAutoGenerateConfirm(true);
     } else {
-      setAutoGenerate(false);
+      try {
+        await setAutoGenerateApi(false);
+        setAutoGenerate(false);
+      } catch (err) {
+        console.error('Failed to disable auto-generate:', err);
+      }
     }
   };
 
-  const confirmAutoGenerate = () => {
-    setAutoGenerate(true);
-    setShowAutoGenerateConfirm(false);
+  const confirmAutoGenerate = async () => {
+    try {
+      await setAutoGenerateApi(true);
+      setAutoGenerate(true);
+    } catch (err) {
+      console.error('Failed to enable auto-generate:', err);
+    } finally {
+      setShowAutoGenerateConfirm(false);
+    }
   };
 
   // Open application detail from task row

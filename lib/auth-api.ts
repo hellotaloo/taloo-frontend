@@ -32,6 +32,14 @@ export function getGoogleLoginUrl(redirectTo?: string): string {
 }
 
 /**
+ * Get Microsoft OAuth login URL
+ */
+export function getMicrosoftLoginUrl(redirectTo?: string): string {
+  const params = redirectTo ? `?redirect_to=${encodeURIComponent(redirectTo)}` : '';
+  return `${API_URL}/auth/login/microsoft${params}`;
+}
+
+/**
  * Handle OAuth callback - exchange code for tokens
  */
 export async function handleAuthCallback(code: string): Promise<AuthResponse> {

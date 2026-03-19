@@ -9,6 +9,7 @@ import {
   APIAvailabilityStatus,
   APIVacancyListItem,
   APIVacancyDetail,
+  APIClient,
   VacancyStatus,
   VacancySource,
   GlobalActivity,
@@ -163,7 +164,7 @@ export async function getCandidates(params: GetCandidatesParams = {}): Promise<C
   const queryString = searchParams.toString();
   const url = `${BACKEND_URL}/candidates${queryString ? `?${queryString}` : ''}`;
 
-  const response = await fetch(url);
+  const response = await authFetch(url);
   if (!response.ok) {
     throw new Error('Failed to fetch candidates');
   }
@@ -171,8 +172,36 @@ export async function getCandidates(params: GetCandidatesParams = {}): Promise<C
   return response.json();
 }
 
+// ---------------------------------------------------------------------------
+// Clients
+// ---------------------------------------------------------------------------
+
+export interface ClientsListResponse {
+  items: APIClient[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export async function getClients(params: { limit?: number; offset?: number; search?: string } = {}): Promise<ClientsListResponse> {
+  const searchParams = new URLSearchParams();
+  if (params.limit) searchParams.set('limit', params.limit.toString());
+  if (params.offset) searchParams.set('offset', params.offset.toString());
+  if (params.search) searchParams.set('search', params.search);
+
+  const queryString = searchParams.toString();
+  const url = `${BACKEND_URL}/clients${queryString ? `?${queryString}` : ''}`;
+
+  const response = await authFetch(url);
+  if (!response.ok) {
+    throw new Error('Failed to fetch clients');
+  }
+
+  return response.json();
+}
+
 export async function getCandidate(candidateId: string): Promise<APICandidateDetail> {
-  const response = await fetch(`${BACKEND_URL}/candidates/${candidateId}`);
+  const response = await authFetch(`${BACKEND_URL}/candidates/${candidateId}`);
   if (!response.ok) {
     throw new Error('Failed to fetch candidate');
   }
@@ -183,7 +212,7 @@ export async function updateCandidateStatus(
   candidateId: string,
   status: APICandidateStatus
 ): Promise<{ status: string; candidate_id: string; new_status: APICandidateStatus }> {
-  const response = await fetch(`${BACKEND_URL}/candidates/${candidateId}/status?status=${status}`, {
+  const response = await authFetch(`${BACKEND_URL}/candidates/${candidateId}/status?status=${status}`, {
     method: 'PATCH',
   });
   if (!response.ok) {
@@ -196,7 +225,7 @@ export async function updateCandidateRating(
   candidateId: string,
   rating: number
 ): Promise<{ status: string; candidate_id: string; new_rating: number }> {
-  const response = await fetch(`${BACKEND_URL}/candidates/${candidateId}/rating?rating=${rating}`, {
+  const response = await authFetch(`${BACKEND_URL}/candidates/${candidateId}/rating?rating=${rating}`, {
     method: 'PATCH',
   });
   if (!response.ok) {
@@ -303,7 +332,7 @@ export async function getVacanciesFromAPI(params: GetVacanciesParams = {}): Prom
   const queryString = searchParams.toString();
   const url = `${BACKEND_URL}/vacancies${queryString ? `?${queryString}` : ''}`;
 
-  const response = await fetch(url);
+  const response = await authFetch(url);
   if (!response.ok) {
     throw new Error('Failed to fetch vacancies');
   }
@@ -324,7 +353,7 @@ export async function getVacanciesFromAPI(params: GetVacanciesParams = {}): Prom
 }
 
 export async function getVacancyDetail(vacancyId: string): Promise<APIVacancyDetail> {
-  const response = await fetch(`${BACKEND_URL}/vacancies/${vacancyId}`);
+  const response = await authFetch(`${BACKEND_URL}/vacancies/${vacancyId}`);
   if (!response.ok) {
     throw new Error('Failed to fetch vacancy');
   }
@@ -352,7 +381,7 @@ export async function patchVacancy(
   vacancyId: string,
   data: { start_date?: string | null }
 ): Promise<{ id: string; start_date: string | null }> {
-  const response = await fetch(`${BACKEND_URL}/vacancies/${vacancyId}`, {
+  const response = await authFetch(`${BACKEND_URL}/vacancies/${vacancyId}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
@@ -362,7 +391,7 @@ export async function patchVacancy(
 }
 
 export async function getWorkstationSheet(vacancyId: string): Promise<WorkstationSheetParam[]> {
-  const response = await fetch(`${BACKEND_URL}/vacancies/${vacancyId}/workstation-sheet`);
+  const response = await authFetch(`${BACKEND_URL}/vacancies/${vacancyId}/workstation-sheet`);
   if (!response.ok) throw new Error('Failed to fetch workstation sheet');
   return response.json();
 }
@@ -373,7 +402,7 @@ export async function setWorkstationSheetParam(
   paramValue: string,
   notes?: string
 ): Promise<void> {
-  const response = await fetch(`${BACKEND_URL}/vacancies/${vacancyId}/workstation-sheet/${paramKey}`, {
+  const response = await authFetch(`${BACKEND_URL}/vacancies/${vacancyId}/workstation-sheet/${paramKey}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ param_value: paramValue, notes }),
@@ -382,7 +411,7 @@ export async function setWorkstationSheetParam(
 }
 
 export async function deleteWorkstationSheetParam(vacancyId: string, paramKey: string): Promise<void> {
-  const response = await fetch(`${BACKEND_URL}/vacancies/${vacancyId}/workstation-sheet/${paramKey}`, {
+  const response = await authFetch(`${BACKEND_URL}/vacancies/${vacancyId}/workstation-sheet/${paramKey}`, {
     method: 'DELETE',
   });
   if (!response.ok) throw new Error('Failed to delete workstation sheet param');
@@ -396,7 +425,7 @@ export interface MedicalRiskOption {
 
 export async function getMedicalRisks(search?: string): Promise<MedicalRiskOption[]> {
   const params = search ? `?search=${encodeURIComponent(search)}` : '';
-  const response = await fetch(`${BACKEND_URL}/werkpostfiche/medical-risks${params}`);
+  const response = await authFetch(`${BACKEND_URL}/werkpostfiche/medical-risks${params}`);
   if (!response.ok) throw new Error('Failed to fetch medical risks');
   return response.json();
 }
@@ -424,7 +453,7 @@ export async function getActivities(params: GetActivitiesParams = {}): Promise<G
   const queryString = searchParams.toString();
   const url = `${BACKEND_URL}/monitoring${queryString ? `?${queryString}` : ''}`;
 
-  const response = await fetch(url);
+  const response = await authFetch(url);
   if (!response.ok) {
     throw new Error('Failed to fetch activities');
   }
@@ -490,7 +519,7 @@ export async function getActivityTasks(params: GetActivityTasksParams = {}): Pro
   const queryString = searchParams.toString();
   const url = `${BACKEND_URL}/api/activities/tasks${queryString ? `?${queryString}` : ''}`;
 
-  const response = await fetch(url);
+  const response = await authFetch(url);
   if (!response.ok) {
     throw new Error('Failed to fetch activity tasks');
   }
@@ -515,7 +544,7 @@ export interface CompleteTaskResponse {
 }
 
 export async function completeTask(taskId: string, params: CompleteTaskParams): Promise<CompleteTaskResponse> {
-  const response = await fetch(`${BACKEND_URL}/api/activities/tasks/${taskId}/complete`, {
+  const response = await authFetch(`${BACKEND_URL}/api/activities/tasks/${taskId}/complete`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(params),
@@ -530,7 +559,7 @@ export async function completeTask(taskId: string, params: CompleteTaskParams): 
 
 // Delete a task
 export async function deleteTask(taskId: string): Promise<void> {
-  const response = await fetch(`${BACKEND_URL}/api/activities/tasks/${taskId}`, {
+  const response = await authFetch(`${BACKEND_URL}/api/activities/tasks/${taskId}`, {
     method: 'DELETE',
   });
 
@@ -549,7 +578,7 @@ export interface UpdateAgentConfigParams {
 }
 
 export async function updateElevenLabsAgentConfig(params: UpdateAgentConfigParams): Promise<void> {
-  const response = await fetch(`${BACKEND_URL}/elevenlabs/agent/${params.agentId}/config`, {
+  const response = await authFetch(`${BACKEND_URL}/elevenlabs/agent/${params.agentId}/config`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -587,7 +616,7 @@ export interface VoiceConfigResponse {
 }
 
 export async function saveElevenLabsVoiceConfig(params: SaveVoiceConfigParams): Promise<VoiceConfigResponse> {
-  const response = await fetch(`${BACKEND_URL}/elevenlabs/voice-config/${params.agentId}`, {
+  const response = await authFetch(`${BACKEND_URL}/elevenlabs/voice-config/${params.agentId}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -607,7 +636,7 @@ export async function saveElevenLabsVoiceConfig(params: SaveVoiceConfigParams): 
 }
 
 export async function getElevenLabsVoiceConfig(agentId: string): Promise<VoiceConfigResponse | null> {
-  const response = await fetch(`${BACKEND_URL}/elevenlabs/voice-config/${agentId}`);
+  const response = await authFetch(`${BACKEND_URL}/elevenlabs/voice-config/${agentId}`);
 
   if (response.status === 404) {
     return null; // No config saved yet
@@ -618,5 +647,35 @@ export async function getElevenLabsVoiceConfig(agentId: string): Promise<VoiceCo
     throw new Error(`Failed to get voice config: ${error}`);
   }
 
+  return response.json();
+}
+
+// System Status API
+export interface ServiceStatusItem {
+  name: string;
+  slug: string;
+  status: 'online' | 'offline' | 'degraded' | 'not_configured' | 'unknown';
+  description: string;
+}
+
+export interface IntegrationStatusItem {
+  name: string;
+  slug: string;
+  status: 'online' | 'offline' | 'degraded' | 'not_configured' | 'unknown';
+  description: string;
+  last_checked_at: string | null;
+}
+
+export interface SystemStatusResponse {
+  overall: 'online' | 'degraded' | 'offline';
+  services: ServiceStatusItem[];
+  integrations: IntegrationStatusItem[];
+}
+
+export async function getSystemStatus(): Promise<SystemStatusResponse> {
+  const response = await authFetch(`${BACKEND_URL}/health/status`);
+  if (!response.ok) {
+    throw new Error('Failed to fetch system status');
+  }
   return response.json();
 }
