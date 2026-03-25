@@ -4,6 +4,34 @@ Complete API reference for the Taloo recruitment screening platform.
 
 ## Changelog
 
+- **2026-03-21** — Added `group` field (string) to `MappingFieldInfo` in `GET /integrations/connections/{id}/mapping-schema`. Groups target fields into logical UI sections: Algemeen, Beschrijving, Locatie, Recruiter, Kantoor, Synchronisatie. Frontend renders groups as section headers in the order they appear in the array. Defaults to `"Algemeen"` if absent
+- **2026-03-20** — Added `office` (`OfficeSummary`) and `job_function` (`JobFunctionSummary`) fields to `VacancyResponse`. Office locations are now synced per-vacancy from Connexys (`job_office__r`) instead of using the workspace default. Added `office_name`, `office_phone`, `office_source_id` to Connexys field mapping. Enhanced `ats.office_locations` table with `email`, `phone`, `source`, `source_id` columns
+- **2026-03-20** — Added data push-back (export to ATS) endpoints: `GET /integrations/connections/{id}/export-mapping-schema` for configuring export field mappings, `POST /integrations/connections/{id}/discover-export-fields` for discovering writable fields on the target Connexys object, `POST /integrations/applications/{id}/push-to-ats` for pushing a single application's screening results, `POST /integrations/vacancies/{id}/push-to-ats` for batch-pushing all unsynced applications. New types: `ExportFieldInfo`, `ExportMappingSchemaResponse`, `PushbackResultResponse`. Export mapping stored in `settings.data_pushback` (same JSONB column as import mapping). Uses `{{field}}` template syntax with Taloo application fields as source
+- **2026-03-19** — Added `POST /integrations/sync` and `GET /integrations/sync/status` endpoints for vacancy import from external ATS integrations. Sync resolves the workspace's active ATS connection automatically (no connection_id needed). Runs as a background task with polling for progress. Uses provider-agnostic architecture: `VacancyImportService` handles mapping/upsert, `ConnexysProvider` handles Salesforce-specific fetching. New type: `SyncProgressResponse`
+- **2026-03-19** — Added `GET /auth/login/microsoft` endpoint for Microsoft OAuth login. Mirrors the existing Google OAuth flow — redirects to Microsoft consent page via Supabase Auth. Existing `/auth/callback` handles both providers
+- **2026-03-19** — **BREAKING**: Workspace scoping migration (phase 3). Extended workspace isolation to activities and audit trail: `GET /api/activities/tasks`, `POST /api/activities/tasks/{id}/complete`, `GET /monitoring`. All now require `Authorization` + `X-Workspace-ID` headers. Activities filter workflows by `workspace_id` column (added to `agents.workflows` table). Audit trail filters through vacancy/candidate workspace ownership. Added `GET /clients` endpoint for workspace-scoped client listing with vacancy/candidate counts
+- **2026-03-19** — **BREAKING**: Workspace scoping migration (phase 2). Extended workspace isolation to all data listing endpoints: `GET /vacancies`, `GET /vacancies/stats`, `GET /candidates`, `GET /agents/counts`, `GET /agents/prescreening/vacancies`, `GET /agents/preonboarding/vacancies`, `GET /agents/prescreening/stats`, `GET /agents/preonboarding/stats`. All now require `Authorization` + `X-Workspace-ID` headers and filter data by workspace. Navigation counts (`GET /agents/counts`) no longer hardcodes a workspace UUID — reads from auth context
+- **2026-03-19** — **BREAKING**: Workspace scoping migration (phase 1). All `/integrations/connections/*` endpoints and `/pre-screening/config`, `/pre-screening/auto-generate` endpoints now require `Authorization: Bearer <token>` and `X-Workspace-ID: <uuid>` headers. Requests without these headers will receive 401/400 errors. Connection-by-ID operations now verify the connection belongs to the caller's workspace (returns 404 for cross-workspace access). Removed hardcoded `DEFAULT_WORKSPACE_ID` from integrations router. Added reusable `require_workspace` auth dependency
+- **2026-03-20** — Added `GET /agents/availability` endpoint returning available agent types for the current workspace. Added agent availability enforcement (403) on prescreening (vacancies, stats, chat, outbound) and preonboarding (vacancies, stats) endpoints. Backed by new `agents.workspace_agent_availability` table (deny-by-default). Only top-level agents (`prescreening`, `document_collection`) are controlled; sub-agents (cv_analyzer, interview_question_generator, etc.) are not independently gated
+- **2026-03-19** — `PATCH /integrations/connections/{id}` now merges incoming settings with existing settings instead of replacing them. Added `sf_object` setting for Connexys connections to configure which Salesforce object to query for field discovery (defaults to `cxsrec__cxsPosition__c`)
+- **2026-03-19** — Added `POST /integrations/connections/{id}/discover-fields` endpoint for dynamic source field discovery. Calls the external system's describe/metadata API (Salesforce `sobjects/describe`) to fetch all available fields including relationship sub-fields. Results are cached in `settings.field_cache` and served by `GET mapping-schema`. Falls back to hardcoded defaults when no cache exists. Added optional `sf_type` field to `SourceFieldInfo`. Frontend mapping page now has a "Velden ophalen" button to trigger discovery
+- **2026-03-19** — Added `GET /pre-screening/auto-generate` and `PUT /pre-screening/auto-generate` endpoints to toggle automatic pre-screening question generation for newly imported vacancies. Setting stored in `agents.agent_config` under `general.auto_generate`. When disabled, ATS import only imports vacancies without generating questions (they show "Genereren" button in the UI)
+- **2026-03-19** — Added `GET /health/status` aggregated system status endpoint for frontend status dropdown. Returns overall health, per-service status (Platform, LLM, Voice, WhatsApp), and dynamically loaded integration statuses. New types: `ServiceStatusItem`, `IntegrationStatusItem`, `SystemStatusResponse`. Added `GET /integrations/connections/{id}/mapping-schema` endpoint for field mapping configuration UI. Returns target fields (Taloo), source fields (provider-specific), default mapping, and current saved mapping. New types: `MappingFieldInfo`, `SourceFieldInfo`, `MappingSchemaResponse`. Mapping saved via existing `PATCH /integrations/connections/{id}` in `settings.field_mapping`
+- **2026-03-18** — Added External Integrations system: `GET /integrations` (catalog of available providers), `GET /integrations/connections` (workspace connections with status), `PUT /integrations/connections/connexys` and `PUT /integrations/connections/microsoft` (save provider credentials), `PATCH /integrations/connections/{id}` (update settings/toggle), `DELETE /integrations/connections/{id}` (remove connection), `POST /integrations/connections/{id}/health-check` (test connectivity). New types: `IntegrationResponse`, `ConnectionResponse`, `HealthCheckResponse`, `ConnexysCredentialsRequest`, `MicrosoftCredentialsRequest`. Database: `system.integration_connections` table
+- **2026-03-15** — **BREAKING**: `NavigationCountsResponse.prescreening` and `.preonboarding` now return `{active, stuck}` (per-type workflow activity counts) instead of vacancy-status counts (`new/generated/published/archived`). Combined `activities` field unchanged
+- **2026-03-15** — Refactored agent vacancy endpoints to unified `AgentVacancyResponse` shape. Removed `?status=` query param from both endpoints — all non-archived vacancies returned with `agent_status` field per item. Added `GET /agents/prescreening/stats` and `GET /agents/preonboarding/stats` dashboard stats endpoints. Migrated prescreening `is_online` to `vacancy_agents` table (same as document_collection). Response now uses self-describing `AgentStatItem` lists for agent-specific data
+- **2026-03-15** — Removed `document_collection_configs` system entirely. Online/offline toggle for document collection agent now uses `ats.vacancy_agents.is_online`. Added `GET /vacancies/{vacancy_id}/agents/{agent_type}/status` and `PATCH /vacancies/{vacancy_id}/agents/{agent_type}/status` endpoints. Removed all `/configs` endpoints and related types (`CollectionConfigResponse`, `CollectionConfigCreate`, etc.). Simplified document resolution to workspace defaults only. Added `POST /collections/{collection_id}/tasks/{task_slug}/trigger` endpoint
+- **2026-03-15** — Added optional `start_date` field (ISO date, `YYYY-MM-DD`) to `VacancyResponse`. Added `PATCH /vacancies/{vacancy_id}` endpoint for updating vacancy fields (currently supports `start_date`)
+- **2026-03-13** — Added `POST /playground/chat` unified SSE chat endpoint for all playground agent types (pre_screening, document_collection). Supports ephemeral in-memory sessions with agent-type dispatch. Replaces agent-specific chat endpoints for playground use
+- **2026-03-14** — Added `fields` (JSONB array, optional) to `AttributeTypeResponse` for structured sub-fields on attribute types (e.g. noodcontact → naam + telefoonnummer). Each field: `{key, label, type, required, placeholder?, options?}`. Added `GET /ontology/attribute-fields-schema` endpoint returning available field types for the frontend config UI
+- **2026-03-13** — Added `ai_hint` field (optional string) to `DocumentTypeResponse` and `AttributeTypeResponse` for data-driven AI planner instructions. Added `group` field (optional string) to `CollectionItemStatusResponse` for visual grouping of related items (e.g. identity documents). Added `scheduled_at` field to `CollectionItemStatusResponse` for task scheduling. Extended `priority` values to include `"conditional"` alongside `"required"` and `"recommended"`
+- **2026-03-13** — Added `vacancies` and `candidates` fields to `NavigationCountsResponse` (`GET /agents/counts`). Endpoint now reads from denormalized `ats.navigation_counts` table kept in sync by DB triggers for Supabase Realtime support
+- **2026-03-13** — Added `"task"` as third `CollectionItemStatusResponse.type` value. Tasks (e.g. medical screening, contract signing) are sourced from `plan.agent_managed_tasks` and tracked in `agent_state.item_statuses` like documents and attributes
+- **2026-03-13** — Added `goal` field to `DocumentCollectionResponse` (and all derived responses). Values: `"collect_basic"` (standard onboarding docs & info), `"collect_and_sign"` (collect + Yousign contract), `"document_renewal"` (re-collect expired document). Defaults to `"collect_basic"`. Stored as column on `agents.document_collections`
+- **2026-03-13** — Restructured `DocumentCollectionFullDetailResponse`: replaced `plan` (full agent script) + `document_statuses` (docs only) with `summary`/`deadline_note` (plan header fields) + `collection_items` (unified checklist of documents AND attributes with status). Renamed `CollectionDocumentStatusResponse` → `CollectionItemStatusResponse` with new fields: `type` (`"document"` | `"attribute"`), `value` (collected attribute value). Removed `CollectionPlanResponse`, `CollectionPlanDocumentResponse`, `CollectionPlanStepResponse` from public API (internal agent detail)
+- **2026-03-13** — Added `candidacy_stage` field to `DocumentCollectionResponse` (and all derived detail responses). Joined from `ats.candidacies` via `candidacy_id` — shows current pipeline stage (`new`, `pre_screening`, `qualified`, ..., `placed`, `rejected`, `withdrawn`). Null when no candidacy is linked
+- **2026-03-13** — Added `GET /workspaces/{workspace_id}/document-collection/collections/{collection_id}/detail` endpoint returning `DocumentCollectionFullDetailResponse` with enriched collection detail, unified `collection_items` checklist, `workflow_steps` progress bar, and `candidacy_id`/`candidate_id` links. New types: `CollectionItemStatusResponse`, `WorkflowStepResponse`, `DocumentCollectionFullDetailResponse`
+- **2026-03-12** — Enriched `CandidacySummary` in `GET /candidates/{candidate_id}` with two new optional fields: `screening_result` (full pre-screening Q&A with scores, summary, and answers array — answers only populated for completed screenings) and `document_collection` (collection progress with per-document upload status). New types: `ScreeningResult`, `DocumentCollectionSummary`, `DocumentCollectionItem`.
 - **2026-03-12** — Added Candidate Attributes system: workspace-scoped attribute types catalog (`/workspaces/{workspace_id}/candidate-attribute-types`) with CRUD endpoints, per-candidate attribute values (`/candidates/{candidate_id}/attributes`) with set/bulk-set/delete endpoints, and `attributes` array included in `GET /candidates/{candidate_id}` detail response. 6 default attribute types seeded per workspace (transport, availability, shifts, nationality, national register, emergency contact). Renamed tables for consistency: `document_types` → `types_documents`, `candidate_attribute_types` → `types_attributes`, `candidate_documents` → `candidate_certificates`.
 - **2026-03-12** — Standardized all list endpoint responses to use `PaginatedResponse<T>` envelope (`{ items, total, limit, offset }`). Changed: `GET /candidates` (was bare array → paginated), `GET /vacancies` (`vacancies` key → `items`), `GET /monitoring` (`activities` key → `items`, added `limit`/`offset`). `GET /candidacies` already used `items` key — no change needed. Vacancy `agents` field is always present (never null/missing)
 - **2026-03-11** — Added `custom_field_extraction` (JSONB) field to document type entities for LLM-driven field extraction config (top-level only); added CRUD endpoints `POST /ontology/entities`, `PATCH /ontology/entities/{id}`, `DELETE /ontology/entities/{id}`; updated list sorting: items with children first (A-Z), then leaf items (A-Z); updated `is_verifiable` on Arbeidskaart, Vrijstelling arbeidskaart, VakantieAttest, C3.2 afdruk, Grensarbeider
@@ -82,6 +110,7 @@ Complete API reference for the Taloo recruitment screening platform.
 24. [ATS Simulator](#ats-simulator)
 25. [Demo](#demo)
 26. [Error Reference](#error-reference)
+27. [External Integrations](#external-integrations)
 
 ---
 
@@ -187,6 +216,22 @@ Initiate Google OAuth login flow. Redirects user to Google consent page.
 | `redirect_to` | string | No | URL to redirect after login |
 
 **Response:** HTTP 302 redirect to Google OAuth
+
+---
+
+#### GET /auth/login/microsoft
+
+Initiate Microsoft OAuth login flow. Redirects user to Microsoft consent page.
+
+**Auth:** None
+
+**Query Parameters:**
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `redirect_to` | string | No | URL to redirect after login |
+
+**Response:** HTTP 302 redirect to Microsoft OAuth
 
 ---
 
@@ -361,6 +406,64 @@ interface HealthResponse {
 }
 ```
 
+### GET /health/status
+
+Aggregated system status for the frontend status dropdown. Returns overall health, individual service statuses, and dynamically loaded integration connection statuses.
+
+**Auth:** None
+
+**Response:**
+
+```typescript
+interface ServiceStatusItem {
+  name: string;                    // Display name (e.g. "Platform", "LLM")
+  slug: string;                    // Identifier (e.g. "platform", "llm")
+  status: "online" | "offline" | "degraded" | "not_configured" | "unknown";
+  description: string;             // Human-readable status text (Dutch)
+}
+
+interface IntegrationStatusItem {
+  name: string;                    // Display name (e.g. "Connexys")
+  slug: string;                    // Identifier (e.g. "connexys")
+  status: "online" | "offline" | "not_configured" | "unknown";
+  description: string;             // Human-readable status text (Dutch)
+  last_checked_at: string | null;  // ISO timestamp of last health check
+}
+
+interface SystemStatusResponse {
+  overall: "online" | "degraded" | "offline";
+  services: ServiceStatusItem[];
+  integrations: IntegrationStatusItem[];
+}
+```
+
+**Services returned:** Platform (API + database), LLM, Voice, WhatsApp.
+
+**Integrations:** Dynamically loaded from configured integration connections in the workspace.
+
+```json
+{
+  "overall": "online",
+  "services": [
+    {
+      "name": "Platform",
+      "slug": "platform",
+      "status": "online",
+      "description": "API & database operationeel"
+    }
+  ],
+  "integrations": [
+    {
+      "name": "Connexys",
+      "slug": "connexys",
+      "status": "online",
+      "description": "Verbonden",
+      "last_checked_at": "2026-03-18T17:32:20.415310+00:00"
+    }
+  ]
+}
+```
+
 ---
 
 ## Vacancies
@@ -423,6 +526,19 @@ interface ClientSummary {
   logo?: string;
 }
 
+interface OfficeSummary {
+  id: string;
+  name: string;
+  address?: string;
+  email?: string;
+  phone?: string;
+}
+
+interface JobFunctionSummary {
+  id: string;
+  name: string;
+}
+
 interface ApplicantSummary {
   id: string;
   name: string;
@@ -446,6 +562,7 @@ interface VacancyResponse {
   archived_at?: string;
   source?: VacancySource;
   source_id?: string;
+  start_date?: string;  // ISO date (YYYY-MM-DD) when the position starts
   has_screening: boolean;
   published_at?: string;  // ISO timestamp when pre-screening was published (null = draft)
   is_online?: boolean;
@@ -453,6 +570,8 @@ interface VacancyResponse {
   agents: AgentsResponse;
   recruiter?: RecruiterSummary;   // Full recruiter info (if assigned) - use recruiter.id for ID
   client?: ClientSummary;         // Full client info (if assigned) - use client.id for ID
+  office?: OfficeSummary;         // Office location info (name, address, email, phone)
+  job_function?: JobFunctionSummary; // Job function/category (if assigned)
   applicants: ApplicantSummary[]; // Candidates who completed pre-screening (excludes test applications)
   candidates_count: number;
   completed_count: number;
@@ -505,6 +624,86 @@ Note: See `ActivityResponse` in [Candidates](#candidates) section for the activi
 |--------|-------|
 | 400 | Invalid vacancy ID format |
 | 404 | Vacancy not found |
+
+---
+
+### PATCH /vacancies/{vacancy_id}
+
+Update vacancy fields.
+
+**Request body:**
+```typescript
+{
+  start_date?: string | null;  // ISO date "YYYY-MM-DD" or null to clear
+}
+```
+
+**Response:**
+```typescript
+{
+  id: string;
+  start_date: string | null;
+}
+```
+
+---
+
+### GET /vacancies/{vacancy_id}/agents/{agent_type}/status
+
+Get the online/offline status of an agent for a vacancy.
+
+**Auth:** Bearer token
+
+**Path Parameters:**
+
+| Name | Type | Description |
+|------|------|-------------|
+| `vacancy_id` | string (UUID) | Vacancy identifier |
+| `agent_type` | string | Agent type (e.g. `document_collection`, `pre_screening`) |
+
+**Response:**
+
+```typescript
+interface VacancyAgentStatusResponse {
+  vacancy_id: string;
+  agent_type: string;
+  is_online: boolean;
+  created_at: string;
+}
+```
+
+| Status | Description |
+|--------|-------------|
+| 404 | No agent of this type registered for vacancy |
+
+---
+
+### PATCH /vacancies/{vacancy_id}/agents/{agent_type}/status
+
+Toggle an agent's online/offline status for a vacancy.
+
+**Auth:** Bearer token
+
+**Path Parameters:**
+
+| Name | Type | Description |
+|------|------|-------------|
+| `vacancy_id` | string (UUID) | Vacancy identifier |
+| `agent_type` | string | Agent type (e.g. `document_collection`) |
+
+**Request Body:**
+
+```typescript
+{
+  is_online: boolean;
+}
+```
+
+**Response:** `VacancyAgentStatusResponse`
+
+| Status | Description |
+|--------|-------------|
+| 404 | No agent of this type registered for vacancy |
 
 ---
 
@@ -863,6 +1062,43 @@ interface CandidacySummary {
   vacancy_company?: string;
   is_open_application: boolean;
   latest_application?: CandidacyApplicationBrief;
+  screening_result?: ScreeningResult | null;
+  document_collection?: DocumentCollectionSummary | null;
+}
+
+/** Full pre-screening result with Q&A */
+interface ScreeningResult {
+  application_id: string;
+  channel: string;                    // "voice" | "whatsapp" | "cv"
+  status: string;                     // "active" | "processing" | "completed" | "abandoned"
+  qualified?: boolean;
+  summary?: string;                   // AI-generated candidate summary
+  interaction_seconds: number;
+  knockout_passed: number;
+  knockout_total: number;
+  open_questions_score?: number;      // 0-100
+  open_questions_total: number;
+  completed_at?: string;
+  answers: QuestionAnswerResponse[];  // Full Q&A (only populated when status = "completed")
+}
+
+/** Lightweight document collection status per candidacy */
+interface DocumentCollectionSummary {
+  collection_id: string;
+  status: string;                     // "active" | "completed" | "needs_review" | "abandoned"
+  progress: string;                   // "pending" | "in_progress" | "completed"
+  documents_collected: number;
+  documents_total: number;
+  documents: DocumentCollectionItem[];
+}
+
+/** Per-document status within a collection */
+interface DocumentCollectionItem {
+  document_type_id: string;
+  document_type_name: string;
+  icon?: string;                      // Lucide icon name
+  status: string;                     // "pending" | "verified" | "rejected" | "needs_review"
+  uploaded_at?: string;               // null if not yet uploaded
 }
 
 interface CandidateDocumentSummary {
@@ -1091,7 +1327,7 @@ Agent-centric views of vacancies, grouped by AI agent configuration status.
 
 ### GET /agents/prescreening/vacancies
 
-List vacancies by pre-screening agent status.
+List all non-archived vacancies with prescreening agent status and stats. Returns a unified `AgentVacancyResponse` shape.
 
 **Auth:** None
 
@@ -1099,27 +1335,10 @@ List vacancies by pre-screening agent status.
 
 | Name | Type | Required | Default | Description |
 |------|------|----------|---------|-------------|
-| `status` | string | Yes | - | Filter: `new`, `generated`, `published`, or `archived` |
 | `limit` | number | No | 50 | Results per page (1-100) |
 | `offset` | number | No | 0 | Pagination offset |
 
-**Status Definitions:**
-
-- `new`: No pre-screening record (questions not generated yet)
-- `generated`: Has pre-screening record but NOT published (draft)
-- `published`: Has pre-screening record AND published (can be online/offline)
-- `archived`: Vacancy status is 'closed' or 'filled'
-
 **Response:**
-
-```typescript
-interface AgentVacancyListResponse {
-  vacancies: VacancyResponse[];
-  total: number;
-  limit: number;
-  offset: number;
-}
-```
 
 ```json
 {
@@ -1131,33 +1350,31 @@ interface AgentVacancyListResponse {
       "location": "Gent",
       "status": "open",
       "created_at": "2025-01-15T10:00:00Z",
-      "has_screening": true,
-      "is_online": true,
-      "channels": { "voice": true, "whatsapp": true, "cv": false },
-      "agents": {
-        "prescreening": { "exists": true, "status": "online" },
-        "preonboarding": { "exists": false, "status": null },
-        "insights": { "exists": false, "status": null }
-      },
-      "recruiter": { "id": "uuid", "name": "Sarah De Vos" },
-      "client": { "id": "uuid", "name": "Vandemoortele" },
-      "candidates_count": 15,
-      "completed_count": 12,
-      "qualified_count": 8,
-      "last_activity_at": "2025-01-20T09:15:00Z"
+      "agent_status": "published",
+      "agent_online": true,
+      "stats": [
+        {"key": "candidates_count", "label": "Kandidaten", "value": 15},
+        {"key": "completed_count", "label": "Afgerond", "value": 12},
+        {"key": "qualified_count", "label": "Gekwalificeerd", "value": 8}
+      ],
+      "last_activity_at": "2025-01-20T09:15:00Z",
+      "recruiter": {"id": "uuid", "name": "Sarah De Vos"},
+      "client": {"id": "uuid", "name": "Vandemoortele"}
     }
   ],
-  "total": 5,
+  "total": 8,
   "limit": 50,
   "offset": 0
 }
 ```
 
+**`agent_status` values:** `new` (no pre-screening), `generated` (draft), `published`
+
 ---
 
 ### GET /agents/preonboarding/vacancies
 
-List vacancies by pre-onboarding agent status.
+List all non-archived vacancies with document collection agent status and stats. Same `AgentVacancyResponse` shape as prescreening.
 
 **Auth:** None
 
@@ -1165,17 +1382,117 @@ List vacancies by pre-onboarding agent status.
 
 | Name | Type | Required | Default | Description |
 |------|------|----------|---------|-------------|
-| `status` | string | Yes | - | Filter: `new`, `generated`, or `archived` |
 | `limit` | number | No | 50 | Results per page (1-100) |
 | `offset` | number | No | 0 | Pagination offset |
 
-**Status Definitions:**
+**Response:**
 
-- `new`: `preonboarding_agent_enabled` is false or NULL
-- `generated`: `preonboarding_agent_enabled` is true
-- `archived`: Vacancy status is 'closed' or 'filled'
+```json
+{
+  "vacancies": [
+    {
+      "id": "uuid",
+      "title": "Operator Mengafdeling",
+      "company": "Vandemoortele",
+      "location": "Gent",
+      "status": "open",
+      "created_at": "2025-01-15T10:00:00Z",
+      "agent_status": "generated",
+      "agent_online": true,
+      "stats": [
+        {"key": "active", "label": "Actief", "value": 3},
+        {"key": "completed", "label": "Afgerond", "value": 5},
+        {"key": "needs_review", "label": "Review", "value": 1}
+      ],
+      "last_activity_at": "2025-01-20T09:15:00Z",
+      "recruiter": {"id": "uuid", "name": "Sarah De Vos"},
+      "client": {"id": "uuid", "name": "Vandemoortele"}
+    }
+  ],
+  "total": 8,
+  "limit": 50,
+  "offset": 0
+}
+```
 
-**Response:** Same structure as `/agents/prescreening/vacancies`
+**`agent_status` values:** `new` (agent not registered), `generated` (agent registered)
+
+---
+
+### GET /agents/prescreening/stats
+
+Aggregate dashboard stats for the pre-screening overview page.
+
+**Auth:** None
+
+**Response:**
+
+```json
+{
+  "metrics": [
+    {"key": "total_this_week", "label": "Pre-screenings", "value": 12, "description": "Deze week", "variant": "blue", "icon": "users"},
+    {"key": "completion_rate", "label": "Afrondingspercentage", "value": 75, "suffix": "%", "variant": "dark", "icon": "check-circle"},
+    {"key": "qualified_count", "label": "Gekwalificeerd", "value": 9, "description": "Kandidaten", "variant": "lime", "icon": "user-check"},
+    {"key": "channels", "label": "Kanalen", "value": 0, "description": "voice: 5, whatsapp: 7", "variant": "dark", "icon": "phone"}
+  ]
+}
+```
+
+---
+
+### GET /agents/preonboarding/stats
+
+Aggregate dashboard stats for the document collection overview page.
+
+**Auth:** None
+
+**Response:**
+
+```json
+{
+  "metrics": [
+    {"key": "active_collections", "label": "Actieve collecties", "value": 5, "description": "Lopend", "variant": "blue", "icon": "file-text"},
+    {"key": "completion_rate", "label": "Afrondingspercentage", "value": 60, "suffix": "%", "variant": "dark", "icon": "check-circle-2"},
+    {"key": "completed", "label": "Volledig verzameld", "value": 8, "description": "Afgerond", "variant": "lime", "icon": "file-check"},
+    {"key": "needs_review", "label": "Review nodig", "value": 2, "description": "Wacht op verificatie", "variant": "pink", "icon": "alert-circle"}
+  ]
+}
+```
+
+---
+
+### Shared Types
+
+```typescript
+interface AgentStatItem {
+  key: string;                  // Programmatic id
+  label: string;                // Display label
+  value: number;                // Numeric value
+  description?: string;         // Sublabel
+  variant?: string;             // Color: "blue" | "dark" | "lime" | "pink"
+  icon?: string;                // Lucide icon name
+  suffix?: string;              // e.g. "%"
+}
+
+interface AgentVacancyResponse {
+  id: string;
+  title: string;
+  company: string;
+  location?: string;
+  status: string;               // Vacancy status (open/closed/filled)
+  created_at: string;
+  agent_status: string;         // Agent-specific status
+  agent_online?: boolean;       // From vacancy_agents.is_online
+  stats: AgentStatItem[];       // Agent-specific stats
+  last_activity_at?: string;
+  recruiter?: RecruiterSummary;
+  client?: ClientSummary;
+}
+
+interface AgentDashboardStatsResponse {
+  metrics: AgentStatItem[];
+}
+```
 
 ---
 
@@ -1190,27 +1507,36 @@ Get lightweight counts for navigation sidebar. Returns vacancy counts by agent s
 ```typescript
 interface NavigationCountsResponse {
   prescreening: {
-    new: number;
-    generated: number;
-    archived: number;
+    active: number;   // Active pre-screening workflows
+    stuck: number;    // Pre-screening workflows with SLA breached
   };
   preonboarding: {
-    new: number;
-    generated: number;
-    archived: number;
+    active: number;   // Active document collection workflows
+    stuck: number;    // Document collection workflows with SLA breached
   };
   activities: {
     active: number;   // Active workflows (not stuck)
-    stuck: number;    // Workflows with no update for > 1 hour
+    stuck: number;    // Workflows with SLA breached (next_action_at <= now)
+  };
+  vacancies: {
+    active: number;   // Non-closed/filled vacancies
+    archived: number; // Closed/filled vacancies
+  };
+  candidates: {
+    total: number;    // All candidates
+    archived: number; // Inactive/placed candidates
   };
 }
 ```
 
+Counts are read from the denormalized `ats.navigation_counts` table, which is kept in sync by PostgreSQL triggers on `ats.vacancies`, `agents.pre_screenings`, `agents.workflows`, and `ats.candidates`. The table is included in the Supabase Realtime publication for instant frontend updates.
+
 ```json
 {
   "prescreening": {
-    "new": 7,
+    "new": 0,
     "generated": 3,
+    "published": 8,
     "archived": 2
   },
   "preonboarding": {
@@ -1221,9 +1547,39 @@ interface NavigationCountsResponse {
   "activities": {
     "active": 5,
     "stuck": 2
+  },
+  "vacancies": {
+    "active": 8,
+    "archived": 0
+  },
+  "candidates": {
+    "total": 25,
+    "archived": 0
   }
 }
 ```
+
+---
+
+### GET /agents/availability
+
+Get available agent types for the current workspace. Used by frontend to conditionally show/hide agent sections.
+
+**Auth:** Workspace required (`X-Workspace-ID` header)
+
+**Response:**
+
+```typescript
+interface AgentAvailabilityResponse {
+  available_agents: string[];  // e.g. ["prescreening", "document_collection", "cv_analyzer", ...]
+}
+```
+
+Top-level agent types: `prescreening`, `document_collection`
+
+Controlled by `agents.workspace_agent_availability` table (GOD admin, direct DB). Deny-by-default: if no row exists for a workspace+agent_type, that agent is not available.
+
+**403 enforcement:** Endpoints that use an agent will return `403 Forbidden` with `"Agent '{type}' is not available for this workspace"` if the agent is disabled.
 
 ---
 
@@ -1532,7 +1888,7 @@ interface PreScreeningSettingsUpdateRequest {
 
 Get the global pre-screening agent configuration (single row, applies to all screenings).
 
-**Auth:** None
+**Headers:** `Authorization: Bearer <token>`, `X-Workspace-ID: <uuid>` (required)
 
 **Response:**
 
@@ -1562,7 +1918,7 @@ interface PreScreeningConfigResponse {
 
 Update the global pre-screening agent configuration. All fields optional.
 
-**Auth:** None
+**Headers:** `Authorization: Bearer <token>`, `X-Workspace-ID: <uuid>` (required)
 
 **Request Body:**
 
@@ -1587,6 +1943,46 @@ interface PreScreeningConfigUpdateRequest {
 |--------|-------|
 | 400 | No fields to update |
 | 404 | Pre-screening config not found |
+
+### GET /pre-screening/auto-generate
+
+Get the current auto-generate toggle state. When enabled (default), newly imported vacancies automatically get pre-screening questions generated.
+
+**Headers:** `Authorization: Bearer <token>`, `X-Workspace-ID: <uuid>` (required)
+
+**Response:**
+
+```json
+{
+  "auto_generate": true
+}
+```
+
+### PUT /pre-screening/auto-generate
+
+Toggle auto-generate for pre-screening on/off.
+
+**Headers:** `Authorization: Bearer <token>`, `X-Workspace-ID: <uuid>` (required)
+
+**Query Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `enabled` | boolean | Yes | `true` to enable, `false` to disable |
+
+**Response:**
+
+```json
+{
+  "auto_generate": false
+}
+```
+
+**Error Responses:**
+
+| Status | Error |
+|--------|-------|
+| 404 | No workspace found |
 
 ---
 
@@ -2413,7 +2809,7 @@ Creates a LiveKit access token with embedded agent dispatch. When the browser co
 interface PlaygroundStartRequest {
   vacancy_id: string;
   candidate_name?: string;     // Default: "Playground Kandidaat"
-  persona_name?: string;       // Default: "Anna" — voice persona name used in prompts and voicemail (e.g. "Eva", "Sophie")
+  persona_name?: string;       // Default: "Liv" — voice persona name used in prompts and voicemail (e.g. "Eva", "Sophie")
   start_agent?: string;        // Skip to specific step: "greeting" | "screening" | "open_questions" | "scheduling"
   require_consent?: boolean;   // Default: false
   candidate_known?: boolean;   // Default: false — known candidate with existing data
@@ -2474,6 +2870,63 @@ room.disconnect();
 | 400 | Pre-screening is offline |
 | 404 | Vacancy not found |
 | 500 | LIVEKIT_URL not configured |
+
+---
+
+### POST /playground/chat
+
+Unified SSE chat endpoint for all playground agent types. Creates ephemeral in-memory sessions for interactive testing — no database records are created.
+
+**Auth:** None
+
+**Request Body:**
+
+```typescript
+interface PlaygroundChatRequest {
+  agent_type: string;              // "pre_screening" | "document_collection"
+  message: string;                 // User message or "START" for new conversation
+  session_id?: string;             // From previous response — omit for new conversation
+  vacancy_id?: string;             // Required when agent_type = "pre_screening"
+  collection_id?: string;          // Required when agent_type = "document_collection"
+  candidate_name?: string;         // Optional — random name generated if omitted
+}
+```
+
+**Response:** Server-Sent Events (SSE) stream
+
+```typescript
+// Status event (thinking indicator)
+{ type: "status", status: "thinking", message: "Antwoord genereren..." }
+
+// Complete event (agent response)
+{ type: "complete", message: string, session_id: string, candidate_name: string, is_complete: boolean }
+
+// Error event
+{ type: "error", message: string }
+
+// Stream terminator
+[DONE]
+```
+
+**Agent Types:**
+
+| Type | Required Field | Description |
+|------|---------------|-------------|
+| `pre_screening` | `vacancy_id` | WhatsApp pre-screening agent — knockout + qualification questions |
+| `document_collection` | `collection_id` | Document collection conductor — collects documents + attributes from plan |
+
+**Document Collection Notes:**
+- Include `--img-success--` or `--img-fail--` in the message text to simulate document photo upload verification
+- The agent loads the collection plan from the database and walks through the item queue
+
+**Error Responses:**
+
+| Status | Error |
+|--------|-------|
+| 400 | vacancy_id / collection_id required for agent type |
+| 400 | Unknown agent_type |
+| 400 | Session not found |
+| 404 | Vacancy / Collection not found |
 
 ---
 
@@ -2826,18 +3279,12 @@ All endpoints under `/workspaces/{workspace_id}/document-collection/`. Requires 
 | POST | `/document-types` | Create document type |
 | PATCH | `/document-types/{id}` | Update document type |
 | DELETE | `/document-types/{id}` | Soft-delete (is_active=false) |
-| GET | `/configs` | List collection configs |
-| POST | `/configs` | Create config |
-| GET | `/configs/{id}` | Get config with required documents |
-| PUT | `/configs/{id}` | Update config |
-| DELETE | `/configs/{id}` | Delete config |
-| PATCH | `/configs/{id}/status` | Toggle online/whatsapp flags |
-| GET | `/configs/{id}/documents` | List required documents |
-| PUT | `/configs/{id}/documents` | Replace all required documents |
 | GET | `/resolve` | Resolve which documents are needed |
 | GET | `/collections` | List document collections |
 | GET | `/collections/{id}` | Get collection with messages + uploads |
+| GET | `/collections/{id}/detail` | Get enriched detail with plan, document statuses, workflow |
 | POST | `/collections/{id}/abandon` | Mark collection as abandoned |
+| POST | `/collections/{id}/tasks/{slug}/trigger` | Trigger a scheduled task immediately |
 | POST | `/start` | Start a new document collection |
 
 ---
@@ -2853,6 +3300,7 @@ interface DocumentTypeResponse {
   slug: string;                  // e.g. "id_card", "drivers_license"
   name: string;                  // Display name, e.g. "ID-kaart"
   description?: string;
+  ai_hint?: string;              // AI planner instruction: when/how to collect this document
   category: string;              // "identity" | "certificate" | "financial" | "other"
   requires_front_back: boolean;  // If true, agent collects front + back
   is_verifiable: boolean;        // If true, document_recognition_agent can verify
@@ -2888,84 +3336,23 @@ interface DocumentTypeUpdate {
   sort_order?: number;
 }
 
-// --- Collection Configs ---
-
-interface CollectionConfigResponse {
-  id: string;
-  workspace_id: string;
-  vacancy_id?: string;           // null = workspace default config
-  name?: string;
-  intro_message?: string;        // Agent opening message template
-  status: string;                // "draft" | "active" | "archived"
-  is_online: boolean;
-  whatsapp_enabled: boolean;
-  created_at: string;
-  updated_at: string;
-}
-
-interface CollectionConfigDetailResponse extends CollectionConfigResponse {
-  documents: CollectionRequirementResponse[];  // Required documents for this config
-}
-
-interface CollectionRequirementResponse {
-  id: string;
-  document_type_id: string;
-  document_type: DocumentTypeResponse;  // Full document type object
-  position: number;                     // Collection order
-  is_required: boolean;                 // Required vs optional
-  notes?: string;                       // Instructions for this doc
-}
-
-interface CollectionConfigCreate {
-  vacancy_id?: string;           // null = workspace default
-  name?: string;
-  intro_message?: string;
-  document_type_ids: string[];   // UUIDs of document types to require
-}
-
-interface CollectionConfigUpdate {
-  name?: string;
-  intro_message?: string;
-  status?: string;
-  is_online?: boolean;
-  whatsapp_enabled?: boolean;
-  document_type_ids?: string[];  // If provided, replaces all requirements
-}
-
-interface CollectionConfigStatusUpdate {
-  is_online?: boolean;
-  whatsapp_enabled?: boolean;
-}
-
-// --- Requirements ---
-
-interface RequirementItem {
-  document_type_id: string;
-  position?: number;             // Default: 0
-  is_required?: boolean;         // Default: true
-  notes?: string;
-}
-
-interface SetRequirementsRequest {
-  documents: RequirementItem[];
-}
-
 // --- Document Resolution ---
 
 interface ResolveDocumentsResponse {
   documents: DocumentTypeResponse[];
-  source: string;                // "default" | "vacancy" | "merged"
+  source: string;                // "default"
 }
 
 // --- Collections ---
 
 interface DocumentCollectionResponse {
   id: string;
-  config_id: string;
   workspace_id: string;
   vacancy_id?: string;
   vacancy_title?: string;            // Vacancy title (joined from vacancies table)
   application_id?: string;
+  candidacy_stage?: string;          // Pipeline stage: "new" | "pre_screening" | "qualified" | "interview_planned" | "interview_done" | "offer" | "placed" | "rejected" | "withdrawn"
+  goal: string;                    // "collect_basic" | "collect_and_sign" | "document_renewal"
   candidate_name: string;
   candidate_phone?: string;
   status: string;                // "active" | "completed" | "needs_review" | "abandoned"
@@ -2984,6 +3371,39 @@ interface DocumentCollectionDetailResponse extends DocumentCollectionResponse {
   messages: CollectionMessageResponse[];
   uploads: CollectionUploadResponse[];
   documents_required: DocumentTypeResponse[];  // Full document type objects resolved from stored slugs
+}
+
+// Enriched detail for the collection detail panel
+interface DocumentCollectionFullDetailResponse extends DocumentCollectionResponse {
+  messages: CollectionMessageResponse[];
+  uploads: CollectionUploadResponse[];
+  documents_required: DocumentTypeResponse[];
+  summary?: string;                                // Plan summary for recruiter (Dutch)
+  deadline_note?: string;                          // e.g. "Start op 24 maart"
+  collection_items: CollectionItemStatusResponse[];  // Unified checklist: documents + attributes
+  candidacy_id?: string;
+  candidate_id?: string;
+  workflow_steps: WorkflowStepResponse[];          // Workflow progress bar
+}
+
+interface CollectionItemStatusResponse {
+  slug: string;                  // e.g. "id_card", "iban", "domicile_address"
+  name: string;                  // e.g. "ID-kaart", "IBAN", "Domicilie adres"
+  type: string;                  // "document" | "attribute" | "task"
+  priority: string;              // "required" | "recommended" | "conditional"
+  status: string;                // "pending" | "asked" | "received" | "verified" | "failed" | "skipped" | "scheduled"
+  value?: string;                // For attributes: the collected value (e.g. "BE68 5390 0754 7034")
+  upload_id?: string;            // For documents: upload reference
+  verification_passed?: boolean; // For documents: verification result
+  uploaded_at?: string;          // For documents: upload timestamp
+  scheduled_at?: string;         // For tasks: when the task is scheduled
+  group?: string;                // Visual grouping key (e.g. "identity" for id_card/passport/work_permit)
+}
+
+interface WorkflowStepResponse {
+  id: string;
+  label: string;
+  status: string;                // "completed" | "current" | "pending" | "failed"
 }
 
 interface CollectionMessageResponse {
@@ -3007,14 +3427,13 @@ interface StartCollectionRequest {
   candidate_name: string;        // min 1 char
   candidate_lastname: string;    // min 1 char
   whatsapp_number: string;       // E.164: ^\+?[1-9]\d{1,14}$
-  vacancy_id?: string;           // If provided, uses vacancy-specific config
+  vacancy_id?: string;
   application_id?: string;
   candidate_id?: string;
 }
 
 interface StartCollectionResponse {
   collection_id: string;
-  config_id: string;
   candidate_name: string;
   whatsapp_number: string;
   documents_required: DocumentTypeResponse[];
@@ -3075,103 +3494,9 @@ Soft-delete a document type (sets `is_active=false`).
 
 ---
 
-### GET /configs
-
-List collection configs for a workspace.
-
-**Auth:** Bearer token
-
-**Query Parameters:**
-
-| Name | Type | Required | Description |
-|------|------|----------|-------------|
-| `vacancy_id` | string (UUID) | No | Filter by vacancy |
-
-**Response:** `CollectionConfigResponse[]`
-
----
-
-### POST /configs
-
-Create a collection config. Set `vacancy_id=null` for workspace default.
-
-**Auth:** Bearer token
-
-**Request Body:** `CollectionConfigCreate`
-
-**Response:** `CollectionConfigDetailResponse` (201 Created)
-
----
-
-### GET /configs/{config_id}
-
-Get a config with its required documents.
-
-**Auth:** Bearer token
-
-**Response:** `CollectionConfigDetailResponse`
-
----
-
-### PUT /configs/{config_id}
-
-Update a config. If `document_type_ids` is provided, replaces all requirements.
-
-**Auth:** Bearer token
-
-**Request Body:** `CollectionConfigUpdate`
-
-**Response:** `CollectionConfigDetailResponse`
-
----
-
-### DELETE /configs/{config_id}
-
-Delete a collection config. Requirements cascade-delete.
-
-**Auth:** Bearer token
-
-**Response:** `{ "success": true }`
-
----
-
-### PATCH /configs/{config_id}/status
-
-Toggle `is_online` and/or `whatsapp_enabled` flags.
-
-**Auth:** Bearer token
-
-**Request Body:** `CollectionConfigStatusUpdate`
-
-**Response:** `CollectionConfigResponse`
-
----
-
-### GET /configs/{config_id}/documents
-
-List required documents for a config.
-
-**Auth:** Bearer token
-
-**Response:** `CollectionRequirementResponse[]`
-
----
-
-### PUT /configs/{config_id}/documents
-
-Replace all required documents for a config.
-
-**Auth:** Bearer token
-
-**Request Body:** `SetRequirementsRequest`
-
-**Response:** `CollectionRequirementResponse[]`
-
----
-
 ### GET /resolve
 
-Resolve which documents are needed for a candidate. Merges workspace defaults with vacancy-specific requirements.
+Resolve which documents are needed for a candidate. Returns workspace default document types (`is_default=true`).
 
 **Auth:** Bearer token
 
@@ -3179,14 +3504,9 @@ Resolve which documents are needed for a candidate. Merges workspace defaults wi
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `vacancy_id` | string (UUID) | No | If provided, merges vacancy config with defaults |
+| `vacancy_id` | string (UUID) | No | Reserved for future use |
 
 **Response:** `ResolveDocumentsResponse`
-
-**Resolution Logic:**
-1. No `vacancy_id` → returns workspace default docs
-2. `vacancy_id` with config → merges default + vacancy-specific (dedup by type, vacancy overrides)
-3. `vacancy_id` without config → falls back to defaults
 
 ---
 
@@ -3228,11 +3548,47 @@ Get a document collection with its messages and uploads.
 
 ---
 
+### GET /collections/{collection_id}/detail
+
+Get enriched collection detail for the detail panel. Includes the smart planner output, merged document statuses (plan items + actual upload state), and workflow progress steps.
+
+**Auth:** Bearer token
+
+**Response:** `DocumentCollectionFullDetailResponse`
+
+**Tabs mapping:**
+
+| Tab | Data field |
+|-----|------------|
+| Tijdlijn | `workflow_steps` (progress bar) + activities endpoint (events) |
+| Documenten | `document_statuses` |
+| Plan | `plan.conversation_steps` |
+| Chat | `messages` |
+
+---
+
 ### POST /collections/{collection_id}/abandon
 
 Mark a document collection as abandoned.
 
 **Auth:** Bearer token
+
+**Response:** `{ "success": true }`
+
+---
+
+### POST /collections/{collection_id}/tasks/{task_slug}/trigger
+
+Trigger a scheduled task immediately (e.g. send a day contract now instead of waiting for the scheduled time).
+
+**Auth:** Bearer token
+
+**Path Parameters:**
+
+| Name | Type | Description |
+|------|------|-------------|
+| `collection_id` | string (UUID) | Collection identifier |
+| `task_slug` | string | Slug of the task to trigger (e.g. `day_contract`) |
 
 **Response:** `{ "success": true }`
 
@@ -4481,6 +4837,29 @@ Get a single entity by ID with optional children.
 
 ---
 
+### Attribute Fields Schema
+
+#### `GET /ontology/attribute-fields-schema`
+
+Returns the available field types for building structured attribute fields. Used by the frontend to render the fields config UI on attribute type detail panels.
+
+**Response:**
+```json
+{
+  "field_types": [
+    {"key": "text", "label": "Tekst", "description": "Vrije tekst (naam, adres, ...)", "type": "text"},
+    {"key": "phone", "label": "Telefoonnummer", "description": "Telefoonnummer met landcode", "type": "text"},
+    {"key": "email", "label": "E-mailadres", "description": "E-mailadres", "type": "text"},
+    {"key": "date", "label": "Datum", "description": "Datumveld (DD/MM/JJJJ)", "type": "date"},
+    {"key": "number", "label": "Nummer", "description": "Numerieke waarde", "type": "number"},
+    {"key": "boolean", "label": "Ja/Nee", "description": "Ja of nee keuze", "type": "boolean"},
+    {"key": "select", "label": "Keuzelijst", "description": "Selectie uit vaste opties", "type": "select"}
+  ]
+}
+```
+
+---
+
 ### Create Entity
 
 #### `POST /ontology/entities`
@@ -4736,6 +5115,7 @@ List all attribute types for a workspace.
     "slug": "work_permit_status",
     "name": "Werkvergunning status",
     "description": "Heeft de kandidaat een geldige werkvergunning?",
+    "ai_hint": "Wordt bepaald op basis van nationaliteit. Niet apart vragen.",
     "category": "legal",
     "data_type": "select",
     "options": [
@@ -4743,11 +5123,35 @@ List all attribute types for a workspace.
       {"value": "has_permit", "label": "Heeft arbeidsvergunning"},
       {"value": "no_permit", "label": "Geen vergunning"}
     ],
+    "fields": null,
     "icon": "file-badge",
     "is_default": true,
     "is_active": true,
     "sort_order": 0,
     "collected_by": "pre_screening",
+    "created_at": "datetime",
+    "updated_at": "datetime"
+  },
+  {
+    "id": "uuid",
+    "workspace_id": "uuid",
+    "slug": "emergency_contact",
+    "name": "Noodcontact",
+    "description": "Contactpersoon in geval van nood",
+    "ai_hint": null,
+    "category": "personal",
+    "data_type": "text",
+    "options": null,
+    "fields": [
+      {"key": "name", "label": "Naam", "type": "text", "required": true},
+      {"key": "phone", "label": "Telefoonnummer", "type": "phone", "required": true},
+      {"key": "relationship", "label": "Relatie", "type": "text", "required": false, "placeholder": "bv. partner, ouder, ..."}
+    ],
+    "icon": "heart-handshake",
+    "is_default": true,
+    "is_active": true,
+    "sort_order": 6,
+    "collected_by": "document_collection",
     "created_at": "datetime",
     "updated_at": "datetime"
   }
@@ -4765,6 +5169,7 @@ Create a new attribute type.
 - `category` (string, default: `"general"`): Category grouping
 - `data_type` (string, default: `"text"`): One of `text`, `boolean`, `date`, `select`, `multi_select`, `number`
 - `options` (array, optional): For select/multi_select: `[{value, label}]`
+- `fields` (array, optional): Structured sub-fields: `[{key, label, type, required, placeholder?, options?}]`. Field types: `text`, `phone`, `email`, `date`, `number`, `boolean`, `select`
 - `icon` (string, optional): Lucide icon name
 - `is_default` (boolean, default: `false`)
 - `sort_order` (integer, default: `0`)
@@ -4882,3 +5287,320 @@ Now includes `attributes` array in the response:
   ]
 }
 ```
+
+---
+
+## External Integrations
+
+Manage connections to external systems (Connexys/Salesforce, Microsoft). Supports credential storage, health checks, and field mapping configuration.
+
+### Types
+
+**IntegrationResponse**
+```json
+{
+  "id": "uuid",
+  "slug": "connexys",
+  "name": "Connexys",
+  "vendor": "Salesforce",
+  "description": "Connexys ATS integration",
+  "icon": "salesforce.svg",
+  "is_active": true
+}
+```
+
+**ConnectionResponse**
+```json
+{
+  "id": "uuid",
+  "integration": { "...IntegrationResponse" },
+  "is_active": true,
+  "has_credentials": true,
+  "health_status": "healthy",
+  "last_health_check_at": "datetime",
+  "settings": {},
+  "created_at": "datetime",
+  "updated_at": "datetime"
+}
+```
+
+**HealthCheckResponse**
+```json
+{
+  "connection_id": "uuid",
+  "provider": "connexys",
+  "health_status": "healthy",
+  "message": "Connected to Salesforce (https://company.my.salesforce.com)",
+  "checked_at": "datetime"
+}
+```
+
+**MappingFieldInfo**
+```json
+{
+  "name": "title",
+  "label": "Vacaturenaam",
+  "type": "text",
+  "required": true,
+  "description": "Titel van de vacature",
+  "group": "Algemeen"
+}
+```
+
+**SourceFieldInfo**
+```json
+{
+  "name": "cxsrec__Job_description__c",
+  "label": "Functieomschrijving",
+  "category": "vacancy"
+}
+```
+
+**MappingSchemaResponse**
+```json
+{
+  "target_fields": [ "...MappingFieldInfo[]" ],
+  "source_fields": [ "...SourceFieldInfo[]" ],
+  "default_mapping": {
+    "title": { "template": "{{Name}}" },
+    "description": { "template": "{{cxsrec__Job_description__c}}\n{{cxsrec__Job_requirements__c}}" }
+  },
+  "current_mapping": null
+}
+```
+
+### GET /integrations
+
+List all available integration providers from the catalog.
+
+**Response:** `IntegrationResponse[]`
+
+### GET /integrations/connections
+
+List all connections for the current workspace.
+
+**Headers:** `Authorization: Bearer <token>`, `X-Workspace-ID: <uuid>` (required)
+
+**Response:** `ConnectionResponse[]`
+
+### GET /integrations/connections/{connection_id}
+
+Get a single connection by ID.
+
+**Response:** `ConnectionResponse`
+
+### PUT /integrations/connections/connexys
+
+Save or update Connexys (Salesforce) credentials.
+
+**Request:** `ConnexysCredentialsRequest`
+```json
+{
+  "instance_url": "https://company.my.salesforce.com",
+  "consumer_key": "3MVG9...",
+  "consumer_secret": "ABC123..."
+}
+```
+
+**Response:** `ConnectionResponse`
+
+### PUT /integrations/connections/microsoft
+
+Save or update Microsoft Graph API credentials.
+
+**Request:** `MicrosoftCredentialsRequest`
+```json
+{
+  "tenant_id": "uuid",
+  "client_id": "uuid",
+  "client_secret": "secret"
+}
+```
+
+**Response:** `ConnectionResponse`
+
+### PATCH /integrations/connections/{connection_id}
+
+Update connection settings or active status. Also used to save field mapping configuration.
+
+**Request:** `UpdateConnectionSettingsRequest`
+```json
+{
+  "settings": {
+    "field_mapping": {
+      "version": 1,
+      "mappings": {
+        "title": { "template": "{{Name}}" },
+        "company": { "template": "{{cxsrec__Account_name__c}}" }
+      }
+    }
+  },
+  "is_active": true
+}
+```
+
+**Response:** `ConnectionResponse`
+
+### DELETE /integrations/connections/{connection_id}
+
+Delete a connection and its credentials.
+
+**Response:** 204 No Content
+
+### POST /integrations/connections/{connection_id}/health-check
+
+Run a health check on a connection (tests OAuth + API access).
+
+**Response:** `HealthCheckResponse`
+
+### GET /integrations/connections/{connection_id}/mapping-schema
+
+Get the field mapping schema for a connection. Returns all available target fields (Taloo side), source fields (provider side grouped by category), default mapping templates, and the currently saved mapping (if any).
+
+Templates use N8N-style `{{field_name}}` syntax with dot-path traversal for relationship fields (e.g. `{{Owner.Email}}`). Multiple fields can be combined in one template.
+
+**Response:** `MappingSchemaResponse`
+
+```json
+{
+  "target_fields": [
+    { "name": "title", "label": "Vacaturenaam", "type": "text", "required": true, "description": "Titel van de vacature", "group": "Algemeen" },
+    { "name": "description", "label": "Omschrijving", "type": "html", "required": false, "description": "Volledige vacaturetekst", "group": "Beschrijving" }
+  ],
+  "source_fields": [
+    { "name": "Name", "label": "Vacaturenaam", "category": "vacancy" },
+    { "name": "Owner.Email", "label": "Eigenaar e-mail", "category": "owner" },
+    { "name": "job_office__r.office_email__c", "label": "Kantoor e-mail", "category": "office" }
+  ],
+  "default_mapping": {
+    "title": { "template": "{{Name}}" },
+    "company": { "template": "{{cxsrec__Account_name__c}}" },
+    "description": { "template": "{{cxsrec__Job_description__c}}\n{{cxsrec__Job_requirements__c}}\n{{cxsrec__Compensation_benefits__c}}" },
+    "source_id": { "template": "{{Id}}" },
+    "recruiter_email": { "template": "{{Owner.Email}}" },
+    "office_email": { "template": "{{job_office__r.office_email__c}}" },
+    "sync_filter": { "template": "{{sync_to_taloo}}" },
+    "is_online": { "template": "{{cbx_itzu_website__c}}" }
+  },
+  "current_mapping": null
+}
+```
+
+### POST /integrations/sync
+
+Start a vacancy sync from the workspace's active ATS integration. Resolves the active connection automatically — no connection_id needed. Runs as a background task; poll `GET /integrations/sync/status` for progress.
+
+**Response:** `202 Accepted`
+
+```json
+{
+  "status": "started",
+  "message": "Sync gestart"
+}
+```
+
+**Errors:**
+- `409 Conflict` — A sync is already in progress
+- `404 Not Found` — No active ATS integration connection found (returned during sync via progress)
+
+### GET /integrations/sync/status
+
+Poll for the current sync progress.
+
+**Response:** `SyncProgressResponse`
+
+```json
+{
+  "status": "syncing",
+  "message": "42 vacatures opgehaald, importeren...",
+  "total_fetched": 42,
+  "inserted": 15,
+  "updated": 10,
+  "skipped": 2,
+  "failed": 0
+}
+```
+
+### Data Push-back (Export to ATS)
+
+**ExportFieldInfo**
+```json
+{
+  "name": "summary",
+  "label": "Samenvatting",
+  "type": "html",
+  "description": "AI-gegenereerde executive samenvatting van het screening-gesprek"
+}
+```
+
+**ExportMappingSchemaResponse**
+```json
+{
+  "source_fields": [ "...ExportFieldInfo[]" ],
+  "target_fields": [ "...SourceFieldInfo[]" ],
+  "default_mapping": {},
+  "current_mapping": null
+}
+```
+
+**PushbackResultResponse**
+```json
+{
+  "application_id": "uuid",
+  "status": "success",
+  "message": "Data succesvol verstuurd naar cxsrec__cxsCandidate__c",
+  "sf_record_id": "003XXXXXXXXXXXX"
+}
+```
+
+### GET /integrations/connections/{connection_id}/export-mapping-schema
+
+Get the export field mapping schema for data push-back configuration. Returns Taloo application fields (source) and Connexys target fields (discovered via `discover-export-fields`).
+
+Export mapping saved via `PATCH /integrations/connections/{id}` in `settings.data_pushback`:
+```json
+{
+  "settings": {
+    "data_pushback": {
+      "enabled": true,
+      "sf_object": "cxsrec__cxsCandidate__c",
+      "mappings": {
+        "Description": { "template": "{{summary}}" },
+        "Score__c": { "template": "{{open_questions_score}}" },
+        "Screening_Notes__c": { "template": "{{answers_formatted}}" }
+      }
+    }
+  }
+}
+```
+
+**Response:** `ExportMappingSchemaResponse`
+
+### POST /integrations/connections/{connection_id}/discover-export-fields
+
+Discover available writable fields on the Connexys export target object. Results are cached in `settings.export_field_cache`.
+
+**Query Parameters:**
+- `sf_object` (optional) — Salesforce object name (defaults to `cxsrec__cxsCandidate__c`)
+
+**Response:** `SourceFieldInfo[]`
+
+### POST /integrations/applications/{application_id}/push-to-ats
+
+Push a single application's screening results back to Connexys. Requires data push-back to be enabled and mapped in the connection settings.
+
+**Response:** `PushbackResultResponse`
+
+**Statuses:**
+- `success` — Record created in Connexys, application marked as synced
+- `skipped` — Application not completed or push-back not enabled
+- `error` — Push failed (see message for details)
+
+### POST /integrations/vacancies/{vacancy_id}/push-to-ats
+
+Push all unsynced completed applications for a vacancy to Connexys. Skips test applications.
+
+**Response:** `PushbackResultResponse[]`
+```
+
+**Status values:** `idle` (no sync running), `syncing` (in progress), `complete` (finished), `error` (failed)

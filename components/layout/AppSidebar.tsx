@@ -15,10 +15,8 @@ import {
   Users,
   Check,
   Kanban,
-  Phone,
   AlertCircle,
   Activity,
-  FileCheck,
   History,
   LayoutDashboard,
   Plus,
@@ -50,7 +48,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { getNavigationCounts, type NavigationCounts } from '@/lib/interview-api';
+import { getNavigationCounts, getAvailableAgents, type NavigationCounts } from '@/lib/interview-api';
+import { AGENT_REGISTRY, type AgentMeta } from '@/lib/agent-registry';
 import { useAuth } from '@/contexts/auth-context';
 import { useRealtimeTable } from '@/hooks/use-realtime-table';
 
@@ -66,11 +65,6 @@ const viewItems = [
   { name: 'Vacatures', href: '/views/vacancies', icon: Briefcase },
   { name: 'Kandidaten', href: '/views/candidates', icon: Users },
   { name: 'Klanten', href: '/views/customers', icon: Building2 },
-];
-
-const agentItems = [
-  { name: 'Pre-screening', href: '/pre-screening', icon: Phone, badgeKey: 'prescreening' as const },
-  { name: 'Documentcollectie', href: '/document-collection', icon: FileCheck, badgeKey: 'preonboarding' as const },
 ];
 
 const footerNavItems = [
@@ -92,6 +86,7 @@ export function AppSidebar() {
   const [viewsOpen, setViewsOpen] = React.useState(true);
   const [agentsOpen, setAgentsOpen] = React.useState(true);
   const [counts, setCounts] = React.useState<NavigationCounts | null>(null);
+  const [agentItems, setAgentItems] = React.useState<AgentMeta[]>([]);
 
   const fetchCounts = React.useCallback(() => {
     getNavigationCounts()
@@ -99,43 +94,29 @@ export function AppSidebar() {
       .catch(() => setCounts(null));
   }, []);
 
-  // Initial fetch
+  const fetchAgents = React.useCallback(() => {
+    getAvailableAgents()
+      .then((types) => {
+        const items = types
+          .map((t) => AGENT_REGISTRY[t])
+          .filter((item): item is AgentMeta => !!item);
+        setAgentItems(items);
+      })
+      .catch(() => setAgentItems([]));
+  }, []);
+
+  // Fetch on mount and when workspace changes
   React.useEffect(() => {
     fetchCounts();
-  }, [fetchCounts]);
+    fetchAgents();
+  }, [fetchCounts, fetchAgents, currentWorkspace?.id]);
 
   // Subscribe to navigation_counts table for instant updates
   useRealtimeTable({
     schema: 'ats',
     table: 'navigation_counts',
     event: 'UPDATE',
-    onUpdate: (payload) => {
-      const row = payload.new as Record<string, unknown>;
-      if (row) {
-        setCounts({
-          prescreening: {
-            active: row.prescreening_active as number,
-            stuck: row.prescreening_stuck as number,
-          },
-          preonboarding: {
-            active: row.preonboarding_active as number,
-            stuck: row.preonboarding_stuck as number,
-          },
-          activities: {
-            active: row.activities_active as number,
-            stuck: row.activities_stuck as number,
-          },
-          vacancies: {
-            active: row.vacancies_active as number,
-            archived: row.vacancies_archived as number,
-          },
-          candidates: {
-            total: row.candidates_total as number,
-            archived: row.candidates_archived as number,
-          },
-        });
-      }
-    },
+    onUpdate: () => fetchCounts(),
   });
 
   const isActive = (href: string) => {
@@ -145,9 +126,7 @@ export function AppSidebar() {
   const activitiesCount = counts?.activities?.active ?? null;
   const hasStuckActivities = (counts?.activities?.stuck ?? 0) > 0;
 
-  const getAgentBadge = (item: (typeof agentItems)[number]): React.ReactNode => {
-    if (!('badgeKey' in item)) return undefined;
-
+  const getAgentBadge = (item: AgentMeta): React.ReactNode => {
     const section = counts?.[item.badgeKey];
     if (!section) return undefined;
 

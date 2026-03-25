@@ -623,6 +623,20 @@ export async function getNavigationCounts(): Promise<NavigationCounts> {
   return response.json();
 }
 
+/**
+ * Fetch available agent types for the current workspace.
+ */
+export async function getAvailableAgents(): Promise<string[]> {
+  const response = await authFetch(`${BACKEND_URL}/agents/availability`);
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch available agents: ${response.status} ${response.statusText}`);
+  }
+
+  const data = await response.json();
+  return data.available_agents;
+}
+
 // =============================================================================
 // Applications API
 // =============================================================================
@@ -1249,9 +1263,14 @@ export interface PreScreeningEscalationSettings {
   allow_escalation: boolean;
 }
 
+export interface PreScreeningGeneratorSettings {
+  custom_instructions: string;
+}
+
 export interface PreScreeningSettings {
   voice: PreScreeningVoiceSettings;
   general: PreScreeningGeneralSettings;
+  generator: PreScreeningGeneratorSettings;
   planning: PreScreeningPlanningSettings;
   interview: PreScreeningInterviewSettings;
   escalation: PreScreeningEscalationSettings;
@@ -1268,6 +1287,7 @@ export interface PreScreeningConfigUpdate {
   settings: {
     voice?: Partial<PreScreeningVoiceSettings>;
     general?: Partial<PreScreeningGeneralSettings>;
+    generator?: Partial<PreScreeningGeneratorSettings>;
     planning?: Partial<PreScreeningPlanningSettings>;
     interview?: Partial<PreScreeningInterviewSettings>;
     escalation?: Partial<PreScreeningEscalationSettings>;

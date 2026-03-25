@@ -260,7 +260,7 @@ function SyncedStatus({ synced, isTest, hasInterviewSlot }: { synced?: boolean; 
     return (
       <span className="inline-flex items-center justify-center">
         <Image
-          src="/vendors/recruitnow.png"
+          src="/vendors/salesforce-logo-cloud.png"
           alt="Salesforce"
           width={16}
           height={11}

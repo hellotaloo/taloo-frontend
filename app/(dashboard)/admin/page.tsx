@@ -107,11 +107,10 @@ export default function AdminPage() {
               <AdminCard
                 title="Workspace Members"
                 description="Manage workspace access and permissions"
-                href="/admin"
+                href="/admin/members"
                 icon={Users}
                 animationDelay={300}
                 testId="admin-card-team"
-                comingSoon
               />
             </div>
           </section>

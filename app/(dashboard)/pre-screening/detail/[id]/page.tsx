@@ -55,6 +55,7 @@ import { toast } from 'sonner';
 import { Vacancy } from '@/lib/types';
 import { convertToComponentApplication } from '@/lib/pre-screening-utils';
 import { usePlaygroundSession } from '@/hooks/use-playground-session';
+import { useRealtimeTable } from '@/hooks/use-realtime-table';
 import Link from 'next/link';
 
 interface PageProps {
@@ -337,46 +338,47 @@ export default function EditPreScreeningPage({ params }: PageProps) {
     }
   }, [searchParams, isGenerated, questions.length, existingPreScreening]);
 
-  // Fetch applications when entering dashboard mode, with polling every 3 seconds
-  useEffect(() => {
-    if (viewMode !== 'dashboard' || !existingPreScreening || !vacancy) return;
-    
-    let isMounted = true;
-    
-    async function fetchApplications(isInitialLoad = false) {
-      try {
-        if (isInitialLoad) {
-          setIsLoadingApplications(true);
-        }
-        const data = await getApplications(id);
-        if (isMounted) {
-          setApplications(data.applications.map(convertToComponentApplication));
-        }
-      } catch (err) {
-        console.error('Failed to fetch applications:', err);
-        if (isMounted && isInitialLoad) {
-          setApplications([]);
-        }
-      } finally {
-        if (isMounted && isInitialLoad) {
-          setIsLoadingApplications(false);
-        }
+  // Fetch applications when entering dashboard mode
+  const fetchApplications = useCallback(async (isInitialLoad = false) => {
+    try {
+      if (isInitialLoad) {
+        setIsLoadingApplications(true);
+      }
+      const data = await getApplications(id);
+      setApplications(data.applications.map(convertToComponentApplication));
+    } catch (err) {
+      console.error('Failed to fetch applications:', err);
+      if (isInitialLoad) {
+        setApplications([]);
+      }
+    } finally {
+      if (isInitialLoad) {
+        setIsLoadingApplications(false);
       }
     }
+  }, [id]);
 
-    // Initial fetch
+  useEffect(() => {
+    if (viewMode !== 'dashboard' || !existingPreScreening || !vacancy) return;
     fetchApplications(true);
-    
-    // Poll every 3 seconds
-    const pollInterval = setInterval(() => {
-      fetchApplications(false);
-    }, 3000);
+  }, [viewMode, existingPreScreening, vacancy, fetchApplications]);
 
-    return () => {
-      isMounted = false;
-      clearInterval(pollInterval);
-    };
-  }, [viewMode, existingPreScreening, vacancy, id]);
+  // Re-fetch applications on realtime changes
+  const dashboardEnabled = viewMode === 'dashboard' && !!existingPreScreening && !!vacancy;
+
+  useRealtimeTable({
+    schema: 'ats',
+    table: 'applications',
+    onUpdate: () => fetchApplications(),
+    enabled: dashboardEnabled,
+  });
+
+  useRealtimeTable({
+    schema: 'agents',
+    table: 'pre_screening_sessions',
+    onUpdate: () => fetchApplications(),
+    enabled: dashboardEnabled,
+  });
 
   // Convert backend Interview to frontend GeneratedQuestion[]
   const convertToFrontendQuestions = useCallback((interview: Interview): GeneratedQuestion[] => {

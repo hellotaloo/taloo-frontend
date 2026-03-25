@@ -435,6 +435,7 @@ export interface GetActivitiesParams {
   actor_type?: ActivityActorType;
   event_type?: string[];
   channel?: ActivityChannel;
+  since?: string;
   limit?: number;
   offset?: number;
 }
@@ -447,6 +448,7 @@ export async function getActivities(params: GetActivitiesParams = {}): Promise<G
     params.event_type.forEach(type => searchParams.append('event_type', type));
   }
   if (params.channel) searchParams.set('channel', params.channel);
+  if (params.since) searchParams.set('since', params.since);
   if (params.limit) searchParams.set('limit', params.limit.toString());
   if (params.offset) searchParams.set('offset', params.offset.toString());
 

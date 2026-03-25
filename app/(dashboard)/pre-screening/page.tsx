@@ -1,6 +1,6 @@
 'use client';
 
-import { Loader2, Info, Settings, Play, Briefcase, ArrowUp, ArrowDown, ChevronsUpDown, Eye, RefreshCw } from 'lucide-react';
+import { Loader2, Info, Settings, Play, Briefcase, ArrowUp, ArrowDown, ChevronsUpDown, Eye } from 'lucide-react';
 import { useState, useEffect, useCallback, useMemo, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -15,7 +15,6 @@ import { PublishedVacanciesTable } from '@/components/blocks/vacancy-table';
 import { ApplicationDetailPane, type Application as ComponentApplication } from '@/components/blocks/application-dashboard';
 import { convertToComponentApplication } from '@/lib/pre-screening-utils';
 import { PageLayout, PageLayoutHeader, PageLayoutContent } from '@/components/layout/page-layout';
-import { useAtsImport } from '@/hooks/use-ats-import';
 import { useRealtimeTable } from '@/hooks/use-realtime-table';
 import {
   Table,
@@ -74,8 +73,6 @@ function PreScreeningContent() {
   const [sortKey, setSortKey] = useState<SortKey | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);
 
-  const atsImport = useAtsImport(() => { fetchVacancies(); fetchStats(); });
-
   // Fetch activity tasks
   const fetchTasks = useCallback(async () => {
     try {
@@ -126,22 +123,34 @@ function PreScreeningContent() {
   }, [fetchTasks, fetchVacancies, fetchStats]);
 
   // Realtime updates
+  const refreshAll = useCallback(() => {
+    fetchTasks();
+    fetchStats();
+    fetchVacancies();
+  }, [fetchTasks, fetchStats, fetchVacancies]);
+
   useRealtimeTable({
     schema: 'agents',
     table: 'workflows',
-    onUpdate: () => { fetchTasks(); },
+    onUpdate: refreshAll,
   });
 
   useRealtimeTable({
     schema: 'ats',
     table: 'vacancies',
-    onUpdate: () => { fetchVacancies(); },
+    onUpdate: refreshAll,
   });
 
   useRealtimeTable({
     schema: 'agents',
     table: 'pre_screenings',
-    onUpdate: () => { fetchTasks(); fetchStats(); },
+    onUpdate: refreshAll,
+  });
+
+  useRealtimeTable({
+    schema: 'agents',
+    table: 'pre_screening_sessions',
+    onUpdate: refreshAll,
   });
 
   // Filter tasks for pre_screening only
@@ -299,25 +308,6 @@ function PreScreeningContent() {
         <PageLayoutHeader
           action={
             <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-2"
-                onClick={atsImport.startImport}
-                disabled={atsImport.isImporting}
-              >
-                {atsImport.isImporting ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    {atsImport.phase === 'importing' ? 'Importeren...' : `${atsImport.publishedCount}/${atsImport.totalCount || '...'}`}
-                  </>
-                ) : (
-                  <>
-                    <RefreshCw className="w-4 h-4" />
-                    ATS Import
-                  </>
-                )}
-              </Button>
               <Link href="/pre-screening/demo">
                 <Button variant="outline" size="sm" className="gap-2">
                   <Play className="w-4 h-4" />
@@ -511,8 +501,6 @@ function PreScreeningContent() {
               ) : (
                 <PublishedVacanciesTable
                   vacancies={vacancies}
-                  generationStatus={atsImport.vacancies.size > 0 ? atsImport.vacancies : undefined}
-                  isImporting={atsImport.isImporting}
                 />
               )}
             </TabsContent>

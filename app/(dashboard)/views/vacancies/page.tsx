@@ -1,5 +1,5 @@
-import { ViewsContent } from '../views-content';
+import { VacanciesContent } from './vacancies-content';
 
 export default function VacanciesPage() {
-  return <ViewsContent activeTab="vacancies" />;
+  return <VacanciesContent />;
 }

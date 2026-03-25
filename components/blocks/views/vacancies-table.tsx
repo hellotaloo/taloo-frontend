@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { Briefcase, Building2, MapPin } from 'lucide-react';
+import { Briefcase, Building2, MapPin, Landmark } from 'lucide-react';
 import { APIVacancyListItem, VacancyStatus } from '@/lib/types';
 import {
   DataTable,
@@ -125,7 +125,10 @@ export function VacanciesTable({ vacancies, selectedId, onRowClick }: VacanciesT
       accessor: (item) => item.title,
       render: (item) => (
         <div className="min-w-0">
-          <span className="font-medium text-gray-900 truncate block">{item.title}</span>
+          <div className="flex items-center gap-2">
+            <span className="font-medium text-gray-900 truncate">{item.title}</span>
+            <VacancyStatusBadge status={item.status} />
+          </div>
           <div className="flex items-center gap-2 text-xs text-gray-500 mt-0.5">
             <span className="flex items-center gap-1">
               <Building2 className="w-3 h-3" />
@@ -168,45 +171,20 @@ export function VacanciesTable({ vacancies, selectedId, onRowClick }: VacanciesT
       render: (item) => <AgentIcons agents={item.agents} vacancyId={item.id} />,
     },
     {
-      key: 'status',
-      header: 'Status',
+      key: 'office',
+      header: 'Kantoor',
       sortable: true,
-      className: 'w-[100px]',
-      accessor: (item) => item.status,
-      render: (item) => <VacancyStatusBadge status={item.status} />,
-    },
-    {
-      key: 'source',
-      header: 'Bron',
-      sortable: false,
-      className: 'w-[60px] text-center',
-      accessor: () => 'salesforce',
-      render: () => (
-        <span className="inline-flex items-center justify-center">
-          <Image
-            src="/vendors/recruitnow.png"
-            alt="Salesforce"
-            width={16}
-            height={11}
-          />
-        </span>
-      ),
-    },
-    {
-      key: 'synced',
-      header: 'Synced',
-      sortable: true,
-      className: 'w-[100px]',
-      accessor: (item) => item.last_activity_at || item.created_at || '',
+      className: 'w-[160px]',
+      accessor: (item) => item.office?.name || '',
       render: (item) => {
-        const syncDate = item.last_activity_at || item.created_at;
-        if (!syncDate) {
-          return <span className="text-gray-500 text-sm">-</span>;
+        if (!item.office) {
+          return <span className="text-gray-400 text-sm">-</span>;
         }
         return (
-          <span className="text-gray-500 text-sm">
-            {formatRelativeDate(syncDate)}
-          </span>
+          <div className="flex items-center gap-1.5 min-w-0">
+            <Landmark className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+            <span className="text-sm text-gray-700 truncate">{item.office.name}</span>
+          </div>
         );
       },
     },
@@ -244,6 +222,33 @@ export function VacanciesTable({ vacancies, selectedId, onRowClick }: VacanciesT
                 <span className="text-xs text-gray-400 truncate block">{item.recruiter.team}</span>
               )}
             </div>
+          </div>
+        );
+      },
+    },
+    {
+      key: 'synced',
+      header: 'Synced',
+      sortable: true,
+      className: 'w-[140px]',
+      accessor: (item) => item.last_activity_at || item.created_at || '',
+      render: (item) => {
+        const syncDate = item.last_activity_at || item.created_at;
+        if (!syncDate) {
+          return <span className="text-gray-400 text-sm">-</span>;
+        }
+        return (
+          <div className="flex items-center gap-1.5">
+            <Image
+              src="/vendors/salesforce-logo-cloud.png"
+              alt="Salesforce"
+              width={14}
+              height={10}
+              className="shrink-0"
+            />
+            <span className="text-gray-500 text-sm">
+              {formatRelativeDate(syncDate)}
+            </span>
           </div>
         );
       },

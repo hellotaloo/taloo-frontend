@@ -28,6 +28,8 @@ import {
   Search,
   ClipboardList,
   Stethoscope,
+  Mail,
+  Phone,
 } from 'lucide-react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
@@ -998,29 +1000,88 @@ export function VacancyDetailPane({ vacancy, isLoading, onClose, onCandidateClic
           </div>
         </div>
 
-        {/* Recruiter info */}
-        {vacancy.recruiter && (
-          <div className="mt-4 flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-            {vacancy.recruiter.avatar_url ? (
-              <img
-                src={vacancy.recruiter.avatar_url}
-                alt={vacancy.recruiter.name}
-                className="w-8 h-8 rounded-full object-cover shrink-0"
-              />
-            ) : (
-              <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center shrink-0">
-                <User className="w-4 h-4 text-gray-400" />
+        {/* Recruiter & Office info */}
+        {(vacancy.recruiter || vacancy.office) && (
+          <div className="mt-4 grid grid-cols-1 gap-3">
+            {/* Recruiter */}
+            {vacancy.recruiter && (
+              <div className="p-3 bg-gray-50 rounded-lg">
+                <div className="flex items-center gap-3">
+                  {vacancy.recruiter.avatar_url ? (
+                    <img
+                      src={vacancy.recruiter.avatar_url}
+                      alt={vacancy.recruiter.name}
+                      className="w-8 h-8 rounded-full object-cover shrink-0"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center shrink-0">
+                      <User className="w-4 h-4 text-gray-400" />
+                    </div>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-gray-900">{vacancy.recruiter.name}</p>
+                    {vacancy.recruiter.role && (
+                      <p className="text-xs text-gray-500">{vacancy.recruiter.role}</p>
+                    )}
+                  </div>
+                  <span className="text-[10px] font-medium text-gray-400 uppercase tracking-wide shrink-0">
+                    Recruiter
+                  </span>
+                </div>
+                {(vacancy.recruiter.email || vacancy.recruiter.phone) && (
+                  <div className="flex items-center gap-4 mt-2 ml-11 text-xs text-gray-500">
+                    {vacancy.recruiter.email && (
+                      <a href={`mailto:${vacancy.recruiter.email}`} className="flex items-center gap-1 hover:text-gray-700 transition-colors">
+                        <Mail className="w-3 h-3" />
+                        {vacancy.recruiter.email}
+                      </a>
+                    )}
+                    {vacancy.recruiter.phone && (
+                      <a href={`tel:${vacancy.recruiter.phone}`} className="flex items-center gap-1 hover:text-gray-700 transition-colors">
+                        <Phone className="w-3 h-3" />
+                        {vacancy.recruiter.phone}
+                      </a>
+                    )}
+                  </div>
+                )}
               </div>
             )}
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium text-gray-900">{vacancy.recruiter.name}</p>
-              {vacancy.recruiter.team && (
-                <p className="text-xs text-gray-500">{vacancy.recruiter.team}</p>
-              )}
-            </div>
-            <span className="text-[10px] font-medium text-gray-400 uppercase tracking-wide shrink-0">
-              Recruiter
-            </span>
+
+            {/* Office */}
+            {vacancy.office && (
+              <div className="p-3 bg-gray-50 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center shrink-0">
+                    <Building2 className="w-4 h-4 text-gray-400" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-gray-900">{vacancy.office.name}</p>
+                    {vacancy.office.address && (
+                      <p className="text-xs text-gray-500">{vacancy.office.address}</p>
+                    )}
+                  </div>
+                  <span className="text-[10px] font-medium text-gray-400 uppercase tracking-wide shrink-0">
+                    Kantoor
+                  </span>
+                </div>
+                {(vacancy.office.email || vacancy.office.phone) && (
+                  <div className="flex items-center gap-4 mt-2 ml-11 text-xs text-gray-500">
+                    {vacancy.office.email && (
+                      <a href={`mailto:${vacancy.office.email}`} className="flex items-center gap-1 hover:text-gray-700 transition-colors">
+                        <Mail className="w-3 h-3" />
+                        {vacancy.office.email}
+                      </a>
+                    )}
+                    {vacancy.office.phone && (
+                      <a href={`tel:${vacancy.office.phone}`} className="flex items-center gap-1 hover:text-gray-700 transition-colors">
+                        <Phone className="w-3 h-3" />
+                        {vacancy.office.phone}
+                      </a>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 
@@ -1044,7 +1105,7 @@ export function VacancyDetailPane({ vacancy, isLoading, onClose, onCandidateClic
               className="flex items-center gap-1.5 text-gray-500 hover:text-gray-700 transition-colors"
             >
               <Image
-                src="/vendors/recruitnow.png"
+                src="/vendors/salesforce-logo-cloud.png"
                 alt="Salesforce"
                 width={14}
                 height={10}

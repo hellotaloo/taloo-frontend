@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import {
   Users,
   UserCog,
@@ -471,11 +471,23 @@ export default function AuditTrailPage() {
   const [selectedVacancyDetail, setSelectedVacancyDetail] = useState<APIVacancyDetail | null>(null);
   const [vacancyDetailLoading, setVacancyDetailLoading] = useState(false);
 
-  // Fetch activities from API
+  // Track the latest activity timestamp for polling
+  const latestTimestampRef = useRef<string | null>(null);
+  const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Update latest timestamp whenever activities change
+  const updateLatestTimestamp = useCallback((items: GlobalActivity[]) => {
+    if (items.length > 0) {
+      latestTimestampRef.current = items[0].created_at;
+    }
+  }, []);
+
+  // Fetch activities from API (initial load + filter change)
   useEffect(() => {
     async function fetchActivities() {
       setIsLoading(true);
       setError(null);
+      latestTimestampRef.current = null;
       try {
         const actorType = activeFilter === 'all' ? undefined : activeFilter;
         const response = await getActivities({
@@ -483,8 +495,10 @@ export default function AuditTrailPage() {
           limit: PAGE_SIZE,
           offset: 0,
         });
-        setActivities(response.items ?? []);
+        const items = response.items ?? [];
+        setActivities(items);
         setTotal(response.total ?? 0);
+        updateLatestTimestamp(items);
       } catch (err) {
         console.error('Failed to fetch activities:', err);
         setError('Kon activiteiten niet laden');
@@ -494,7 +508,41 @@ export default function AuditTrailPage() {
     }
 
     fetchActivities();
-  }, [activeFilter]);
+  }, [activeFilter, updateLatestTimestamp]);
+
+  // Poll for new activities every 5 seconds
+  useEffect(() => {
+    const actorType = activeFilter === 'all' ? undefined : activeFilter;
+
+    pollIntervalRef.current = setInterval(async () => {
+      if (!latestTimestampRef.current) return;
+      try {
+        const response = await getActivities({
+          actor_type: actorType as ActivityActorType | undefined,
+          since: latestTimestampRef.current,
+          limit: PAGE_SIZE,
+        });
+        const newItems = response.items ?? [];
+        if (newItems.length > 0) {
+          setActivities((prev) => {
+            const existingIds = new Set(prev.map((a) => a.id));
+            const unique = newItems.filter((a) => !existingIds.has(a.id));
+            if (unique.length === 0) return prev;
+            const merged = [...unique, ...prev];
+            updateLatestTimestamp(merged);
+            return merged;
+          });
+          setTotal((prev) => prev + newItems.length);
+        }
+      } catch {
+        // Silently ignore poll errors — next poll will retry
+      }
+    }, 5000);
+
+    return () => {
+      if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+    };
+  }, [activeFilter, updateLatestTimestamp]);
 
   // Load more activities
   const handleLoadMore = async () => {

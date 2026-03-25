@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   Phone,
@@ -37,6 +37,8 @@ import {
   AlertDialogCancel,
   AlertDialogAction,
 } from '@/components/ui/alert-dialog';
+import { getAvailableAgents } from '@/lib/interview-api';
+import { AGENT_NAME_TO_TYPE, AGENT_REGISTRY } from '@/lib/agent-registry';
 
 interface Agent {
   name: string;
@@ -64,8 +66,6 @@ const agentCategories: AgentCategory[] = [
         name: 'Pre-screening Agent',
         description: 'Automatische pre-screening gesprekken en planning',
         icon: Phone,
-        active: true,
-        href: '/pre-screening',
       },
       {
         name: 'Support Desk Agent',
@@ -234,7 +234,14 @@ function AgentCard({
 
 export default function AgentsPage() {
   const [requestAgent, setRequestAgent] = useState<Agent | null>(null);
+  const [availableAgents, setAvailableAgents] = useState<string[]>([]);
   let globalIndex = 0;
+
+  useEffect(() => {
+    getAvailableAgents()
+      .then(setAvailableAgents)
+      .catch(() => setAvailableAgents([]));
+  }, []);
 
   function handleRequest() {
     if (requestAgent) {
@@ -254,10 +261,18 @@ export default function AgentsPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {category.agents.map((agent) => {
                   const delay = ++globalIndex * 50;
+                  const agentType = AGENT_NAME_TO_TYPE[agent.name];
+                  const isAvailable = agentType ? availableAgents.includes(agentType) : false;
+                  const registry = agentType ? AGENT_REGISTRY[agentType] : undefined;
+                  const enrichedAgent = {
+                    ...agent,
+                    active: isAvailable,
+                    href: isAvailable ? registry?.href : undefined,
+                  };
                   return (
                     <AgentCard
                       key={agent.name}
-                      agent={agent}
+                      agent={enrichedAgent}
                       animationDelay={delay}
                       onRequest={setRequestAgent}
                     />

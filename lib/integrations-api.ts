@@ -95,6 +95,7 @@ export interface MappingFieldInfo {
   type: string;
   required: boolean;
   description: string;
+  group?: string;
 }
 
 export interface SourceFieldInfo {
@@ -175,5 +176,30 @@ export async function discoverSourceFields(connectionId: string): Promise<Source
     method: 'POST',
   });
   if (!response.ok) throw new Error('Failed to discover source fields');
+  return response.json();
+}
+
+// --- Vacancy Sync ---
+
+export interface SyncProgressResponse {
+  status: 'idle' | 'syncing' | 'complete' | 'error';
+  message: string;
+  total_fetched: number;
+  inserted: number;
+  updated: number;
+  skipped: number;
+  failed: number;
+}
+
+export async function startSync(): Promise<{ status: string; message: string }> {
+  const response = await authFetch(`${BACKEND_URL}/integrations/sync`, { method: 'POST' });
+  if (response.status === 409) throw new Error('Sync is al bezig');
+  if (!response.ok) throw new Error('Sync starten mislukt');
+  return response.json();
+}
+
+export async function getSyncStatus(): Promise<SyncProgressResponse> {
+  const response = await authFetch(`${BACKEND_URL}/integrations/sync/status`);
+  if (!response.ok) throw new Error('Sync status ophalen mislukt');
   return response.json();
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { Building2, MapPin, Phone, ArrowUp, ArrowDown, ChevronsUpDown, AlertTriangle, ArrowRight } from 'lucide-react';
+import { Building2, MapPin, Phone, ArrowUp, ArrowDown, ChevronsUpDown, AlertTriangle, ArrowRight, Send } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { AgentVacancy } from '@/lib/types';
@@ -325,8 +325,17 @@ export function PublishedVacanciesTable({ vacancies, generationStatus, isImporti
                     Genereren
                     <ArrowRight className="w-3.5 h-3.5" />
                   </Link>
-                ) : isOnline ? (
+                ) : isOnline || vacancy.agent_status === 'published' ? (
                   <StatusBadge label="Online" variant="green" />
+                ) : vacancy.agent_status === 'generated' ? (
+                  <Link
+                    href={`/pre-screening/detail/${vacancy.id}?mode=edit`}
+                    onClick={(e) => e.stopPropagation()}
+                    className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors"
+                  >
+                    Publiceren
+                    <Send className="w-3.5 h-3.5" />
+                  </Link>
                 ) : (
                   <Link
                     href={`/pre-screening/detail/${vacancy.id}`}

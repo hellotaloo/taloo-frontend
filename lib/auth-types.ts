@@ -18,7 +18,7 @@ export interface WorkspaceSummary {
   name: string;
   slug: string;
   logo_url?: string;
-  role: 'owner' | 'admin' | 'member';
+  role: 'super_admin' | 'owner' | 'admin' | 'member';
 }
 
 export interface AuthResponse {

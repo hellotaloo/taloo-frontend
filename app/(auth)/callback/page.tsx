@@ -40,8 +40,14 @@ function CallbackHandler() {
           localStorage.setItem("workspace_id", data.workspaces[0].id);
         }
 
-        // Redirect to dashboard
-        router.push("/");
+        // Redirect to pending invite or dashboard
+        const pendingRedirect = localStorage.getItem("auth_redirect");
+        if (pendingRedirect) {
+          localStorage.removeItem("auth_redirect");
+          router.push(pendingRedirect);
+        } else {
+          router.push("/");
+        }
       } catch (err) {
         console.error("Auth callback error:", err);
         setError(err instanceof Error ? err.message : "Authenticatie mislukt");

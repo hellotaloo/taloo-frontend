@@ -1,5 +1,5 @@
-import { ViewsContent } from '../views-content';
+import { CustomersContent } from './customers-content';
 
 export default function CustomersPage() {
-  return <ViewsContent activeTab="customers" />;
+  return <CustomersContent />;
 }

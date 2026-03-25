@@ -810,6 +810,8 @@ export interface APIVacancyListItem {
   recruiter?: APIRecruiterSummary; // Full recruiter info (if assigned)
   // Sync info
   synced_at?: string;              // Last sync timestamp from source (Salesforce/Bullhorn)
+  // Office assignment
+  office?: APIOfficeSummary | null;
 }
 
 export interface APIVacanciesResponse {
@@ -848,9 +850,27 @@ export interface APIApplicantSummary {
   completed_at?: string;
 }
 
+export interface APIClientSummary {
+  id: string;
+  name: string;
+  location?: string | null;
+  industry?: string | null;
+  logo?: string | null;
+}
+
+export interface APIOfficeSummary {
+  id: string;
+  name: string;
+  address?: string | null;
+  email?: string | null;
+  phone?: string | null;
+}
+
 export interface APIVacancyDetail extends APIVacancyListItem {
   timeline: APIActivityResponse[];
   applicants?: APIApplicantSummary[];  // Candidates who did pre-screening
+  client?: APIClientSummary | null;
+  office?: APIOfficeSummary | null;
 }
 
 // =============================================================================

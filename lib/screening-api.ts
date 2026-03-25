@@ -5,12 +5,13 @@
  * with candidates directly from the dashboard.
  */
 
-import type { 
-  CVApplicationRequest, 
-  CVApplicationResponse, 
-  CVAnalysisResult, 
-  CVQuestionAnswer 
+import type {
+  CVApplicationRequest,
+  CVApplicationResponse,
+  CVAnalysisResult,
+  CVQuestionAnswer
 } from './types';
+import { authFetch } from './api';
 
 const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8080';
 
@@ -54,7 +55,7 @@ export interface OutboundScreeningResponse {
 export async function initiateOutboundScreening(
   request: OutboundScreeningRequest
 ): Promise<OutboundScreeningResponse> {
-  const response = await fetch(`${API_BASE}/screening/outbound`, {
+  const response = await authFetch(`${API_BASE}/screening/outbound`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -194,7 +195,7 @@ export async function submitCVApplication(
   };
 
   // Submit to API
-  const response = await fetch(`${API_BASE}/vacancies/${vacancyId}/cv-application`, {
+  const response = await authFetch(`${API_BASE}/vacancies/${vacancyId}/cv-application`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(requestBody),

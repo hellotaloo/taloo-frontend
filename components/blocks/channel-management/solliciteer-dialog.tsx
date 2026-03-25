@@ -49,7 +49,7 @@ export interface SolliciteerDialogProps {
   hasCv: boolean;
   /** Source identifier. Defaults to 'test' for dashboard usage. */
   source?: string;
-  /** If provided, called instead of the API when "Laat Liv bellen" is clicked (for demo/playground use) */
+  /** If provided, called instead of the API when "Laat Anna bellen" is clicked (for demo/playground use) */
   onStartCall?: () => void;
   /** Called on successful submission */
   onSuccess?: (result: { method: 'email' | 'whatsapp' | 'phone'; applicationId?: string }) => void;
@@ -251,7 +251,7 @@ export function SolliciteerDialog({
                 onEmailChange={setEmail}
                 onCvFileChange={setCvFile}
                 onSubmit={handleCvSubmit}
-                onSwitchToLiv={hasPhoneOption ? () => setStep('phone-form') : undefined}
+                onSwitchToAnna={hasPhoneOption ? () => setStep('phone-form') : undefined}
                 onBack={hasBothOptions ? () => setStep('choose') : undefined}
               />
             )}
@@ -282,7 +282,7 @@ function ChooseStep({ onSelectPhone, onSelectCv }: { onSelectPhone: () => void; 
         <div className="w-6 h-6 rounded-full bg-amber-400 flex items-center justify-center">
           <Zap className="w-3 h-3 text-white" />
         </div>
-        <span className="font-medium">Solliciteer sneller met Liv, je digitale assistent</span>
+        <span className="font-medium">Solliciteer sneller met Anna, je digitale assistent</span>
       </div>
 
       <DialogTitle className="text-3xl font-semibold text-gray-900 tracking-tight font-serif !leading-tight">
@@ -290,7 +290,7 @@ function ChooseStep({ onSelectPhone, onSelectCv }: { onSelectPhone: () => void; 
       </DialogTitle>
 
       <p className="text-gray-600 text-base leading-relaxed">
-        Sneller: laat je nummer achter en Liv, onze digitale assistent, belt je{' '}
+        Sneller: laat je nummer achter en Anna, onze digitale assistent, belt je{' '}
         <span className="font-semibold text-gray-900">meteen</span> op. Daarna
         kan je binnen <span className="font-semibold text-gray-900">3 dagen</span>{' '}
         met een recruiter spreken.
@@ -304,12 +304,12 @@ function ChooseStep({ onSelectPhone, onSelectCv }: { onSelectPhone: () => void; 
           <span className="absolute -top-2.5 right-4 bg-brand-lime-green text-gray-900 text-[11px] font-bold px-2.5 py-0.5 rounded-full tracking-wide">
             Aanrader
           </span>
-          <span className="font-semibold text-gray-900 mt-1">Sneller met Liv</span>
+          <span className="font-semibold text-gray-900 mt-1">Sneller met Anna</span>
           <p className="text-sm text-gray-600 leading-relaxed mt-1.5 flex-1">
-            Liv belt je meteen op voor een kort gesprek.
+            Anna belt je meteen op voor een kort gesprek.
           </p>
           <div className="mt-4 bg-gray-900 text-white w-full h-9 text-sm font-medium rounded-md flex items-center justify-center pointer-events-none">
-            Solliciteer met Liv
+            Solliciteer met Anna
           </div>
         </div>
 
@@ -369,7 +369,7 @@ function PhoneFormStep({
         <div className="w-6 h-6 rounded-full bg-amber-400 flex items-center justify-center">
           <Smartphone className="w-3 h-3 text-white" />
         </div>
-        <span className="font-medium">Sneller solliciteren met Liv, je digitale assistent</span>
+        <span className="font-medium">Sneller solliciteren met Anna, je digitale assistent</span>
       </div>
 
       <DialogTitle className="text-3xl font-semibold text-gray-900 tracking-tight font-serif !leading-tight">
@@ -464,7 +464,7 @@ function PhoneFormStep({
           disabled={!firstName.trim() || !lastName.trim() || !phoneValue.trim()}
           onClick={onSubmit}
         >
-          {channel === 'whatsapp' ? 'Start WhatsApp' : 'Laat Liv bellen'}
+          {channel === 'whatsapp' ? 'Start WhatsApp' : 'Laat Anna bellen'}
         </Button>
         {onSwitchToCv && (
           <Button variant="outline" className="h-11 px-6" onClick={onSwitchToCv}>
@@ -474,7 +474,7 @@ function PhoneFormStep({
       </div>
 
       <p className="text-xs text-gray-400">
-        Liv, onze digitale assistent, contacteert je meteen via {channel === 'whatsapp' ? 'WhatsApp' : 'telefoon'}.
+        Anna, onze digitale assistent, contacteert je meteen via {channel === 'whatsapp' ? 'WhatsApp' : 'telefoon'}.
       </p>
     </div>
   );
@@ -494,7 +494,7 @@ interface CvFormStepProps {
   onEmailChange: (val: string) => void;
   onCvFileChange: (file: File | null) => void;
   onSubmit: () => void;
-  onSwitchToLiv?: () => void;
+  onSwitchToAnna?: () => void;
   onBack?: () => void;
 }
 
@@ -510,7 +510,7 @@ function CvFormStep({
   onEmailChange,
   onCvFileChange,
   onSubmit,
-  onSwitchToLiv,
+  onSwitchToAnna,
 }: CvFormStepProps) {
   return (
     <div className="space-y-6 animate-in fade-in-0 duration-300">
@@ -610,9 +610,9 @@ function CvFormStep({
             'Solliciteer met cv'
           )}
         </Button>
-        {onSwitchToLiv && (
-          <Button variant="outline" className="h-11 px-6" onClick={onSwitchToLiv}>
-            Toch met Liv
+        {onSwitchToAnna && (
+          <Button variant="outline" className="h-11 px-6" onClick={onSwitchToAnna}>
+            Toch met Anna
           </Button>
         )}
       </div>
@@ -623,7 +623,7 @@ function CvFormStep({
 /* ─── Step 3: Call Prep ─── */
 
 const callPrepTips = [
-  { icon: Calendar, text: 'Dankzij Liv kun je direct een afspraak inplannen met de recruiter — geen formulieren nodig' },
+  { icon: Calendar, text: 'Dankzij Anna kun je direct een afspraak inplannen met de recruiter — geen formulieren nodig' },
   { icon: Globe, text: 'Je mag in je eigen taal spreken' },
   { icon: Volume2, text: 'Zorg voor een rustige omgeving en vermijd de speaker' },
   { icon: RotateCcw, text: 'Spreek rustig en duidelijk — je kunt altijd vragen om de vraag te herhalen' },
@@ -646,7 +646,7 @@ function CallPrepStep() {
             Klaar voor je gesprek?
           </DialogTitle>
           <p className="text-sm text-gray-600 mt-0.5">
-            Liv belt je zo meteen op
+            Anna belt je zo meteen op
           </p>
         </div>
       </div>

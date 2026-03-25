@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { ChevronDown, ChevronRight, Loader2, RefreshCw, RotateCcw, Search } from 'lucide-react';
 import { toast } from 'sonner';
@@ -130,6 +130,24 @@ export default function MappingImportPage() {
     .filter((f) => f.required)
     .every((f) => mappings[f.name]?.trim()) ?? false;
 
+  // Group target fields by their group label (preserving backend order)
+  const groupedFields = useMemo(() => {
+    if (!schema) return [];
+    const groups: { label: string; fields: typeof schema.target_fields }[] = [];
+    const seen = new Map<string, number>();
+    for (const field of schema.target_fields) {
+      const group = field.group ?? 'Algemeen';
+      const idx = seen.get(group);
+      if (idx !== undefined) {
+        groups[idx].fields.push(field);
+      } else {
+        seen.set(group, groups.length);
+        groups.push({ label: group, fields: [field] });
+      }
+    }
+    return groups;
+  }, [schema]);
+
   // Filter source fields by search query — only show when searching
   const hasSearch = fieldSearch.trim().length > 0;
   const filteredFields = hasSearch
@@ -248,37 +266,46 @@ export default function MappingImportPage() {
           </p>
         </div>
 
-        <div className="space-y-4">
-          {schema.target_fields.map((field) => (
-            <div key={field.name} className="space-y-1.5">
-              <Label htmlFor={`mapping-${field.name}`} className="flex items-center gap-2">
-                {field.label}
-                {field.required && (
-                  <span className="text-[10px] font-medium text-red-500 bg-red-50 px-1.5 py-0.5 rounded">
-                    verplicht
-                  </span>
-                )}
-                <span className="text-[10px] text-gray-400 font-normal">{field.type}</span>
-              </Label>
-              <p className="text-xs text-gray-400">{field.description}</p>
-              {isMultiLine(field) ? (
-                <textarea
-                  id={`mapping-${field.name}`}
-                  className="flex w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm font-mono text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-y min-h-[72px]"
-                  rows={3}
-                  value={mappings[field.name] ?? ''}
-                  onChange={(e) => setMappings((prev) => ({ ...prev, [field.name]: e.target.value }))}
-                  placeholder={`bv. {{${field.name === 'description' ? 'cxsrec__Job_description__c' : field.name}}}`}
-                />
-              ) : (
-                <Input
-                  id={`mapping-${field.name}`}
-                  className="font-mono text-sm"
-                  value={mappings[field.name] ?? ''}
-                  onChange={(e) => setMappings((prev) => ({ ...prev, [field.name]: e.target.value }))}
-                  placeholder={`bv. {{${schema.default_mapping[field.name]?.template ? schema.default_mapping[field.name].template.replace(/\{\{|\}\}/g, '') : field.name}}}`}
-                />
+        <div className="space-y-6">
+          {groupedFields.map((group, groupIdx) => (
+            <div key={group.label} className="space-y-4">
+              {groupedFields.length > 1 && (
+                <div className={groupIdx > 0 ? 'border-t border-gray-100 pt-5' : ''}>
+                  <h4 className="text-sm font-medium text-gray-700">{group.label}</h4>
+                </div>
               )}
+              {group.fields.map((field) => (
+                <div key={field.name} className="space-y-1.5">
+                  <Label htmlFor={`mapping-${field.name}`} className="flex items-center gap-2">
+                    {field.label}
+                    {field.required && (
+                      <span className="text-[10px] font-medium text-red-500 bg-red-50 px-1.5 py-0.5 rounded">
+                        verplicht
+                      </span>
+                    )}
+                    <span className="text-[10px] text-gray-400 font-normal">{field.type}</span>
+                  </Label>
+                  <p className="text-xs text-gray-400">{field.description}</p>
+                  {isMultiLine(field) ? (
+                    <textarea
+                      id={`mapping-${field.name}`}
+                      className="flex w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm font-mono text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-y min-h-[72px]"
+                      rows={3}
+                      value={mappings[field.name] ?? ''}
+                      onChange={(e) => setMappings((prev) => ({ ...prev, [field.name]: e.target.value }))}
+                      placeholder={`bv. {{${field.name === 'description' ? 'cxsrec__Job_description__c' : field.name}}}`}
+                    />
+                  ) : (
+                    <Input
+                      id={`mapping-${field.name}`}
+                      className="font-mono text-sm"
+                      value={mappings[field.name] ?? ''}
+                      onChange={(e) => setMappings((prev) => ({ ...prev, [field.name]: e.target.value }))}
+                      placeholder={`bv. {{${schema.default_mapping[field.name]?.template ? schema.default_mapping[field.name].template.replace(/\{\{|\}\}/g, '') : field.name}}}`}
+                    />
+                  )}
+                </div>
+              ))}
             </div>
           ))}
         </div>

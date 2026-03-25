@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Save, Calendar, MessageCircle, CheckCircle2, ShieldQuestion, MessageSquare, Pencil, Check, X, Phone, Info, Mic, SlidersHorizontal, ListOrdered, ChevronDown, User, Eye, Globe } from 'lucide-react';
+import { ArrowLeft, Save, Calendar, MessageCircle, CheckCircle2, ShieldQuestion, MessageSquare, Pencil, Check, X, Phone, Info, Mic, SlidersHorizontal, ListOrdered, ChevronDown, User, Eye, Briefcase } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import {
@@ -52,7 +52,7 @@ const VOICE_OPTIONS: VoiceOption[] = [
   }
 ];
 
-type SettingsSection = 'voice' | 'algemeen' | 'planning' | 'escalatie' | 'interview';
+type SettingsSection = 'voice' | 'algemeen' | 'generator' | 'planning' | 'escalatie' | 'interview';
 
 export default function PreScreeningSettingsPage() {
   const router = useRouter();
@@ -93,6 +93,9 @@ export default function PreScreeningSettingsPage() {
   const [requireReview, setRequireReview] = useState(false);
   const [defaultChannels, setDefaultChannels] = useState({ voice: true, whatsapp: true, cv: true });
 
+  // Generator custom instructions
+  const [generatorInstructions, setGeneratorInstructions] = useState('');
+
   const allDays = ['ma', 'di', 'wo', 'do', 'vr', 'za', 'zo'] as const;
 
   const toggleEscalationDay = (day: string) => {
@@ -121,7 +124,8 @@ export default function PreScreeningSettingsPage() {
     async function loadConfig() {
       try {
         const config = await getPreScreeningConfig();
-        const { general, planning, interview, escalation } = config.settings;
+        const { general, generator, planning, interview, escalation } = config.settings;
+        if (generator?.custom_instructions) setGeneratorInstructions(generator.custom_instructions);
         setMaxUnrelatedAnswers(general.max_unrelated_answers);
         setScheduleDaysAhead(planning.schedule_days_ahead);
         setScheduleStartOffset(planning.schedule_start_offset);
@@ -222,6 +226,9 @@ export default function PreScreeningSettingsPage() {
             require_review: requireReview,
             default_channels: defaultChannels,
           },
+          generator: {
+            custom_instructions: generatorInstructions,
+          },
           planning: {
             schedule_days_ahead: scheduleDaysAhead,
             schedule_start_offset: scheduleStartOffset,
@@ -255,6 +262,7 @@ export default function PreScreeningSettingsPage() {
     escalationEnabled,
     requireReview,
     defaultChannels,
+    generatorInstructions,
   ]);
 
   const sidebar = (
@@ -287,6 +295,13 @@ export default function PreScreeningSettingsPage() {
           active={activeSection === 'escalatie'}
           onClick={() => setActiveSection('escalatie')}
           testId="settings-escalatie"
+        />
+        <NavItem
+          icon={Briefcase}
+          label="Interview Generator"
+          active={activeSection === 'generator'}
+          onClick={() => setActiveSection('generator')}
+          testId="settings-generator"
         />
         <NavItem
           icon={ListOrdered}
@@ -340,6 +355,46 @@ export default function PreScreeningSettingsPage() {
           </div>
         ) : (
         <div className="max-w-2xl space-y-8">
+          {/* ── Generator ── */}
+          {activeSection === 'generator' && (
+            <section className="space-y-4">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">Interview Generator</h2>
+                <p className="text-sm text-gray-500 mt-1">
+                  Extra instructies die de AI-agent meekrijgt bij het genereren van interviewvragen.
+                  Gebruik dit om sector-specifieke richtlijnen, bedrijfsregels of specifieke vraagstijlen mee te geven.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="generator-instructions" className="text-sm font-medium text-gray-700">
+                  Extra instructies
+                </Label>
+                <textarea
+                  id="generator-instructions"
+                  value={generatorInstructions}
+                  onChange={(e) => setGeneratorInstructions(e.target.value)}
+                  rows={12}
+                  placeholder="Bijv: Stel altijd een vraag over ervaring met heftrucks. Gebruik een informele toon. Vermijd vragen over leeftijd."
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 resize-y font-mono"
+                />
+                <p className="text-xs text-gray-400">
+                  Ondersteunt markdown. Deze instructies worden aan elke nieuwe interviewgeneratie meegegeven.
+                </p>
+              </div>
+
+              <section className="rounded-xl bg-gray-50 border border-gray-200 p-5">
+                <h3 className="font-medium text-gray-900 mb-2">Voorbeelden</h3>
+                <ul className="text-sm text-gray-600 space-y-1 list-disc list-inside">
+                  <li>Stel altijd een vraag over beschikbaarheid voor weekendwerk</li>
+                  <li>Gebruik een informele, vlotte toon — geen formeel taalgebruik</li>
+                  <li>Focus op praktijkervaring, niet op diploma&apos;s</li>
+                  <li>Voeg altijd een vraag toe over talenkennis (NL/FR/EN)</li>
+                </ul>
+              </section>
+            </section>
+          )}
+
           {/* ── Voice ── */}
           {activeSection === 'voice' && (
             <section className="space-y-4">
@@ -661,7 +716,7 @@ export default function PreScreeningSettingsPage() {
                           onCheckedChange={(checked) => setDefaultChannels(prev => ({ ...prev, cv: checked }))}
                         />
                         <div className="flex items-center gap-1.5">
-                          <Globe className="w-3.5 h-3.5 text-gray-600" />
+                          <Briefcase className="w-3.5 h-3.5 text-gray-600" />
                           <span className="text-sm text-gray-700">CV</span>
                         </div>
                       </label>

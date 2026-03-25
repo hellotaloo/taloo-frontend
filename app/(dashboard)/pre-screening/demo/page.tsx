@@ -26,7 +26,7 @@ import type { Vacancy, AgentVacancy } from '@/lib/types';
 const VOICE_OPTIONS: VoiceOption[] = [
   {
     id: 'liv',
-    name: 'Liv',
+    name: 'Anna',
     description: 'Warm en professioneel',
     gender: 'female',
     voiceId: 'ANHrhmaFeVN0QJaa0PhL',
