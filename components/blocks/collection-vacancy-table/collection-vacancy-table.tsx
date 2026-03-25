@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import type { AgentVacancy } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { getStatValue } from '@/lib/agent-utils';
-import { updateVacancyAgentStatus } from '@/lib/document-collection-api';
+// Agent status is now managed via agent lifecycle, not a toggle
 import { StatusBadge } from '@/components/kit/status-badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -108,9 +108,9 @@ export function CollectionVacancyTable({ vacancies }: CollectionVacancyTableProp
     e.stopPropagation();
     setActivatingId(vacancyId);
     try {
-      await updateVacancyAgentStatus(vacancyId, 'document_collection', { is_online: true });
+      // Agent activation is now handled via agent lifecycle
       setActivatedIds(prev => new Set(prev).add(vacancyId));
-      toast.success('Agent is geactiveerd');
+      toast.info('Agent status wordt beheerd via de agent configuratie');
     } catch {
       toast.error('Kon agent niet activeren');
     } finally {

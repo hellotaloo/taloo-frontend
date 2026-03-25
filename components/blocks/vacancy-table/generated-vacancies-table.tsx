@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { Building2, MapPin, Phone, ArrowUp, ArrowDown, ChevronsUpDown, AlertTriangle, ArrowRight, Send } from 'lucide-react';
+import { Building2, MapPin, ArrowUp, ArrowDown, ChevronsUpDown, AlertTriangle, ArrowRight, Send, Phone } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { AgentVacancy } from '@/lib/types';
@@ -17,6 +17,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { StatusBadge } from '@/components/kit/status-badge';
+import { ChannelIcons } from '@/components/kit/status';
 
 type SortKey = 'title' | 'candidatesCount' | 'completedCount' | 'qualifiedCount' | 'lastActivityAt';
 type SortDirection = 'asc' | 'desc' | null;
@@ -248,6 +249,7 @@ export function PublishedVacanciesTable({ vacancies, generationStatus, isImporti
           const hasActivity = candidatesCount > 0;
           const isOnline = vacancy.agent_online === true;
           const genStatus = generationStatus?.get(vacancy.id);
+          const isGenerating = genStatus?.status === 'generating' || vacancy.agent_status === 'generating';
 
           return (
             <TableRow
@@ -255,7 +257,7 @@ export function PublishedVacanciesTable({ vacancies, generationStatus, isImporti
               data-testid={`published-vacancy-row-${vacancy.id}`}
               className={cn(
                 'cursor-pointer',
-                genStatus?.status === 'generating' && 'bg-brand-dark-blue/[0.03] animate-pulse-subtle',
+                isGenerating && 'bg-brand-dark-blue/[0.03] animate-pulse-subtle',
               )}
               onClick={() => router.push(`/pre-screening/detail/${vacancy.id}?mode=dashboard`)}
             >
@@ -265,15 +267,16 @@ export function PublishedVacanciesTable({ vacancies, generationStatus, isImporti
                     <span className="font-medium text-gray-900 truncate">
                       {vacancy.title}
                     </span>
+                    {vacancy.channels && (vacancy.channels.voice || vacancy.channels.whatsapp || vacancy.channels.cv) && <ChannelIcons channels={vacancy.channels} />}
                     {genStatus?.status === 'queued' && (
                       <StatusBadge label="Wachtrij" variant="blue" />
                     )}
-                    {genStatus?.status === 'generating' && (
+                    {isGenerating && (
                       <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-medium bg-brand-dark-blue text-white">
                         <span className="thinking-dots inline-flex items-center gap-[3px]">
                           <span /><span /><span />
                         </span>
-                        {(genStatus.activity || 'Genereren').replace(/\.{2,}$/, '')}
+                        {(genStatus?.activity || 'Genereren').replace(/\.{2,}$/, '')}
                       </span>
                     )}
                   </div>
@@ -314,7 +317,7 @@ export function PublishedVacanciesTable({ vacancies, generationStatus, isImporti
                   <StatusBadge label="Online" variant="green" />
                 ) : genStatus?.status === 'failed' ? (
                   <StatusBadge label="Mislukt" variant="orange" icon={AlertTriangle} />
-                ) : genStatus?.status === 'generating' ? (
+                ) : isGenerating ? (
                   <span className="text-xs text-gray-400">Bezig...</span>
                 ) : genStatus?.status === 'queued' ? (
                   <Link

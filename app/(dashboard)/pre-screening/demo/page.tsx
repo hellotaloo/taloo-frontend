@@ -19,7 +19,7 @@ import { InterviewAnalyticsPanel } from '@/components/blocks/interview-analytics
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
-import { getPreScreeningVacancies, getPreScreening, getVacancy } from '@/lib/interview-api';
+import { getPreScreeningVacancies, getPreScreening, getVacancy, getPreScreeningConfig } from '@/lib/interview-api';
 import { usePlaygroundSession } from '@/hooks/use-playground-session';
 import type { Vacancy, AgentVacancy } from '@/lib/types';
 
@@ -113,17 +113,24 @@ export default function PreScreeningDemoPage() {
 
   // Full vacancy detail (for description etc.)
   const [vacancyDetail, setVacancyDetail] = useState<Vacancy | null>(null);
+  const [personaName, setPersonaName] = useState('Anna');
 
   // Fetch vacancies with published pre-screenings (for playground)
   useEffect(() => {
     async function fetchVacancies() {
       try {
         setVacanciesLoading(true);
-        const data = await getPreScreeningVacancies();
+        const [data, configData] = await Promise.all([
+          getPreScreeningVacancies(),
+          getPreScreeningConfig().catch(() => null),
+        ]);
         const published = data.vacancies.filter(v => v.agent_status === 'published');
         setVacancies(published);
         if (published.length > 0) {
           setSelectedVacancy(published[0].id);
+        }
+        if (configData?.settings?.general?.persona_name) {
+          setPersonaName(configData.settings.general.persona_name);
         }
       } catch (err) {
         console.error('Failed to fetch vacancies:', err);
@@ -1111,6 +1118,7 @@ export default function PreScreeningDemoPage() {
         hasVoice={true}
         hasCv={true}
         source="test"
+        personaName={personaName}
         onStartCall={() => {
           setShowCallNotification(true);
         }}

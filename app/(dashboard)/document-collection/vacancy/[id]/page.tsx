@@ -13,7 +13,6 @@ import {
   getDocumentCollections,
   getDocumentCollection,
   getVacancyAgentStatus,
-  updateVacancyAgentStatus,
 } from '@/lib/document-collection-api';
 import { getVacancy } from '@/lib/interview-api';
 import { useRealtimeTable } from '@/hooks/use-realtime-table';
@@ -77,7 +76,7 @@ export default function VacancyDocumentCollectionPage() {
     try {
       const status = await getVacancyAgentStatus(vacancyId);
       setHasAgent(true);
-      setIsOnline(status.is_online);
+      setIsOnline(status.status === 'generated' || status.status === 'published');
     } catch {
       setHasAgent(false);
     }
@@ -161,22 +160,9 @@ export default function VacancyDocumentCollectionPage() {
   }, []);
 
   const performStatusUpdate = useCallback(async (online: boolean) => {
-    const previousOnline = isOnline;
-    setIsOnline(online); // Optimistic
-    setIsTogglingStatus(true);
-
-    try {
-      const updated = await updateVacancyAgentStatus(vacancyId, 'document_collection', { is_online: online });
-      setIsOnline(updated.is_online);
-      toast.success(online ? 'Agent is nu online' : 'Agent is offline gezet');
-    } catch (error) {
-      setIsOnline(previousOnline); // Rollback
-      toast.error('Kon status niet bijwerken');
-      console.error('Failed to update agent status:', error);
-    } finally {
-      setIsTogglingStatus(false);
-    }
-  }, [vacancyId, isOnline]);
+    // Status is now derived from agent lifecycle, not a toggle
+    toast.info('Agent status wordt beheerd via de agent configuratie');
+  }, []);
 
   // --- Stats ---
   const stats = useMemo(() => {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -35,9 +35,65 @@ import {
   type ScreeningChannel,
   type CVFormData,
 } from '@/lib/screening-api';
+import { getApplyPopupPreview, type ApplyPopupRendered } from '@/lib/interview-api';
 
 type Step = 'choose' | 'phone-form' | 'call-prep' | 'cv-form';
 type Channel = 'phone' | 'whatsapp';
+
+/**
+ * Lightweight inline markdown renderer for popup copy.
+ * Supports **bold** and [link text](url) — nothing else.
+ */
+function InlineMarkdown({ text, className }: { text: string; className?: string }) {
+  // Split on bold (**...**) and link ([text](url)) patterns
+  const parts: React.ReactNode[] = [];
+  let remaining = text;
+  let key = 0;
+
+  while (remaining.length > 0) {
+    // Find the next markdown pattern
+    const boldMatch = remaining.match(/\*\*(.+?)\*\*/);
+    const linkMatch = remaining.match(/\[([^\]]+)\]\(([^)]+)\)/);
+
+    // Pick whichever comes first
+    const boldIdx = boldMatch?.index ?? Infinity;
+    const linkIdx = linkMatch?.index ?? Infinity;
+
+    if (boldIdx === Infinity && linkIdx === Infinity) {
+      // No more patterns
+      parts.push(remaining);
+      break;
+    }
+
+    if (boldIdx <= linkIdx && boldMatch) {
+      // Bold comes first
+      if (boldIdx > 0) parts.push(remaining.slice(0, boldIdx));
+      parts.push(
+        <span key={key++} className="font-semibold text-gray-900">
+          {boldMatch[1]}
+        </span>
+      );
+      remaining = remaining.slice(boldIdx + boldMatch[0].length);
+    } else if (linkMatch && linkIdx !== undefined) {
+      // Link comes first
+      if (linkIdx > 0) parts.push(remaining.slice(0, linkIdx));
+      parts.push(
+        <a
+          key={key++}
+          href={linkMatch[2]}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline text-gray-900 hover:text-gray-700"
+        >
+          {linkMatch[1]}
+        </a>
+      );
+      remaining = remaining.slice(linkIdx + linkMatch[0].length);
+    }
+  }
+
+  return <span className={className}>{parts}</span>;
+}
 
 export interface SolliciteerDialogProps {
   open: boolean;
@@ -47,6 +103,8 @@ export interface SolliciteerDialogProps {
   hasWhatsApp: boolean;
   hasVoice: boolean;
   hasCv: boolean;
+  /** Name of the virtual assistant. Defaults to 'Anna'. */
+  personaName?: string;
   /** Source identifier. Defaults to 'test' for dashboard usage. */
   source?: string;
   /** If provided, called instead of the API when "Laat Anna bellen" is clicked (for demo/playground use) */
@@ -65,6 +123,9 @@ function getRandomName() {
   return { firstName, lastName };
 }
 
+/** Convenience alias for the rendered content shape */
+type PopupContent = ApplyPopupRendered['rendered'];
+
 export function SolliciteerDialog({
   open,
   onOpenChange,
@@ -72,6 +133,7 @@ export function SolliciteerDialog({
   hasWhatsApp,
   hasVoice,
   hasCv,
+  personaName = 'Anna',
   source = 'test',
   onStartCall,
   onSuccess,
@@ -88,6 +150,23 @@ export function SolliciteerDialog({
 
   const [step, setStep] = useState<Step>(initialStep);
 
+  // Popup content from API (YAML-driven copy)
+  const [popupContent, setPopupContent] = useState<PopupContent | null>(null);
+  const contentFetchedRef = useRef(false);
+
+  useEffect(() => {
+    if (open && !contentFetchedRef.current) {
+      contentFetchedRef.current = true;
+      getApplyPopupPreview()
+        .then((data) => setPopupContent(data.rendered))
+        .catch(() => {}); // silently fall back to hardcoded strings
+    }
+    if (!open) {
+      // Allow re-fetch next time dialog opens (content may have changed)
+      contentFetchedRef.current = false;
+    }
+  }, [open]);
+
   // Phone flow fields
   const [randomName] = useState(() => getRandomName());
   const [firstName, setFirstName] = useState(isLocal ? randomName.firstName : '');
@@ -103,6 +182,9 @@ export function SolliciteerDialog({
   const [cvFile, setCvFile] = useState<File | null>(null);
   const [cvError, setCvError] = useState<string | null>(null);
   const [isSubmittingCv, setIsSubmittingCv] = useState(false);
+
+  // Privacy consent
+  const [privacyConsent, setPrivacyConsent] = useState(false);
 
   function handleOpenChange(next: boolean) {
     onOpenChange(next);
@@ -128,6 +210,7 @@ export function SolliciteerDialog({
       setCvLastName('');
       setEmail('');
       setCvFile(null);
+      setPrivacyConsent(false);
     }
   }
 
@@ -217,18 +300,24 @@ export function SolliciteerDialog({
           <div className="p-8 md:p-10 flex flex-col justify-center">
             {step === 'choose' && (
               <ChooseStep
+                personaName={personaName}
+                content={popupContent?.choice_screen}
                 onSelectPhone={() => setStep('phone-form')}
                 onSelectCv={() => setStep('cv-form')}
               />
             )}
             {step === 'phone-form' && (
               <PhoneFormStep
+                personaName={personaName}
+                content={popupContent?.phone_form}
                 firstName={firstName}
                 lastName={lastName}
                 phoneValue={phoneValue}
                 channel={channel}
                 showChannelToggle={hasBothChannels}
                 phoneError={phoneError}
+                privacyConsent={privacyConsent}
+                onPrivacyConsentChange={setPrivacyConsent}
                 onFirstNameChange={setFirstName}
                 onLastNameChange={setLastName}
                 onPhoneChange={(val) => { setPhoneValue(val); setPhoneError(null); }}
@@ -240,12 +329,16 @@ export function SolliciteerDialog({
             )}
             {step === 'cv-form' && (
               <CvFormStep
+                personaName={personaName}
+                content={popupContent?.cv_form}
                 firstName={cvFirstName}
                 lastName={cvLastName}
                 email={email}
                 cvFile={cvFile}
                 cvError={cvError}
                 isSubmitting={isSubmittingCv}
+                privacyConsent={privacyConsent}
+                onPrivacyConsentChange={setPrivacyConsent}
                 onFirstNameChange={setCvFirstName}
                 onLastNameChange={setCvLastName}
                 onEmailChange={setEmail}
@@ -255,7 +348,7 @@ export function SolliciteerDialog({
                 onBack={hasBothOptions ? () => setStep('choose') : undefined}
               />
             )}
-            {step === 'call-prep' && <CallPrepStep />}
+            {step === 'call-prep' && <CallPrepStep personaName={personaName} />}
           </div>
 
           {/* Right: Image */}
@@ -275,25 +368,35 @@ export function SolliciteerDialog({
 
 /* ─── Step 1: Choose ─── */
 
-function ChooseStep({ onSelectPhone, onSelectCv }: { onSelectPhone: () => void; onSelectCv: () => void }) {
+function ChooseStep({ personaName, content, onSelectPhone, onSelectCv }: {
+  personaName: string;
+  content?: PopupContent['choice_screen'];
+  onSelectPhone: () => void;
+  onSelectCv: () => void;
+}) {
+  const c = content;
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-2 text-sm text-gray-600">
         <div className="w-6 h-6 rounded-full bg-amber-400 flex items-center justify-center">
           <Zap className="w-3 h-3 text-white" />
         </div>
-        <span className="font-medium">Solliciteer sneller met Anna, je digitale assistent</span>
+        <span className="font-medium">{c?.subtitle ?? `Solliciteer sneller met ${personaName}, je digitale assistent`}</span>
       </div>
 
       <DialogTitle className="text-3xl font-semibold text-gray-900 tracking-tight font-serif !leading-tight">
-        Hoe wil je solliciteren?
+        {c?.title ?? 'Hoe wil je solliciteren?'}
       </DialogTitle>
 
       <p className="text-gray-600 text-base leading-relaxed">
-        Sneller: laat je nummer achter en Anna, onze digitale assistent, belt je{' '}
-        <span className="font-semibold text-gray-900">meteen</span> op. Daarna
-        kan je binnen <span className="font-semibold text-gray-900">3 dagen</span>{' '}
-        met een recruiter spreken.
+        {c?.description ? (
+          <InlineMarkdown text={c.description} />
+        ) : (
+          <>Sneller: laat je nummer achter en {personaName}, onze digitale assistent, belt je{' '}
+          <span className="font-semibold text-gray-900">meteen</span> op. Daarna
+          kan je binnen <span className="font-semibold text-gray-900">3 dagen</span>{' '}
+          met een recruiter spreken.</>
+        )}
       </p>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
@@ -302,14 +405,14 @@ function ChooseStep({ onSelectPhone, onSelectCv }: { onSelectPhone: () => void; 
           className="relative flex flex-col rounded-xl border-2 border-gray-900 bg-gray-50/50 p-5 cursor-pointer transition-all duration-200 hover:bg-gray-50 hover:-translate-y-0.5"
         >
           <span className="absolute -top-2.5 right-4 bg-brand-lime-green text-gray-900 text-[11px] font-bold px-2.5 py-0.5 rounded-full tracking-wide">
-            Aanrader
+            {c?.anna_option?.badge ?? 'Aanrader'}
           </span>
-          <span className="font-semibold text-gray-900 mt-1">Sneller met Anna</span>
+          <span className="font-semibold text-gray-900 mt-1">{c?.anna_option?.title ?? `Sneller met ${personaName}`}</span>
           <p className="text-sm text-gray-600 leading-relaxed mt-1.5 flex-1">
-            Anna belt je meteen op voor een kort gesprek.
+            {c?.anna_option?.description ?? `${personaName} belt je meteen op voor een kort gesprek.`}
           </p>
           <div className="mt-4 bg-gray-900 text-white w-full h-9 text-sm font-medium rounded-md flex items-center justify-center pointer-events-none">
-            Solliciteer met Anna
+            {c?.anna_option?.button ?? `Solliciteer met ${personaName}`}
           </div>
         </div>
 
@@ -317,12 +420,12 @@ function ChooseStep({ onSelectPhone, onSelectCv }: { onSelectPhone: () => void; 
           onClick={onSelectCv}
           className="relative flex flex-col rounded-xl border-2 border-gray-200 p-5 cursor-pointer transition-all duration-200 hover:bg-gray-50 hover:-translate-y-0.5"
         >
-          <span className="font-semibold text-gray-900">Klassiek met cv</span>
+          <span className="font-semibold text-gray-900">{c?.cv_option?.title ?? 'Klassiek met cv'}</span>
           <p className="text-sm text-gray-600 leading-relaxed mt-1.5 flex-1">
-            Upload je cv en solliciteer zoals je gewend bent.
+            {c?.cv_option?.description ?? 'Upload je cv en solliciteer zoals je gewend bent.'}
           </p>
           <div className="mt-4 w-full h-9 text-sm font-medium rounded-md border border-gray-300 flex items-center justify-center pointer-events-none">
-            Solliciteer met cv
+            {c?.cv_option?.button ?? 'Solliciteer met cv'}
           </div>
         </div>
       </div>
@@ -333,12 +436,16 @@ function ChooseStep({ onSelectPhone, onSelectCv }: { onSelectPhone: () => void; 
 /* ─── Step 2a: Phone Form ─── */
 
 interface PhoneFormStepProps {
+  personaName: string;
+  content?: PopupContent['phone_form'];
   firstName: string;
   lastName: string;
   phoneValue: string;
   channel: Channel;
   showChannelToggle: boolean;
   phoneError: string | null;
+  privacyConsent: boolean;
+  onPrivacyConsentChange: (val: boolean) => void;
   onFirstNameChange: (val: string) => void;
   onLastNameChange: (val: string) => void;
   onPhoneChange: (val: string) => void;
@@ -349,12 +456,16 @@ interface PhoneFormStepProps {
 }
 
 function PhoneFormStep({
+  personaName,
+  content: c,
   firstName,
   lastName,
   phoneValue,
   channel,
   showChannelToggle,
   phoneError,
+  privacyConsent,
+  onPrivacyConsentChange,
   onFirstNameChange,
   onLastNameChange,
   onPhoneChange,
@@ -369,11 +480,11 @@ function PhoneFormStep({
         <div className="w-6 h-6 rounded-full bg-amber-400 flex items-center justify-center">
           <Smartphone className="w-3 h-3 text-white" />
         </div>
-        <span className="font-medium">Sneller solliciteren met Anna, je digitale assistent</span>
+        <span className="font-medium">{c?.subtitle ?? `Sneller solliciteren met ${personaName}, je digitale assistent`}</span>
       </div>
 
       <DialogTitle className="text-3xl font-semibold text-gray-900 tracking-tight font-serif !leading-tight">
-        Laat je gegevens achter
+        {c?.title ?? 'Laat je gegevens achter'}
       </DialogTitle>
 
       <div className="space-y-4">
@@ -424,7 +535,7 @@ function PhoneFormStep({
         {showChannelToggle && (
           <div className="space-y-1.5">
             <Label className="text-sm font-medium text-gray-700">
-              Hoe mogen we je contacteren?
+              {c?.contact_label ?? `Hoe wil je dat ${personaName} je bereikt?`}
             </Label>
             <div className="flex rounded-lg bg-gray-50 p-1">
               <button
@@ -438,7 +549,7 @@ function PhoneFormStep({
                 )}
               >
                 <Phone className="w-4 h-4" />
-                Telefoon
+                Bel me nu op
               </button>
               <button
                 type="button"
@@ -451,31 +562,49 @@ function PhoneFormStep({
                 )}
               >
                 <MessageCircle className="w-4 h-4" />
-                WhatsApp
+                Stuur me een WhatsApp
               </button>
             </div>
           </div>
         )}
       </div>
 
+      <label className="flex items-start gap-2.5 cursor-pointer select-none">
+        <input
+          type="checkbox"
+          checked={privacyConsent}
+          onChange={(e) => onPrivacyConsentChange(e.target.checked)}
+          className="mt-0.5 h-4 w-4 rounded border-gray-300 text-gray-900 focus:ring-gray-900 cursor-pointer accent-gray-900"
+        />
+        <span className="text-sm text-gray-600">
+          {c?.privacy_text ? (
+            <InlineMarkdown text={c.privacy_text} />
+          ) : (
+            <>
+              Ik ga akkoord met de{' '}
+              <a href="/privacy" target="_blank" rel="noopener noreferrer" className="underline text-gray-900 hover:text-gray-700">
+                privacy policy
+              </a>
+              <span className="text-red-500">*</span>
+            </>
+          )}
+        </span>
+      </label>
+
       <div className="flex items-center gap-3 pt-1">
         <Button
           className="bg-gray-900 text-white hover:bg-gray-800 font-medium h-11 px-6"
-          disabled={!firstName.trim() || !lastName.trim() || !phoneValue.trim()}
+          disabled={!firstName.trim() || !lastName.trim() || !phoneValue.trim() || !privacyConsent}
           onClick={onSubmit}
         >
-          {channel === 'whatsapp' ? 'Start WhatsApp' : 'Laat Anna bellen'}
+          {c?.submit_button ?? 'Solliciteer nu'}
         </Button>
         {onSwitchToCv && (
           <Button variant="outline" className="h-11 px-6" onClick={onSwitchToCv}>
-            Toch met cv
+            {c?.secondary_button ?? 'Toch met cv'}
           </Button>
         )}
       </div>
-
-      <p className="text-xs text-gray-400">
-        Anna, onze digitale assistent, contacteert je meteen via {channel === 'whatsapp' ? 'WhatsApp' : 'telefoon'}.
-      </p>
     </div>
   );
 }
@@ -483,12 +612,16 @@ function PhoneFormStep({
 /* ─── Step 2b: CV Form ─── */
 
 interface CvFormStepProps {
+  personaName: string;
+  content?: PopupContent['cv_form'];
   firstName: string;
   lastName: string;
   email: string;
   cvFile: File | null;
   cvError: string | null;
   isSubmitting: boolean;
+  privacyConsent: boolean;
+  onPrivacyConsentChange: (val: boolean) => void;
   onFirstNameChange: (val: string) => void;
   onLastNameChange: (val: string) => void;
   onEmailChange: (val: string) => void;
@@ -499,12 +632,16 @@ interface CvFormStepProps {
 }
 
 function CvFormStep({
+  personaName,
+  content: c,
   firstName,
   lastName,
   email,
   cvFile,
   cvError,
   isSubmitting,
+  privacyConsent,
+  onPrivacyConsentChange,
   onFirstNameChange,
   onLastNameChange,
   onEmailChange,
@@ -518,16 +655,16 @@ function CvFormStep({
         <div className="w-6 h-6 rounded-full bg-gray-50 flex items-center justify-center">
           <FileText className="w-3 h-3 text-gray-600" />
         </div>
-        <span className="font-medium">Klassiek solliciteren met cv</span>
+        <span className="font-medium">{c?.subtitle ?? 'Klassiek solliciteren met cv'}</span>
       </div>
 
       <DialogTitle className="text-3xl font-semibold text-gray-900 tracking-tight font-serif !leading-tight">
-        Upload je cv
+        {c?.title ?? 'Upload je cv'}
       </DialogTitle>
 
       <div className="space-y-4">
         <div className="space-y-1.5">
-          <Label className="text-sm font-medium text-gray-700">CV bestand</Label>
+          <Label className="text-sm font-medium text-gray-700">{c?.upload_label ?? 'CV bestand'}</Label>
           <label className="block cursor-pointer">
             <div className={cn(
               'w-full px-4 py-3 h-11 rounded-md border border-dashed transition-colors flex items-center gap-3',
@@ -537,7 +674,7 @@ function CvFormStep({
             )}>
               <Upload className="w-4 h-4 text-gray-400 shrink-0" />
               <span className={cn('text-sm truncate', cvFile ? 'text-gray-700' : 'text-gray-400')}>
-                {cvFile ? cvFile.name : 'Upload je CV (PDF, DOC, DOCX)'}
+                {cvFile ? cvFile.name : (c?.upload_placeholder ?? 'Upload je CV (PDF, DOC, DOCX)')}
               </span>
             </div>
             <input
@@ -578,12 +715,12 @@ function CvFormStep({
 
         <div className="space-y-1.5">
           <Label htmlFor="cv-email" className="text-sm font-medium text-gray-700">
-            E-mailadres
+            {c?.email_label ?? 'E-mailadres'}
           </Label>
           <Input
             id="cv-email"
             type="email"
-            placeholder="jouw@email.com"
+            placeholder={c?.email_placeholder ?? 'jouw@email.com'}
             value={email}
             onChange={(e) => onEmailChange(e.target.value)}
             className="h-11"
@@ -595,10 +732,32 @@ function CvFormStep({
         )}
       </div>
 
+      <label className="flex items-start gap-2.5 cursor-pointer select-none">
+        <input
+          type="checkbox"
+          checked={privacyConsent}
+          onChange={(e) => onPrivacyConsentChange(e.target.checked)}
+          className="mt-0.5 h-4 w-4 rounded border-gray-300 text-gray-900 focus:ring-gray-900 cursor-pointer accent-gray-900"
+        />
+        <span className="text-sm text-gray-600">
+          {c?.privacy_text ? (
+            <InlineMarkdown text={c.privacy_text} />
+          ) : (
+            <>
+              Ik ga akkoord met de{' '}
+              <a href="/privacy" target="_blank" rel="noopener noreferrer" className="underline text-gray-900 hover:text-gray-700">
+                privacy policy
+              </a>
+              <span className="text-red-500">*</span>
+            </>
+          )}
+        </span>
+      </label>
+
       <div className="flex items-center gap-3 pt-1">
         <Button
           className="bg-gray-900 text-white hover:bg-gray-800 font-medium h-11 px-6"
-          disabled={!firstName.trim() || !lastName.trim() || !email.trim() || !cvFile || isSubmitting}
+          disabled={!firstName.trim() || !lastName.trim() || !email.trim() || !cvFile || isSubmitting || !privacyConsent}
           onClick={onSubmit}
         >
           {isSubmitting ? (
@@ -607,12 +766,12 @@ function CvFormStep({
               Bezig...
             </>
           ) : (
-            'Solliciteer met cv'
+            (c?.submit_button ?? 'Solliciteer met cv')
           )}
         </Button>
         {onSwitchToAnna && (
           <Button variant="outline" className="h-11 px-6" onClick={onSwitchToAnna}>
-            Toch met Anna
+            {c?.secondary_button ?? `Toch met ${personaName}`}
           </Button>
         )}
       </div>
@@ -622,15 +781,15 @@ function CvFormStep({
 
 /* ─── Step 3: Call Prep ─── */
 
-const callPrepTips = [
-  { icon: Calendar, text: 'Dankzij Anna kun je direct een afspraak inplannen met de recruiter — geen formulieren nodig' },
-  { icon: Globe, text: 'Je mag in je eigen taal spreken' },
-  { icon: Volume2, text: 'Zorg voor een rustige omgeving en vermijd de speaker' },
-  { icon: RotateCcw, text: 'Spreek rustig en duidelijk — je kunt altijd vragen om de vraag te herhalen' },
-  { icon: UserRound, text: 'Zeg "Ik wil met een mens spreken" om doorverbonden te worden' },
-];
+function CallPrepStep({ personaName }: { personaName: string }) {
+  const callPrepTips = [
+    { icon: Calendar, text: `Dankzij ${personaName} kun je direct een afspraak inplannen met de recruiter — geen formulieren nodig` },
+    { icon: Globe, text: 'Je mag in je eigen taal spreken' },
+    { icon: Volume2, text: 'Zorg voor een rustige omgeving en vermijd de speaker' },
+    { icon: RotateCcw, text: 'Spreek rustig en duidelijk — je kunt altijd vragen om de vraag te herhalen' },
+    { icon: UserRound, text: 'Zeg "Ik wil met een mens spreken" om doorverbonden te worden' },
+  ];
 
-function CallPrepStep() {
   return (
     <div className="space-y-6 animate-in fade-in-0 duration-300">
       <div className="flex items-center gap-5">
@@ -646,7 +805,7 @@ function CallPrepStep() {
             Klaar voor je gesprek?
           </DialogTitle>
           <p className="text-sm text-gray-600 mt-0.5">
-            Anna belt je zo meteen op
+            {personaName} belt je zo meteen op
           </p>
         </div>
       </div>

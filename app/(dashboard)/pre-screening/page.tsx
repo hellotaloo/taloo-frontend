@@ -1,17 +1,17 @@
 'use client';
 
-import { Loader2, Info, Settings, Play, Briefcase, ArrowUp, ArrowDown, ChevronsUpDown, Eye } from 'lucide-react';
+import { Loader2, Settings, Play, Briefcase, Archive, ArrowUp, ArrowDown, ChevronsUpDown, Eye } from 'lucide-react';
 import { useState, useEffect, useCallback, useMemo, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import type { AgentVacancy, AgentDashboardStats } from '@/lib/types';
-import { getPreScreeningVacancies, getPreScreeningStats, getApplications, getAutoGenerate, setAutoGenerate as setAutoGenerateApi } from '@/lib/interview-api';
+import { getPreScreeningVacancies, getPreScreeningStats, getApplications } from '@/lib/interview-api';
 import { getStatIcon } from '@/lib/agent-utils';
 import { getActivityTasks, type TaskRow } from '@/lib/api';
 import { MetricCard, ChannelCard } from '@/components/kit/metric-card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { PublishedVacanciesTable } from '@/components/blocks/vacancy-table';
+import { PublishedVacanciesTable, ArchivedVacanciesTable } from '@/components/blocks/vacancy-table';
 import { ApplicationDetailPane, type Application as ComponentApplication } from '@/components/blocks/application-dashboard';
 import { convertToComponentApplication } from '@/lib/pre-screening-utils';
 import { PageLayout, PageLayoutHeader, PageLayoutContent } from '@/components/layout/page-layout';
@@ -24,19 +24,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Switch } from '@/components/ui/switch';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 import { ActivityStatusBadge, SLABadge, translateStepLabel } from '@/components/kit/activity-helpers';
 import { cn, formatRelativeDate } from '@/lib/utils';
 
@@ -60,14 +48,14 @@ function PreScreeningContent() {
   const [vacancies, setVacancies] = useState<AgentVacancy[]>([]);
   const [vacanciesLoading, setVacanciesLoading] = useState(true);
 
+  // Archived vacancies state
+  const [archivedVacancies, setArchivedVacancies] = useState<AgentVacancy[]>([]);
+  const [archivedLoading, setArchivedLoading] = useState(true);
+
   // Metrics
   const [stats, setStats] = useState<AgentDashboardStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  // Auto-generate (default false until fetched to avoid flash)
-  const [autoGenerate, setAutoGenerate] = useState(false);
-  const [showAutoGenerateConfirm, setShowAutoGenerateConfirm] = useState(false);
 
   // Sorting for activities table
   const [sortKey, setSortKey] = useState<SortKey | null>(null);
@@ -97,6 +85,18 @@ function PreScreeningContent() {
     }
   }, []);
 
+  // Fetch archived vacancies
+  const fetchArchivedVacancies = useCallback(async () => {
+    try {
+      const data = await getPreScreeningVacancies({ archived: true });
+      setArchivedVacancies(data.vacancies);
+    } catch (error) {
+      console.error('Failed to load archived vacancies:', error);
+    } finally {
+      setArchivedLoading(false);
+    }
+  }, []);
+
   // Fetch stats
   const fetchStats = useCallback(async () => {
     try {
@@ -111,23 +111,20 @@ function PreScreeningContent() {
     }
   }, []);
 
-  // Fetch auto-generate setting from backend
-  useEffect(() => {
-    getAutoGenerate().then(({ auto_generate }) => setAutoGenerate(auto_generate));
-  }, []);
-
   useEffect(() => {
     fetchTasks();
     fetchVacancies();
+    fetchArchivedVacancies();
     fetchStats();
-  }, [fetchTasks, fetchVacancies, fetchStats]);
+  }, [fetchTasks, fetchVacancies, fetchArchivedVacancies, fetchStats]);
 
   // Realtime updates
   const refreshAll = useCallback(() => {
     fetchTasks();
     fetchStats();
     fetchVacancies();
-  }, [fetchTasks, fetchStats, fetchVacancies]);
+    fetchArchivedVacancies();
+  }, [fetchTasks, fetchStats, fetchVacancies, fetchArchivedVacancies]);
 
   useRealtimeTable({
     schema: 'agents',
@@ -157,31 +154,6 @@ function PreScreeningContent() {
   const filteredTasks = useMemo(() => {
     return tasks.filter(t => t.workflow_type === 'pre_screening');
   }, [tasks]);
-
-  // Auto-generate toggle
-  const handleAutoGenerateToggle = async (checked: boolean) => {
-    if (checked) {
-      setShowAutoGenerateConfirm(true);
-    } else {
-      try {
-        await setAutoGenerateApi(false);
-        setAutoGenerate(false);
-      } catch (err) {
-        console.error('Failed to disable auto-generate:', err);
-      }
-    }
-  };
-
-  const confirmAutoGenerate = async () => {
-    try {
-      await setAutoGenerateApi(true);
-      setAutoGenerate(true);
-    } catch (err) {
-      console.error('Failed to enable auto-generate:', err);
-    } finally {
-      setShowAutoGenerateConfirm(false);
-    }
-  };
 
   // Open application detail from task row
   const handleOpenApplicationDetail = async (task: TaskRow) => {
@@ -371,28 +343,14 @@ function PreScreeningContent() {
                     {vacancies.length}
                   </span>
                 </TabsTrigger>
+                <TabsTrigger value="archived">
+                  <Archive className="w-3.5 h-3.5" />
+                  Archief
+                  <span className="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-500 text-white">
+                    {archivedVacancies.length}
+                  </span>
+                </TabsTrigger>
               </TabsList>
-
-              <div className="flex items-center gap-2">
-                <label htmlFor="auto-generate" className="text-sm text-gray-600">
-                  Automatisch genereren
-                </label>
-                <Switch
-                  id="auto-generate"
-                  checked={autoGenerate}
-                  onCheckedChange={handleAutoGenerateToggle}
-                />
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button type="button" className="text-gray-400 hover:text-gray-600 transition-colors">
-                      <Info className="w-4 h-4" />
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" className="max-w-[240px]">
-                    Indien ingeschakeld wordt elke vacature naar Taloo automatisch omgezet naar een pre-screening. Pre-screening kan altijd later worden aangepast.
-                  </TooltipContent>
-                </Tooltip>
-              </div>
             </div>
 
             {/* Activities Tab */}
@@ -504,35 +462,22 @@ function PreScreeningContent() {
                 />
               )}
             </TabsContent>
+
+            {/* Archive Tab */}
+            <TabsContent value="archived">
+              {archivedLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+                  <span className="ml-2 text-sm text-gray-500">Archief laden...</span>
+                </div>
+              ) : (
+                <ArchivedVacanciesTable
+                  vacancies={archivedVacancies}
+                />
+              )}
+            </TabsContent>
           </Tabs>
 
-          {/* Auto-generate Confirmation Dialog */}
-          <AlertDialog open={showAutoGenerateConfirm} onOpenChange={setShowAutoGenerateConfirm}>
-            <AlertDialogContent className="max-w-md">
-              <AlertDialogHeader>
-                <AlertDialogTitle>Automatisch genereren inschakelen?</AlertDialogTitle>
-                <AlertDialogDescription asChild>
-                  <div className="space-y-2 text-sm text-gray-600">
-                    <p>
-                      Pre-screening interviews worden automatisch aangemaakt voor alle toekomstige vacatures.
-                    </p>
-                    <p className="text-gray-500 text-xs">
-                      Je kunt individuele pre-screenings altijd bewerken of uitschakelen.
-                    </p>
-                  </div>
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Annuleren</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={confirmAutoGenerate}
-                  className="bg-green-600 hover:bg-green-700 focus:ring-green-500"
-                >
-                  Inschakelen
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
         </PageLayoutContent>
       </PageLayout>
 

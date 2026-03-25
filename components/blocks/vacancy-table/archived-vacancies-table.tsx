@@ -3,8 +3,9 @@
 import { useState, useMemo } from 'react';
 import { Building2, MapPin, Archive, ArrowUp, ArrowDown, ChevronsUpDown } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { Vacancy } from '@/lib/types';
+import type { AgentVacancy } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import { getStatValue } from '@/lib/agent-utils';
 import {
   Table,
   TableBody,
@@ -15,7 +16,7 @@ import {
 } from '@/components/ui/table';
 import { ChannelIcons } from '@/components/kit/status';
 
-type SortKey = 'title' | 'candidatesCount' | 'completedCount' | 'qualifiedCount' | 'archivedAt';
+type SortKey = 'title' | 'candidatesCount' | 'completedCount' | 'qualifiedCount' | 'lastActivityAt';
 type SortDirection = 'asc' | 'desc' | null;
 
 interface SortableHeaderProps {
@@ -58,12 +59,18 @@ function SortableHeader({ label, sortKey, currentSortKey, sortDirection, onSort,
 }
 
 export interface ArchivedVacanciesTableProps {
-  vacancies: Vacancy[];
+  vacancies: AgentVacancy[];
 }
 
-function formatDate(dateString: string | null | undefined) {
+function formatRelativeDate(dateString: string | null | undefined) {
   if (!dateString) return '-';
   const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffDays < 1) return 'Vandaag';
+  if (diffDays < 7) return `${diffDays}d geleden`;
   return date.toLocaleDateString('nl-BE', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
@@ -101,20 +108,20 @@ export function ArchivedVacanciesTable({ vacancies }: ArchivedVacanciesTableProp
           bValue = b.title;
           break;
         case 'candidatesCount':
-          aValue = a.candidatesCount;
-          bValue = b.candidatesCount;
+          aValue = getStatValue(a.stats, 'candidates_count');
+          bValue = getStatValue(b.stats, 'candidates_count');
           break;
         case 'completedCount':
-          aValue = a.completedCount;
-          bValue = b.completedCount;
+          aValue = getStatValue(a.stats, 'completed_count');
+          bValue = getStatValue(b.stats, 'completed_count');
           break;
         case 'qualifiedCount':
-          aValue = a.qualifiedCount;
-          bValue = b.qualifiedCount;
+          aValue = getStatValue(a.stats, 'qualified_count');
+          bValue = getStatValue(b.stats, 'qualified_count');
           break;
-        case 'archivedAt':
-          aValue = a.archivedAt;
-          bValue = b.archivedAt;
+        case 'lastActivityAt':
+          aValue = a.last_activity_at;
+          bValue = b.last_activity_at;
           break;
       }
 
@@ -146,14 +153,13 @@ export function ArchivedVacanciesTable({ vacancies }: ArchivedVacanciesTableProp
       <TableHeader>
         <TableRow>
           <SortableHeader
-            label="Vacatures"
+            label="Vacature"
             sortKey="title"
             currentSortKey={sortKey}
             sortDirection={sortDirection}
             onSort={handleSort}
             className="w-full"
           />
-          <TableHead>Kanalen</TableHead>
           <SortableHeader
             label="Kandidaten"
             sortKey="candidatesCount"
@@ -179,8 +185,8 @@ export function ArchivedVacanciesTable({ vacancies }: ArchivedVacanciesTableProp
             className="text-center"
           />
           <SortableHeader
-            label="Gearchiveerd"
-            sortKey="archivedAt"
+            label="Laatste activiteit"
+            sortKey="lastActivityAt"
             currentSortKey={sortKey}
             sortDirection={sortDirection}
             onSort={handleSort}
@@ -189,7 +195,11 @@ export function ArchivedVacanciesTable({ vacancies }: ArchivedVacanciesTableProp
       </TableHeader>
       <TableBody>
         {sortedVacancies.map((vacancy) => {
-          const hasActivity = vacancy.candidatesCount > 0;
+          const candidatesCount = getStatValue(vacancy.stats, 'candidates_count');
+          const completedCount = getStatValue(vacancy.stats, 'completed_count');
+          const qualifiedCount = getStatValue(vacancy.stats, 'qualified_count');
+          const hasActivity = candidatesCount > 0;
+
           return (
             <TableRow
               key={vacancy.id}
@@ -199,41 +209,43 @@ export function ArchivedVacanciesTable({ vacancies }: ArchivedVacanciesTableProp
             >
               <TableCell>
                 <div className="min-w-0">
-                  <span className="font-medium text-gray-900 truncate block">
-                    {vacancy.title}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium text-gray-900 truncate">
+                      {vacancy.title}
+                    </span>
+                    {vacancy.channels && (vacancy.channels.voice || vacancy.channels.whatsapp || vacancy.channels.cv) && <ChannelIcons channels={vacancy.channels} />}
+                  </div>
                   <div className="flex items-center gap-2 text-xs text-gray-500 mt-0.5">
                     <span className="flex items-center gap-1">
                       <Building2 className="w-3 h-3" />
                       {vacancy.company}
                     </span>
-                    <span className="flex items-center gap-1">
-                      <MapPin className="w-3 h-3" />
-                      {vacancy.location}
-                    </span>
+                    {vacancy.location && (
+                      <span className="flex items-center gap-1">
+                        <MapPin className="w-3 h-3" />
+                        {vacancy.location}
+                      </span>
+                    )}
                   </div>
                 </div>
               </TableCell>
-              <TableCell>
-                <ChannelIcons channels={vacancy.channels} />
-              </TableCell>
               <TableCell className="text-center">
                 <span className={`font-medium ${hasActivity ? 'text-gray-900' : 'text-gray-400'}`}>
-                  {hasActivity ? vacancy.candidatesCount : '-'}
+                  {hasActivity ? candidatesCount : '-'}
                 </span>
               </TableCell>
               <TableCell className="text-center">
                 <span className={`font-medium ${hasActivity ? 'text-gray-900' : 'text-gray-400'}`}>
-                  {hasActivity ? vacancy.completedCount : '-'}
+                  {hasActivity ? completedCount : '-'}
                 </span>
               </TableCell>
               <TableCell className="text-center">
                 <span className={`font-medium ${hasActivity ? 'text-gray-900' : 'text-gray-400'}`}>
-                  {hasActivity ? vacancy.qualifiedCount : '-'}
+                  {hasActivity ? qualifiedCount : '-'}
                 </span>
               </TableCell>
               <TableCell className="text-gray-500 text-sm">
-                {formatDate(vacancy.archivedAt)}
+                {formatRelativeDate(vacancy.last_activity_at)}
               </TableCell>
             </TableRow>
           );

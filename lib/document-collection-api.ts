@@ -100,7 +100,7 @@ export async function triggerCollectionTask(
 export interface VacancyAgentStatusResponse {
   vacancy_id: string;
   agent_type: string;
-  is_online: boolean;
+  status: string;
   created_at: string;
 }
 
@@ -113,26 +113,6 @@ export async function getVacancyAgentStatus(
   const response = await authFetch(url);
   if (!response.ok) {
     throw new Error(`Failed to fetch agent status: ${response.status}`);
-  }
-
-  return response.json();
-}
-
-export async function updateVacancyAgentStatus(
-  vacancyId: string,
-  agentType: string,
-  data: { is_online: boolean }
-): Promise<VacancyAgentStatusResponse> {
-  const url = `${BACKEND_URL}/vacancies/${vacancyId}/agents/${agentType}/status`;
-
-  const response = await authFetch(url, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
-  });
-
-  if (!response.ok) {
-    throw new Error(`Failed to update agent status: ${response.status}`);
   }
 
   return response.json();

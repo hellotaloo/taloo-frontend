@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Save, Calendar, MessageCircle, CheckCircle2, ShieldQuestion, MessageSquare, Pencil, Check, X, Phone, Info, Mic, SlidersHorizontal, ListOrdered, ChevronDown, User, Eye, Briefcase } from 'lucide-react';
+import { ArrowLeft, Save, Calendar, MessageCircle, CheckCircle2, ShieldQuestion, MessageSquare, Pencil, Check, X, Phone, Info, Mic, SlidersHorizontal, ListOrdered, ChevronDown, User, Briefcase, PanelTop } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import {
@@ -19,7 +19,7 @@ import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip
 import { Timeline, TimelineNode } from '@/components/kit/timeline';
 import { NavItem } from '@/components/kit/nav-item';
 import { toast } from 'sonner';
-import { getPreScreeningConfig, updatePreScreeningConfig } from '@/lib/interview-api';
+import { getPreScreeningConfig, updatePreScreeningConfig, getApplyPopupContent, updateApplyPopupContent } from '@/lib/interview-api';
 import { getElevenLabsVoiceConfig } from '@/lib/api';
 
 const ELEVENLABS_AGENT_ID = process.env.NEXT_PUBLIC_ELEVENLABS_DEMO_AGENT_ID || '';
@@ -52,7 +52,7 @@ const VOICE_OPTIONS: VoiceOption[] = [
   }
 ];
 
-type SettingsSection = 'voice' | 'algemeen' | 'generator' | 'planning' | 'escalatie' | 'interview';
+type SettingsSection = 'voice' | 'algemeen' | 'generator' | 'planning' | 'escalatie' | 'interview' | 'popup';
 
 export default function PreScreeningSettingsPage() {
   const router = useRouter();
@@ -89,12 +89,22 @@ export default function PreScreeningSettingsPage() {
   const [escalationPhoneMode, setEscalationPhoneMode] = useState<'auto' | 'custom'>('auto');
   const [escalationCustomPhone, setEscalationCustomPhone] = useState('');
 
-  // Review & default channels
+  // Review & publishing settings
   const [requireReview, setRequireReview] = useState(false);
   const [defaultChannels, setDefaultChannels] = useState({ voice: true, whatsapp: true, cv: true });
+  const [autoGenerate, setAutoGenerate] = useState(true);
+
+  // Persona name (general setting, used by voice agent + popup)
+  const [personaName, setPersonaName] = useState('Anna');
 
   // Generator custom instructions
   const [generatorInstructions, setGeneratorInstructions] = useState('');
+
+  // Apply popup content
+  const [popupYaml, setPopupYaml] = useState('');
+  const [popupVariables, setPopupVariables] = useState<Record<string, string>>({});
+  const [popupVersion, setPopupVersion] = useState(0);
+  const [isPopupSaving, setIsPopupSaving] = useState(false);
 
   const allDays = ['ma', 'di', 'wo', 'do', 'vr', 'za', 'zo'] as const;
 
@@ -124,15 +134,19 @@ export default function PreScreeningSettingsPage() {
     async function loadConfig() {
       try {
         const config = await getPreScreeningConfig();
-        const { general, generator, planning, interview, escalation } = config.settings;
+        const { general, generator, planning, interview, escalation, publishing } = config.settings;
         if (generator?.custom_instructions) setGeneratorInstructions(generator.custom_instructions);
+        if (general.persona_name) setPersonaName(general.persona_name);
         setMaxUnrelatedAnswers(general.max_unrelated_answers);
         setScheduleDaysAhead(planning.schedule_days_ahead);
         setScheduleStartOffset(planning.schedule_start_offset);
         setConsentEnabled(interview.require_consent);
         setEscalationEnabled(escalation.allow_escalation);
-        setRequireReview(general.require_review);
-        if (general.default_channels) setDefaultChannels(general.default_channels);
+        // Publishing settings (with fallback to general for backwards compat)
+        setRequireReview(publishing?.require_review ?? general.require_review ?? false);
+        if (publishing?.default_channels) setDefaultChannels(publishing.default_channels);
+        else if (general.default_channels) setDefaultChannels(general.default_channels);
+        setAutoGenerate(publishing?.auto_generate ?? true);
         setSchedulingOption(planning.planning_mode as 'funnel' | 'direct');
         if (general.intro_message) {
           setIntroMessage(general.intro_message);
@@ -150,6 +164,21 @@ export default function PreScreeningSettingsPage() {
       }
     }
     loadConfig();
+  }, []);
+
+  // Load apply popup content on mount
+  useEffect(() => {
+    async function loadPopupContent() {
+      try {
+        const data = await getApplyPopupContent();
+        setPopupYaml(data.content_yaml);
+        setPopupVariables(data.variables);
+        setPopupVersion(data.version);
+      } catch (error) {
+        console.error('Failed to load apply popup content:', error);
+      }
+    }
+    loadPopupContent();
   }, []);
 
   // Load voice config on mount
@@ -214,17 +243,33 @@ export default function PreScreeningSettingsPage() {
     setEditingSuccess(false);
   };
 
+  const handleSavePopup = useCallback(async () => {
+    setIsPopupSaving(true);
+    try {
+      const data = await updateApplyPopupContent({
+        content_yaml: popupYaml,
+        variables: popupVariables,
+      });
+      setPopupVersion(data.version);
+      toast.success('Popup content opgeslagen');
+    } catch (error) {
+      console.error('Failed to save popup content:', error);
+      toast.error('Opslaan mislukt. Controleer de YAML syntax.');
+    } finally {
+      setIsPopupSaving(false);
+    }
+  }, [popupYaml, popupVariables]);
+
   const handleSave = useCallback(async () => {
     setIsSaving(true);
     try {
       await updatePreScreeningConfig({
         settings: {
           general: {
+            persona_name: personaName,
             max_unrelated_answers: maxUnrelatedAnswers,
             intro_message: introMessage,
             success_message: successMessage,
-            require_review: requireReview,
-            default_channels: defaultChannels,
           },
           generator: {
             custom_instructions: generatorInstructions,
@@ -240,6 +285,11 @@ export default function PreScreeningSettingsPage() {
           escalation: {
             allow_escalation: escalationEnabled,
           },
+          publishing: {
+            auto_generate: autoGenerate,
+            require_review: requireReview,
+            default_channels: defaultChannels,
+          },
         },
       });
       toast.success('Instellingen opgeslagen');
@@ -252,6 +302,7 @@ export default function PreScreeningSettingsPage() {
     }
   }, [
     router,
+    personaName,
     maxUnrelatedAnswers,
     scheduleDaysAhead,
     scheduleStartOffset,
@@ -262,6 +313,7 @@ export default function PreScreeningSettingsPage() {
     escalationEnabled,
     requireReview,
     defaultChannels,
+    autoGenerate,
     generatorInstructions,
   ]);
 
@@ -309,6 +361,13 @@ export default function PreScreeningSettingsPage() {
           active={activeSection === 'interview'}
           onClick={() => setActiveSection('interview')}
           testId="settings-interview"
+        />
+        <NavItem
+          icon={PanelTop}
+          label="Sollicitatie popup"
+          active={activeSection === 'popup'}
+          onClick={() => setActiveSection('popup')}
+          testId="settings-popup"
         />
       </div>
     </div>
@@ -498,6 +557,32 @@ export default function PreScreeningSettingsPage() {
           {/* ── Algemeen ── */}
           {activeSection === 'algemeen' && (
             <>
+              {/* Assistant Name */}
+              <section className="space-y-4">
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900">Assistent</h2>
+                  <p className="text-sm text-gray-500 mt-1">
+                    De naam van de virtuele assistent zoals kandidaten deze zien
+                  </p>
+                </div>
+                <div className="flex items-center justify-between p-4 rounded-lg border border-gray-200 bg-white">
+                  <div className="flex-1">
+                    <Label htmlFor="persona-name" className="font-medium text-gray-900">Naam assistent</Label>
+                    <p className="text-sm text-gray-500 mt-0.5">
+                      Wordt gebruikt in de sollicitatie popup en voice gesprekken
+                    </p>
+                  </div>
+                  <input
+                    id="persona-name"
+                    type="text"
+                    value={personaName}
+                    onChange={(e) => setPersonaName(e.target.value)}
+                    placeholder="Anna"
+                    className="w-48 px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                  />
+                </div>
+              </section>
+
               {/* Exit Thresholds */}
               <section className="space-y-4">
                 <div>
@@ -640,6 +725,32 @@ export default function PreScreeningSettingsPage() {
                 </div>
 
                 <div className="space-y-3">
+                  {/* Auto Generate */}
+                  <div className="flex items-center justify-between p-4 rounded-lg border border-gray-200 bg-white">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <Label className="font-medium text-gray-900">Automatisch genereren</Label>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button type="button" className="text-gray-400 hover:text-gray-600 transition-colors">
+                              <Info className="w-3.5 h-3.5" />
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent side="right" className="max-w-[260px]">
+                            Indien ingeschakeld wordt elke vacature die vanuit het ATS wordt geïmporteerd automatisch omgezet naar een pre-screening. Pre-screenings kunnen altijd later worden aangepast.
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+                      <p className="text-sm text-gray-500 mt-0.5">
+                        Genereer automatisch pre-screening vragen voor nieuwe vacatures
+                      </p>
+                    </div>
+                    <Switch
+                      checked={autoGenerate}
+                      onCheckedChange={setAutoGenerate}
+                    />
+                  </div>
+
                   {/* Require Review */}
                   <div className="flex items-center justify-between p-4 rounded-lg border border-gray-200 bg-white">
                     <div className="flex-1">
@@ -1156,17 +1267,84 @@ export default function PreScreeningSettingsPage() {
                   </TimelineNode>
                 </Timeline>
               </section>
+            </>
+          )}
 
-              {/* Info Section */}
+          {/* ── Sollicitatie Popup ── */}
+          {activeSection === 'popup' && (
+            <section className="space-y-6">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">Sollicitatie popup</h2>
+                <p className="text-sm text-gray-500 mt-1">
+                  Beheer de teksten en content van de sollicitatie popup op de vacaturepagina.
+                  De content wordt in YAML-formaat beheerd.
+                </p>
+              </div>
+
+              {/* Variables */}
+              <div className="space-y-3">
+                <h3 className="text-sm font-medium text-gray-900">Variabelen</h3>
+                <p className="text-xs text-gray-500">
+                  Deze variabelen worden automatisch ingevuld in de popup content via {'{'}variabele{'}'} placeholders.
+                </p>
+                <div className="space-y-1.5">
+                  <Label htmlFor="popup-privacy" className="text-sm text-gray-700">Privacy policy URL</Label>
+                  <input
+                    id="popup-privacy"
+                    type="url"
+                    value={popupVariables.privacy_url || ''}
+                    onChange={(e) => setPopupVariables(prev => ({ ...prev, privacy_url: e.target.value }))}
+                    placeholder="https://example.com/privacy"
+                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                  />
+                </div>
+              </div>
+
+              {/* YAML Editor */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="popup-yaml" className="text-sm font-medium text-gray-900">
+                    Content (YAML)
+                  </Label>
+                  {popupVersion > 0 && (
+                    <span className="text-xs text-gray-400">versie {popupVersion}</span>
+                  )}
+                </div>
+                <textarea
+                  id="popup-yaml"
+                  value={popupYaml}
+                  onChange={(e) => setPopupYaml(e.target.value)}
+                  rows={24}
+                  spellCheck={false}
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 resize-y font-mono leading-relaxed"
+                />
+                <p className="text-xs text-gray-400">
+                  Gebruik {'{'}persona_name{'}'} en {'{'}privacy_url{'}'} als placeholders. De YAML syntax wordt gevalideerd bij opslaan.
+                </p>
+              </div>
+
+              {/* Save button for popup (separate from main save) */}
+              <div className="flex items-center justify-between pt-2">
+                <Button
+                  onClick={handleSavePopup}
+                  disabled={isPopupSaving}
+                  className="gap-2 bg-blue-500 hover:bg-blue-600"
+                >
+                  <Save className="w-4 h-4" />
+                  {isPopupSaving ? 'Bewaren...' : 'Popup content bewaren'}
+                </Button>
+              </div>
+
+              {/* Info */}
               <section className="rounded-xl bg-gray-50 border border-gray-200 p-5">
-                <h3 className="font-medium text-gray-900 mb-2">Over Pre-screening</h3>
+                <h3 className="font-medium text-gray-900 mb-2">Over de sollicitatie popup</h3>
                 <p className="text-sm text-gray-600">
-                  De pre-screening agent voert eerste gesprekken met kandidaten. Het gesprek volgt de
-                  interview outline hierboven. De knockout en open vragen worden automatisch overgenomen
-                  uit de interview configuratie van de vacature.
+                  De popup verschijnt op de vacaturepagina en biedt kandidaten twee opties:
+                  bellen met de virtuele assistent (voice) of klassiek solliciteren met CV.
+                  De content is opgebouwd uit drie schermen: keuzescherm, telefoonformulier en CV-formulier.
                 </p>
               </section>
-            </>
+            </section>
           )}
         </div>
         )}

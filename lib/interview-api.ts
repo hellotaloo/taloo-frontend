@@ -513,13 +513,14 @@ export async function getVacancy(vacancyId: string): Promise<Vacancy> {
 import type { AgentVacancy, AgentDashboardStats } from './types';
 
 /**
- * Fetch all non-archived vacancies with prescreening agent status and stats.
- * Returns unified AgentVacancy[] with agent_status field.
+ * Fetch vacancies with prescreening agent status and stats.
+ * Use archived=true to get closed/filled/archived vacancies.
  */
 export async function getPreScreeningVacancies(
-  params?: { limit?: number; offset?: number }
+  params?: { archived?: boolean; limit?: number; offset?: number }
 ): Promise<{ vacancies: AgentVacancy[]; total: number }> {
   const searchParams = new URLSearchParams();
+  if (params?.archived) searchParams.set('archived', 'true');
   if (params?.limit) searchParams.set('limit', params.limit.toString());
   if (params?.offset) searchParams.set('offset', params.offset.toString());
 
@@ -796,7 +797,6 @@ export interface PreScreening {
   interview?: Interview;
   // Publishing fields
   published_at?: string | null;
-  is_online: boolean;
   elevenlabs_agent_id?: string | null;
   whatsapp_agent_id?: string | null;
 }
@@ -886,25 +886,11 @@ export interface PublishPreScreeningResponse {
   published_at: string;
   elevenlabs_agent_id?: string;
   whatsapp_agent_id?: string;
-  is_online: boolean;
   message: string;
-}
-
-export interface UpdateStatusRequest {
-  is_online: boolean;
-}
-
-export interface UpdateStatusResponse {
-  status: 'success';
-  is_online: boolean;
-  message: string;
-  elevenlabs_agent_id?: string;
-  whatsapp_agent_id?: string;
 }
 
 // Extended types for individual channel control
 export interface UpdateChannelStatusRequest {
-  is_online?: boolean;
   voice_enabled?: boolean;
   whatsapp_enabled?: boolean;
   cv_enabled?: boolean;
@@ -912,15 +898,12 @@ export interface UpdateChannelStatusRequest {
 
 export interface UpdateChannelStatusResponse {
   status: 'success';
-  is_online: boolean;
   channels: {
     voice: boolean;
     whatsapp: boolean;
     cv: boolean;
   };
   message: string;
-  elevenlabs_agent_id?: string;
-  whatsapp_agent_id?: string;
 }
 
 /**
@@ -944,28 +927,6 @@ export async function publishPreScreening(
   if (!response.ok) {
     const error = await response.json().catch(() => ({ detail: 'Failed to publish pre-screening' }));
     throw new Error(error.detail || 'Failed to publish pre-screening');
-  }
-
-  return response.json();
-}
-
-/**
- * Update the online/offline status of a published pre-screening.
- * Use for temporarily pausing agents without republishing.
- */
-export async function updatePreScreeningStatus(
-  vacancyId: string,
-  isOnline: boolean
-): Promise<UpdateStatusResponse> {
-  const response = await authFetch(`${BACKEND_URL}/vacancies/${vacancyId}/pre-screening/status`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ is_online: isOnline }),
-  });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ detail: 'Failed to update status' }));
-    throw new Error(error.detail || 'Failed to update status');
   }
 
   return response.json();
@@ -1242,9 +1203,18 @@ export interface PreScreeningDefaultChannels {
 }
 
 export interface PreScreeningGeneralSettings {
+  persona_name?: string;
   intro_message: string | null;
   success_message: string | null;
   max_unrelated_answers: number;
+  /** @deprecated Use publishing.require_review instead */
+  require_review?: boolean;
+  /** @deprecated Use publishing.default_channels instead */
+  default_channels?: PreScreeningDefaultChannels;
+}
+
+export interface PreScreeningPublishingSettings {
+  auto_generate: boolean;
   require_review: boolean;
   default_channels: PreScreeningDefaultChannels;
 }
@@ -1274,6 +1244,7 @@ export interface PreScreeningSettings {
   planning: PreScreeningPlanningSettings;
   interview: PreScreeningInterviewSettings;
   escalation: PreScreeningEscalationSettings;
+  publishing?: PreScreeningPublishingSettings;
 }
 
 export interface PreScreeningConfig {
@@ -1291,6 +1262,7 @@ export interface PreScreeningConfigUpdate {
     planning?: Partial<PreScreeningPlanningSettings>;
     interview?: Partial<PreScreeningInterviewSettings>;
     escalation?: Partial<PreScreeningEscalationSettings>;
+    publishing?: Partial<PreScreeningPublishingSettings>;
   };
 }
 
@@ -1353,6 +1325,121 @@ export async function setAutoGenerate(enabled: boolean): Promise<{ auto_generate
   if (!response.ok) {
     const error = await response.json().catch(() => ({ detail: 'Failed to update auto-generate' }));
     throw new Error(error.detail || 'Failed to update auto-generate setting');
+  }
+
+  return response.json();
+}
+
+// ---------------------------------------------------------------------------
+// Apply Popup Content
+// ---------------------------------------------------------------------------
+
+export interface ApplyPopupContent {
+  content_yaml: string;
+  variables: Record<string, string>;
+  version: number;
+}
+
+export interface ApplyPopupContentUpdate {
+  content_yaml?: string;
+  variables?: Record<string, string>;
+}
+
+/**
+ * Fetch the apply popup content configuration (YAML + variables).
+ */
+export async function getApplyPopupContent(): Promise<ApplyPopupContent> {
+  const response = await authFetch(`${BACKEND_URL}/pre-screening/apply-popup-content`);
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: 'Failed to fetch apply popup content' }));
+    throw new Error(error.detail || 'Failed to fetch apply popup content');
+  }
+
+  return response.json();
+}
+
+/**
+ * Save updated apply popup content. Creates a new version.
+ */
+export async function updateApplyPopupContent(
+  updates: ApplyPopupContentUpdate
+): Promise<ApplyPopupContent> {
+  const response = await authFetch(`${BACKEND_URL}/pre-screening/apply-popup-content`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(updates),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: 'Failed to update apply popup content' }));
+    throw new Error(error.detail || 'Failed to update apply popup content');
+  }
+
+  return response.json();
+}
+
+/**
+ * Rendered apply popup content — YAML parsed into a structured object
+ * with all template variables ({persona_name}, {privacy_url}) substituted.
+ */
+export interface ApplyPopupRendered {
+  rendered: {
+    choice_screen: {
+      subtitle: string;
+      title: string;
+      description: string;
+      anna_option: {
+        badge: string;
+        title: string;
+        description: string;
+        button: string;
+      };
+      cv_option: {
+        title: string;
+        description: string;
+        button: string;
+      };
+    };
+    phone_form: {
+      subtitle: string;
+      title: string;
+      contact_label: string;
+      contact_options: string[];
+      privacy_text: string;
+      submit_button: string;
+      secondary_button: string;
+      footer: string;
+    };
+    cv_form: {
+      subtitle: string;
+      title: string;
+      upload_label: string;
+      upload_placeholder: string;
+      email_label: string;
+      email_placeholder: string;
+      privacy_text: string;
+      submit_button: string;
+      secondary_button: string;
+    };
+  };
+  variables: Record<string, string>;
+}
+
+/**
+ * Fetch the current rendered apply popup content with variables substituted.
+ * Calls the preview endpoint with empty body to get current/default content.
+ */
+export async function getApplyPopupPreview(): Promise<ApplyPopupRendered> {
+  const response = await authFetch(`${BACKEND_URL}/pre-screening/apply-popup-content/preview`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({}),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: 'Failed to fetch popup preview' }));
+    throw new Error(error.detail || 'Failed to fetch popup preview');
   }
 
   return response.json();

@@ -52,7 +52,7 @@ export interface ClientSummary {
 // Agent Vacancy Types (unified for all agent overview pages)
 // =============================================================================
 
-export type AgentVacancyStatus = 'new' | 'generated' | 'published' | 'archived';
+export type AgentVacancyStatus = 'new' | 'generating' | 'generated' | 'published' | 'archived';
 
 export interface AgentStatItem {
   key: string;
@@ -77,6 +77,7 @@ export interface AgentVacancy {
   last_activity_at: string | null;
   recruiter: RecruiterSummary | null;
   client: ClientSummary | null;
+  channels?: VacancyChannels;
 }
 
 export interface AgentDashboardStats {

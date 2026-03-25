@@ -41,8 +41,8 @@ import {
   getApplications,
   savePreScreening,
   publishPreScreening,
-  updatePreScreeningStatus,
   updateChannelStatus,
+  getPreScreeningConfig,
 } from '@/lib/interview-api';
 import {
   PublishDialog,
@@ -132,6 +132,7 @@ export default function EditPreScreeningPage({ params }: PageProps) {
   const [showOfflineDialog, setShowOfflineDialog] = useState(false);
   const [showTriggerInterviewDialog, setShowTriggerInterviewDialog] = useState(false);
   const [showUnsavedChangesDialog, setShowUnsavedChangesDialog] = useState(false);
+  const [personaName, setPersonaName] = useState('Anna');
   const pendingNavigationRef = useRef<(() => void) | null>(null);
   
   const prevQuestionsRef = useRef<GeneratedQuestion[]>([]);
@@ -209,11 +210,17 @@ export default function EditPreScreeningPage({ params }: PageProps) {
         setIsLoadingVacancy(true);
         setVacancyError(null);
         
-        // Fetch vacancy and pre-screening in parallel
-        const [vacancyData, preScreeningData] = await Promise.all([
+        // Fetch vacancy, pre-screening, and config in parallel
+        const [vacancyData, preScreeningData, configData] = await Promise.all([
           getVacancy(id),
           getPreScreening(id),
+          getPreScreeningConfig().catch(() => null),
         ]);
+
+        // Set persona name from config
+        if (configData?.settings?.general?.persona_name) {
+          setPersonaName(configData.settings.general.persona_name);
+        }
         
         setVacancy(vacancyData);
         
@@ -507,7 +514,6 @@ export default function EditPreScreeningPage({ params }: PageProps) {
             status: 'draft' as const,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
-            is_online: false,
           };
           
           return {
@@ -686,7 +692,7 @@ export default function EditPreScreeningPage({ params }: PageProps) {
 
   // Update existingPreScreening state after save/publish
   const updateExistingPreScreeningState = useCallback((
-    publishResult: { published_at: string; is_online: boolean; elevenlabs_agent_id?: string; whatsapp_agent_id?: string },
+    publishResult: { published_at: string; elevenlabs_agent_id?: string; whatsapp_agent_id?: string },
     config: ReturnType<typeof buildPreScreeningConfig>
   ) => {
     setExistingPreScreening(prev => {
@@ -701,7 +707,6 @@ export default function EditPreScreeningPage({ params }: PageProps) {
         status: 'active',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
-        is_online: false,
       };
       return {
         ...base,
@@ -722,7 +727,6 @@ export default function EditPreScreeningPage({ params }: PageProps) {
           is_approved: true,
         })),
         published_at: publishResult.published_at,
-        is_online: publishResult.is_online,
         elevenlabs_agent_id: publishResult.elevenlabs_agent_id ?? prev?.elevenlabs_agent_id ?? null,
         whatsapp_agent_id: publishResult.whatsapp_agent_id ?? prev?.whatsapp_agent_id ?? null,
       };
@@ -754,9 +758,9 @@ export default function EditPreScreeningPage({ params }: PageProps) {
       
       // Update local state
       setPublishedAt(publishResult.published_at);
-      setIsOnline(publishResult.is_online);
+      setIsOnline(true); // Publishing means agent is active
       updateExistingPreScreeningState(publishResult, config);
-      
+
       toast.success(`Wijzigingen opgeslagen en agents bijgewerkt`);
       
     } catch (error) {
@@ -793,7 +797,7 @@ export default function EditPreScreeningPage({ params }: PageProps) {
       
       // Update local state with publish result
       setPublishedAt(publishResult.published_at);
-      setIsOnline(publishResult.is_online);
+      setIsOnline(true); // Publishing means agent is active
       
       // Update channel states to match what was just published
       setVoiceEnabled(channels.voice);
@@ -834,21 +838,25 @@ export default function EditPreScreeningPage({ params }: PageProps) {
 
   const performStatusUpdate = async (newOnlineStatus: boolean) => {
     if (!vacancy) return;
-    
+
     setIsTogglingStatus(true);
-    
+
     try {
-      const result = await updatePreScreeningStatus(vacancy.id, newOnlineStatus);
-      setIsOnline(result.is_online);
-      
-      // Update existingPreScreening
-      setExistingPreScreening(prev => prev ? {
-        ...prev,
-        is_online: result.is_online,
-      } : null);
-      
-      toast.success(result.is_online 
-        ? `Pre-screening voor "${vacancy.title}" is nu online` 
+      // Toggle all channels on/off to go online/offline
+      const result = await updateChannelStatus(vacancy.id, {
+        voice_enabled: newOnlineStatus,
+        whatsapp_enabled: newOnlineStatus,
+      });
+
+      if (result.channels) {
+        setVoiceEnabled(result.channels.voice);
+        setWhatsappEnabled(result.channels.whatsapp);
+        setCvEnabled(result.channels.cv);
+        setIsOnline(result.channels.voice || result.channels.whatsapp || result.channels.cv);
+      }
+
+      toast.success(newOnlineStatus
+        ? `Pre-screening voor "${vacancy.title}" is nu online`
         : `Pre-screening voor "${vacancy.title}" is nu offline`
       );
     } catch (error) {
@@ -876,8 +884,10 @@ export default function EditPreScreeningPage({ params }: PageProps) {
         setWhatsappEnabled(result.channels.whatsapp);
         setCvEnabled(result.channels.cv);
       }
-      // Update online status from response (enabling a channel may bring agent online)
-      setIsOnline(result.is_online);
+      // Derive online from channels
+      if (result.channels) {
+        setIsOnline(result.channels.voice || result.channels.whatsapp || result.channels.cv);
+      }
       toast.success(enabled 
         ? 'Voice kanaal geactiveerd' 
         : 'Voice kanaal gedeactiveerd'
@@ -903,8 +913,10 @@ export default function EditPreScreeningPage({ params }: PageProps) {
         setWhatsappEnabled(result.channels.whatsapp);
         setCvEnabled(result.channels.cv);
       }
-      // Update online status from response (enabling a channel may bring agent online)
-      setIsOnline(result.is_online);
+      // Derive online from channels
+      if (result.channels) {
+        setIsOnline(result.channels.voice || result.channels.whatsapp || result.channels.cv);
+      }
       toast.success(enabled 
         ? 'WhatsApp kanaal geactiveerd' 
         : 'WhatsApp kanaal gedeactiveerd'
@@ -930,8 +942,10 @@ export default function EditPreScreeningPage({ params }: PageProps) {
         setWhatsappEnabled(result.channels.whatsapp);
         setCvEnabled(result.channels.cv);
       }
-      // Update online status from response (enabling a channel may bring agent online)
-      setIsOnline(result.is_online);
+      // Derive online from channels
+      if (result.channels) {
+        setIsOnline(result.channels.voice || result.channels.whatsapp || result.channels.cv);
+      }
       toast.success(enabled 
         ? 'Smart CV kanaal geactiveerd' 
         : 'Smart CV kanaal gedeactiveerd'
@@ -964,7 +978,7 @@ export default function EditPreScreeningPage({ params }: PageProps) {
     await startSession({
       vacancy_id: id,
       candidate_name: 'Anna',
-      persona_name: 'Anna',
+      persona_name: personaName,
       candidate_known: false,
     });
   }, [startSession, id]);
@@ -1596,6 +1610,7 @@ export default function EditPreScreeningPage({ params }: PageProps) {
         hasVoice={voiceEnabled}
         hasCv={cvEnabled}
         source={isTestMode ? 'test' : 'widget'}
+        personaName={personaName}
       />
 
       {/* Unsaved Changes Confirmation Dialog */}
