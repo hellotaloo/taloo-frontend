@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { ArrowLeft, ChevronDown, Check, User, UserCheck, Phone, MessageCircle, CheckCircle, RotateCcw, AlertTriangle, Globe, MapPin, Briefcase, ListChecks, BarChart3, PhoneForwarded, ShieldCheck, ShieldOff, PhoneOff, X, HelpCircle } from 'lucide-react';
+import { ArrowLeft, ChevronDown, Check, User, UserCheck, Phone, MessageCircle, CheckCircle, RotateCcw, AlertTriangle, Globe, MapPin, Briefcase, ListChecks, PhoneForwarded, ShieldCheck, ShieldOff, PhoneOff, X, HelpCircle } from 'lucide-react';
 import { ChatBubbleLeftRightIcon } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -15,7 +15,6 @@ import { IPhoneMockup, WhatsAppChat, type ChatScenario, VoiceCallMockup, type Ca
 import { type VoiceOption } from '@/components/blocks/voice-settings';
 import { SolliciteerDialog } from '@/components/blocks/channel-management';
 import { InterviewQuestionsPanel, type GeneratedQuestion } from '@/components/blocks/interview-editor';
-import { InterviewAnalyticsPanel } from '@/components/blocks/interview-analytics';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
@@ -218,7 +217,7 @@ export default function PreScreeningDemoPage() {
   const [showTriggerDialog, setShowTriggerDialog] = useState(false);
 
   // Phone simulator
-  const [simulatorChannel, setSimulatorChannel] = useState<'whatsapp' | 'voice' | 'website' | 'questions' | 'analytics'>('voice');
+  const [simulatorChannel, setSimulatorChannel] = useState<'whatsapp' | 'voice' | 'website' | 'questions'>('voice');
   const [chatScenario, setChatScenario] = useState<ChatScenario>('manual');
   const [chatResetKey, setChatResetKey] = useState(0);
 
@@ -753,7 +752,7 @@ export default function PreScreeningDemoPage() {
           {/* Right panel — Phone mockup */}
           <div className="flex-1 flex flex-col items-center justify-center bg-gray-50 min-h-0 relative">
             {/* Floating channel toggle */}
-            <div className="absolute right-4 top-1/2 -translate-y-1/2 z-50 flex flex-col items-center justify-between h-[270px] bg-white rounded-full shadow-lg border py-2 px-1.5">
+            <div className="absolute right-4 top-1/2 -translate-y-1/2 z-50 flex flex-col items-center gap-1 bg-white rounded-full shadow-lg border py-2 px-1.5">
               <button
                 onClick={() => setSimulatorChannel('questions')}
                 className={cn(
@@ -765,19 +764,6 @@ export default function PreScreeningDemoPage() {
                 title="Interview vragen"
               >
                 <ListChecks className="h-4 w-4" />
-              </button>
-              <div className="w-5 h-px bg-gray-200" />
-              <button
-                onClick={() => setSimulatorChannel('analytics')}
-                className={cn(
-                  'p-2 rounded-full transition-colors',
-                  simulatorChannel === 'analytics'
-                    ? 'bg-gray-900 text-white'
-                    : 'text-gray-400 hover:text-gray-600'
-                )}
-                title="Analyse"
-              >
-                <BarChart3 className="h-4 w-4" />
               </button>
               <div className="w-5 h-px bg-gray-200" />
               <button
@@ -836,16 +822,6 @@ export default function PreScreeningDemoPage() {
                       questions={questions}
                       readOnly
                     />
-                  )}
-                </div>
-              </div>
-            ) : simulatorChannel === 'analytics' ? (
-              <div className="w-full h-full overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] px-8 py-6">
-                <div className="max-w-[720px] mx-auto">
-                  {selectedVacancy ? (
-                    <InterviewAnalyticsPanel questions={questions} vacancyId={selectedVacancy} />
-                  ) : (
-                    <p className="text-sm text-gray-400 text-center py-12">Selecteer een vacature om de analyse te bekijken</p>
                   )}
                 </div>
               </div>
