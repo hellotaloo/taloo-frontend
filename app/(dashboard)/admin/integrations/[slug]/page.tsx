@@ -94,7 +94,7 @@ export default function IntegrationConnectionPage() {
       const conn = connections.find((c) => c.integration.slug === slug);
       if (conn) {
         setConnection(conn);
-        setSfObject(conn.settings?.sf_object ?? '');
+        setSfObject(String(conn.settings?.sf_object ?? ''));
       }
     } catch {
       toast.error('Kon gegevens niet laden');

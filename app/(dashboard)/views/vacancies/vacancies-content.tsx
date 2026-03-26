@@ -35,6 +35,9 @@ export function VacanciesContent() {
   const [selectedDetail, setSelectedDetail] = useState<APIVacancyDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
 
+  // Track whether initial fetch has completed (to avoid spinner on realtime refetches)
+  const initialLoadDone = useRef(false);
+
   // Sync state
   const [syncing, setSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState('');
@@ -58,11 +61,14 @@ export function VacanciesContent() {
   }, [searchParams]);
 
   const fetchVacancies = useCallback(async () => {
-    setLoading(true);
+    if (!initialLoadDone.current) {
+      setLoading(true);
+    }
     setError(null);
     try {
       const response = await getVacanciesFromAPI({ limit: 100 });
       setVacancies(response.items);
+      initialLoadDone.current = true;
     } catch (err) {
       console.error('Failed to fetch vacancies:', err);
       setError('Kon vacatures niet laden');
