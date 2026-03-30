@@ -356,7 +356,9 @@ export function AppSidebar() {
                   </Avatar>
                   <div className="flex-1 text-left min-w-0">
                     <p className="text-sm font-medium truncate">
-                      {user?.full_name || tCommon('user')}
+                      {user?.full_name
+                        ? user.full_name.charAt(0).toUpperCase() + user.full_name.slice(1)
+                        : tCommon('user')}
                     </p>
                     <p className="text-xs text-sidebar-foreground/60 truncate">
                       {user?.email || ''}
