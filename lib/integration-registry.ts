@@ -49,21 +49,22 @@ export function getProviderBlueprint(slug: string): IntegrationBlueprint {
 }
 
 /**
- * Derive a user-facing status label and badge variant from a connection.
+ * Derive a status translation key and badge variant from a connection.
+ * The returned `labelKey` should be passed to `t()` with the `integrations` namespace.
  */
 export function getStatusDisplay(connection?: ConnectionResponse): {
-  label: string;
+  labelKey: string;
   variant: StatusBadgeVariant;
 } {
   if (!connection || !connection.has_credentials) {
-    return { label: 'Niet geconfigureerd', variant: 'gray' };
+    return { labelKey: 'statusNotConfigured', variant: 'gray' };
   }
   switch (connection.health_status) {
     case 'healthy':
-      return { label: 'Verbonden', variant: 'green' };
+      return { labelKey: 'statusConnected', variant: 'green' };
     case 'unhealthy':
-      return { label: 'Verbinding mislukt', variant: 'red' };
+      return { labelKey: 'statusConnectionFailed', variant: 'red' };
     default:
-      return { label: 'Niet getest', variant: 'orange' };
+      return { labelKey: 'statusNotTested', variant: 'orange' };
   }
 }

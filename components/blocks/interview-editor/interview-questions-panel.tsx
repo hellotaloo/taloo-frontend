@@ -6,6 +6,7 @@ import { Check, ChevronDown, GripVertical, Link2, MessagesSquare, Pencil, Plus, 
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { BoltIcon } from '@heroicons/react/24/solid';
 import { GeneratedQuestion } from './question-list-message';
+import { useTranslations } from '@/lib/i18n';
 import {
   DndContext,
   closestCenter,
@@ -37,6 +38,7 @@ interface InterviewQuestionsPanelProps {
 }
 
 export function InterviewQuestionsPanel({ questions, isGenerating = false, highlightedIds = [], onQuestionClick, onReorder, onAddQuestion, onDeleteQuestion, onEditQuestion, readOnly = false }: InterviewQuestionsPanelProps) {
+  const t = useTranslations('interviewEditor');
   const knockoutQuestions = questions.filter(q => q.type === 'knockout');
   const qualifyingQuestions = questions.filter(q => q.type === 'qualifying');
   const hasQuestions = questions.length > 0;
@@ -155,14 +157,14 @@ export function InterviewQuestionsPanel({ questions, isGenerating = false, highl
       <TimelineItem animationDelay={triggerDelay}>
         <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-brand-lime-green">
           <BoltIcon className="w-3.5 h-3.5 text-black" />
-          <span className="text-xs font-medium text-black">Nieuwe sollicitatie</span>
+          <span className="text-xs font-medium text-black">{t('newApplication')}</span>
         </div>
       </TimelineItem>
 
       {/* Intro */}
       <TimelineItem animationDelay={introDelay}>
         <div className="bg-brand-dark-blue rounded-lg p-3">
-          <p className="text-xs font-medium text-slate-400 mb-1">Intro</p>
+          <p className="text-xs font-medium text-slate-400 mb-1">{t('intro')}</p>
           <p className="text-sm text-white">Begroet kandidaat en vraag of hij/zij nu wil starten met het interview. Geef aan hoelang het duurt.</p>
         </div>
       </TimelineItem>
@@ -170,7 +172,7 @@ export function InterviewQuestionsPanel({ questions, isGenerating = false, highl
       {/* Knockout Questions */}
       <TimelineItem animationDelay={knockoutHeaderDelay} alignDot="top">
         <h4 className="text-xs font-normal text-black uppercase tracking-wide mb-2">
-          Knock-out vragen
+          {t('knockoutQuestions')}
         </h4>
         <DndContext
           sensors={readOnly ? [] : sensors}
@@ -200,7 +202,7 @@ export function InterviewQuestionsPanel({ questions, isGenerating = false, highl
                 <AddQuestionInput 
                   type="knockout" 
                   onAdd={onAddQuestion}
-                  placeholder="Voeg knock-out vraag toe..."
+                  placeholder={t('addKnockout')}
                 />
               )}
             </div>
@@ -210,7 +212,7 @@ export function InterviewQuestionsPanel({ questions, isGenerating = false, highl
 
       {/* Branch: Not passed */}
       <TimelineBranch 
-        condition="Niet geslaagd"
+        condition={t('notPassed')}
         outcome="Interesse in andere matches?"
         icon={UserX}
         animationDelay={branchDelay}
@@ -224,13 +226,13 @@ export function InterviewQuestionsPanel({ questions, isGenerating = false, highl
         <div className="absolute left-[-24px] w-4 h-4 rounded-full bg-green-500 border-2 border-green-500 flex items-center justify-center">
           <div className="w-1.5 h-1.5 rounded-full bg-white" />
         </div>
-        <span className="text-xs text-green-600 font-medium">Geslaagd</span>
+        <span className="text-xs text-green-600 font-medium">{t('passed')}</span>
       </div>
 
       {/* Qualifying Questions */}
       <TimelineItem animationDelay={qualifyingHeaderDelay} alignDot="top">
         <h4 className="text-xs font-normal text-black uppercase tracking-wide mb-2">
-          Kwalificerende vragen
+          {t('qualificationQuestions')}
         </h4>
         <DndContext
           sensors={readOnly ? [] : sensors}
@@ -260,7 +262,7 @@ export function InterviewQuestionsPanel({ questions, isGenerating = false, highl
                 <AddQuestionInput 
                   type="qualifying" 
                   onAdd={onAddQuestion}
-                  placeholder="Voeg kwalificerende vraag toe..."
+                  placeholder={t('addQualification')}
                 />
               )}
             </div>

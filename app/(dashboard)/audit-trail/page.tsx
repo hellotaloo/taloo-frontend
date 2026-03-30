@@ -24,6 +24,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { cn, formatRelativeDate } from '@/lib/utils';
+import { useTranslations, useLocale, type TFunction } from '@/lib/i18n';
 import { PageLayout, PageLayoutHeader, PageLayoutContent } from '@/components/layout/page-layout';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
@@ -73,22 +74,27 @@ const eventTypeConfig: Record<string, { icon: React.ElementType; color: string; 
 // Default config for unknown event types
 const defaultEventConfig = { icon: Bell, color: 'text-gray-500', dotColor: 'bg-gray-500' };
 
-// Actor type configuration
-const actorTypeConfig: Record<ActivityActorType, { label: string; color: string; bgColor: string }> = {
-  agent: { label: 'Agent', color: 'text-white', bgColor: 'bg-brand-dark-blue' },
-  candidate: { label: 'Kandidaat', color: 'text-gray-700', bgColor: 'bg-gray-50' },
-  recruiter: { label: 'Recruiter', color: 'text-orange-700', bgColor: 'bg-orange-50' },
-  system: { label: 'Systeem', color: 'text-gray-500', bgColor: 'bg-gray-50' },
+// Actor type configuration — labels are translation keys
+const actorTypeLabelKeys: Record<ActivityActorType, string> = {
+  agent: 'agentDefault',
+  candidate: 'actorCandidate',
+  recruiter: 'Recruiter',
+  system: 'actorSystem',
+};
+
+const actorTypeStyles: Record<ActivityActorType, { color: string; bgColor: string }> = {
+  agent: { color: 'text-white', bgColor: 'bg-brand-dark-blue' },
+  candidate: { color: 'text-gray-700', bgColor: 'bg-gray-50' },
+  recruiter: { color: 'text-orange-700', bgColor: 'bg-orange-50' },
+  system: { color: 'text-gray-500', bgColor: 'bg-gray-50' },
 };
 
 // Get specific agent name based on event type
-function getAgentName(eventType: string, metadata: Record<string, unknown>): string {
-  // Check if agent_name is provided in metadata
+function getAgentName(eventType: string, metadata: Record<string, unknown>, t: TFunction): string {
   if (metadata.agent_name && typeof metadata.agent_name === 'string') {
     return metadata.agent_name;
   }
 
-  // Derive from event type
   const screeningEvents = [
     'screening_started', 'screening_completed', 'screening_abandoned',
     'message_sent', 'message_received',
@@ -104,17 +110,10 @@ function getAgentName(eventType: string, metadata: Record<string, unknown>): str
 
   const cvEvents = ['cv_uploaded', 'cv_analyzed'];
 
-  if (screeningEvents.includes(eventType)) {
-    return 'Pre-screening';
-  }
-  if (onboardingEvents.includes(eventType)) {
-    return 'Documentcollectie';
-  }
-  if (cvEvents.includes(eventType)) {
-    return 'CV Analyse';
-  }
-
-  return 'Agent';
+  if (screeningEvents.includes(eventType)) return t('agentPreScreening');
+  if (onboardingEvents.includes(eventType)) return t('agentDocCollection');
+  if (cvEvents.includes(eventType)) return t('agentCvAnalysis');
+  return t('agentDefault');
 }
 
 // Channel badge
@@ -149,26 +148,25 @@ function formatDuration(seconds: number): string {
   return secs > 0 ? `${mins}m ${secs}s` : `${mins}m`;
 }
 
-// Document type labels
-const documentTypeLabels: Record<string, string> = {
-  id_card: 'ID-kaart',
-  driver_license: 'Rijbewijs',
-  work_permit: 'Werkvergunning',
-  medical_certificate: 'Medisch attest',
-  certificate_diploma: 'Diploma',
-  bank_account: 'Bankrekening',
+// Maps API keys → translation keys
+const documentTypeKeyMap: Record<string, string> = {
+  id_card: 'docIdCard',
+  driver_license: 'docDriverLicense',
+  work_permit: 'docWorkPermit',
+  medical_certificate: 'docMedicalCert',
+  certificate_diploma: 'docDiploma',
+  bank_account: 'docBankAccount',
 };
 
-// Reason labels
-const reasonLabels: Record<string, string> = {
-  availability_mismatch: 'Beschikbaarheid komt niet overeen',
-  experience_mismatch: 'Ervaring voldoet niet',
-  location_mismatch: 'Locatie komt niet overeen',
-  salary_mismatch: 'Salarisverwachting komt niet overeen',
+const reasonKeyMap: Record<string, string> = {
+  availability_mismatch: 'reasonAvailability',
+  experience_mismatch: 'reasonExperience',
+  location_mismatch: 'reasonLocation',
+  salary_mismatch: 'reasonSalary',
 };
 
 // Extract preview content from metadata based on event type
-function getMetadataPreview(metadata: Record<string, unknown>, eventType: string): {
+function getMetadataPreview(metadata: Record<string, unknown>, eventType: string, t: TFunction): {
   badges: { label: string; value: string; color: string }[];
   snippet?: string;
   snippetLabel?: string;
@@ -184,18 +182,18 @@ function getMetadataPreview(metadata: Record<string, unknown>, eventType: string
     const score = metadata.score;
     const displayScore = score > 1 ? score : Math.round(score * 100);
     const color = displayScore >= 70 ? 'bg-green-500 text-white' : displayScore >= 40 ? 'bg-orange-500 text-white' : 'bg-red-500 text-white';
-    badges.push({ label: 'Score', value: `${displayScore}%`, color });
+    badges.push({ label: t('badgeScore'), value: `${displayScore}%`, color });
   }
 
   if ('match_score' in metadata && typeof metadata.match_score === 'number') {
     const score = metadata.match_score;
     const color = score >= 70 ? 'bg-green-500 text-white' : score >= 40 ? 'bg-orange-500 text-white' : 'bg-red-500 text-white';
-    badges.push({ label: 'Match', value: `${score}%`, color });
+    badges.push({ label: t('badgeMatch'), value: `${score}%`, color });
   }
 
   if ('knockout_passed' in metadata && 'knockout_total' in metadata) {
     badges.push({
-      label: 'Knockout',
+      label: t('badgeKnockout'),
       value: `${metadata.knockout_passed}/${metadata.knockout_total}`,
       color: 'bg-blue-500 text-white',
     });
@@ -203,7 +201,7 @@ function getMetadataPreview(metadata: Record<string, unknown>, eventType: string
 
   if ('duration_seconds' in metadata && typeof metadata.duration_seconds === 'number') {
     badges.push({
-      label: 'Duur',
+      label: t('badgeDuration'),
       value: formatDuration(metadata.duration_seconds),
       color: 'bg-gray-500 text-white',
     });
@@ -211,16 +209,16 @@ function getMetadataPreview(metadata: Record<string, unknown>, eventType: string
 
   if ('document_type' in metadata && typeof metadata.document_type === 'string') {
     badges.push({
-      label: 'Document',
-      value: documentTypeLabels[metadata.document_type] || metadata.document_type,
+      label: t('badgeDocument'),
+      value: documentTypeKeyMap[metadata.document_type] ? t(documentTypeKeyMap[metadata.document_type]) : metadata.document_type,
       color: 'bg-purple-500 text-white',
     });
   }
 
   if ('experience_years' in metadata && typeof metadata.experience_years === 'number') {
     badges.push({
-      label: 'Ervaring',
-      value: `${metadata.experience_years} jaar`,
+      label: t('badgeExperience'),
+      value: t('experienceYears', { count: metadata.experience_years as number }),
       color: 'bg-gray-500 text-white',
     });
   }
@@ -230,44 +228,44 @@ function getMetadataPreview(metadata: Record<string, unknown>, eventType: string
     case 'screening_started':
       if (metadata.first_message && typeof metadata.first_message === 'string') {
         snippet = metadata.first_message;
-        snippetLabel = 'Eerste bericht';
+        snippetLabel = t('snippetFirstMessage');
       }
       break;
     case 'qualified':
     case 'screening_completed':
       if (metadata.last_answer && typeof metadata.last_answer === 'string') {
         snippet = metadata.last_answer;
-        snippetLabel = 'Laatste antwoord';
+        snippetLabel = t('snippetLastAnswer');
       } else if (metadata.transcript_preview && typeof metadata.transcript_preview === 'string') {
         snippet = metadata.transcript_preview;
-        snippetLabel = 'Fragment';
+        snippetLabel = t('snippetFragment');
       }
       break;
     case 'disqualified':
       if (metadata.candidate_response && typeof metadata.candidate_response === 'string') {
         snippet = metadata.candidate_response;
-        snippetLabel = metadata.knockout_failed ? `Knockout: ${metadata.knockout_failed}` : 'Antwoord';
+        snippetLabel = metadata.knockout_failed ? `Knockout: ${metadata.knockout_failed}` : t('snippetAnswer');
       } else if (metadata.reason && typeof metadata.reason === 'string') {
-        snippet = reasonLabels[metadata.reason] || metadata.reason;
-        snippetLabel = 'Reden';
+        snippet = reasonKeyMap[metadata.reason] ? t(reasonKeyMap[metadata.reason]) : metadata.reason;
+        snippetLabel = t('snippetReason');
       }
       break;
     case 'call_completed':
       if (metadata.transcript_preview && typeof metadata.transcript_preview === 'string') {
         snippet = metadata.transcript_preview;
-        snippetLabel = 'Fragment';
+        snippetLabel = t('snippetFragment');
       }
       break;
     case 'call_failed':
       if (metadata.reason && typeof metadata.reason === 'string') {
         snippet = metadata.reason;
-        snippetLabel = 'Reden';
+        snippetLabel = t('snippetReason');
       }
       break;
     case 'interview_scheduled':
       if (metadata.slot_text && typeof metadata.slot_text === 'string') {
         snippet = metadata.slot_text;
-        snippetLabel = 'Gepland';
+        snippetLabel = t('snippetScheduled');
       }
       break;
     case 'cv_analyzed':
@@ -299,7 +297,8 @@ function getMetadataPreview(metadata: Record<string, unknown>, eventType: string
 
 // Metadata display component
 function MetadataDisplay({ metadata, eventType }: { metadata: Record<string, unknown>; eventType: string }) {
-  const preview = getMetadataPreview(metadata, eventType);
+  const t = useTranslations('auditTrail');
+  const preview = getMetadataPreview(metadata, eventType, t);
   if (!preview) return null;
 
   const { badges, snippet, snippetLabel } = preview;
@@ -371,14 +370,17 @@ function ActivityRow({
   onCandidateClick: (candidateId: string) => void;
   onVacancyClick: (vacancyId: string) => void;
 }) {
+  const t = useTranslations('auditTrail');
+  const { locale } = useLocale();
   const eventConfig = eventTypeConfig[activity.event_type] || defaultEventConfig;
-  const actorConfig = actorTypeConfig[activity.actor_type] || actorTypeConfig.system;
+  const actorStyles = actorTypeStyles[activity.actor_type] || actorTypeStyles.system;
   const EventIcon = eventConfig.icon;
 
   // Get display label for actor
+  const actorLabelKey = actorTypeLabelKeys[activity.actor_type] || 'agentDefault';
   const actorLabel = activity.actor_type === 'agent'
-    ? getAgentName(activity.event_type, activity.metadata)
-    : actorConfig.label;
+    ? getAgentName(activity.event_type, activity.metadata, t)
+    : (actorLabelKey === 'Recruiter' ? 'Recruiter' : t(actorLabelKey));
 
   return (
     <div
@@ -437,11 +439,11 @@ function ActivityRow({
 
       {/* Right column: actor + timestamp */}
       <div className="shrink-0 flex flex-col items-end gap-1">
-        <span className={cn('inline-flex px-1.5 py-0.5 rounded text-[10px] font-medium whitespace-nowrap', actorConfig.bgColor, actorConfig.color)}>
+        <span className={cn('inline-flex px-1.5 py-0.5 rounded text-[10px] font-medium whitespace-nowrap', actorStyles.bgColor, actorStyles.color)}>
           {actorLabel}
         </span>
         <span className="text-[10px] text-gray-400 whitespace-nowrap">
-          {formatRelativeDate(activity.created_at)}
+          {formatRelativeDate(activity.created_at, locale)}
         </span>
       </div>
     </div>
@@ -454,6 +456,8 @@ type FilterType = 'all' | 'candidate' | 'recruiter' | 'agent';
 const PAGE_SIZE = 50;
 
 export default function AuditTrailPage() {
+  const t = useTranslations('auditTrail');
+  const { locale } = useLocale();
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [activities, setActivities] = useState<GlobalActivity[]>([]);
@@ -651,16 +655,16 @@ export default function AuditTrailPage() {
 
     filteredActivities.forEach((activity) => {
       const activityDate = new Date(activity.created_at).toDateString();
-      let label = new Date(activity.created_at).toLocaleDateString('nl-BE', {
+      let label = new Date(activity.created_at).toLocaleDateString(locale === 'en' ? 'en-GB' : 'nl-BE', {
         weekday: 'long',
         day: 'numeric',
         month: 'long',
       });
 
       if (activityDate === today) {
-        label = 'Vandaag';
+        label = t('today');
       } else if (activityDate === yesterday) {
-        label = 'Gisteren';
+        label = t('yesterday');
       }
 
       const existingGroup = groups.find((g) => g.date === activityDate);
@@ -672,7 +676,7 @@ export default function AuditTrailPage() {
     });
 
     return groups;
-  }, [filteredActivities]);
+  }, [filteredActivities, t, locale]);
 
   return (
     <>
@@ -686,19 +690,19 @@ export default function AuditTrailPage() {
                 <TabsList variant="line">
                   <TabsTrigger value="all" data-testid="filter-all">
                     <Filter className="w-3.5 h-3.5" />
-                    Alle
+                    {t('all')}
                   </TabsTrigger>
                   <TabsTrigger value="candidate" data-testid="filter-candidate">
                     <Users className="w-3.5 h-3.5" />
-                    Kandidaten
+                    {t('candidatesTab')}
                   </TabsTrigger>
                   <TabsTrigger value="recruiter" data-testid="filter-recruiter">
                     <UserCog className="w-3.5 h-3.5" />
-                    Recruiters
+                    {t('recruitersTab')}
                   </TabsTrigger>
                   <TabsTrigger value="agent" data-testid="filter-agent">
                     <Settings className="w-3.5 h-3.5" />
-                    Agents
+                    {t('agentsTab')}
                   </TabsTrigger>
                 </TabsList>
               </Tabs>
@@ -706,7 +710,7 @@ export default function AuditTrailPage() {
               <SearchInput
                 value={searchQuery}
                 onChange={setSearchQuery}
-                placeholder="Zoeken..."
+                placeholder={t('search')}
                 className="w-64"
                 data-testid="activity-search"
               />
@@ -717,7 +721,7 @@ export default function AuditTrailPage() {
               {isLoading ? (
                 <div data-testid="activities-loading" className="flex flex-col items-center justify-center h-64 text-gray-400">
                   <Loader2 className="w-8 h-8 mb-4 animate-spin" />
-                  <p className="text-sm">Activiteiten laden...</p>
+                  <p className="text-sm">{t('loading')}</p>
                 </div>
               ) : error ? (
                 <div data-testid="activities-error" className="flex flex-col items-center justify-center h-64 text-gray-400">
@@ -727,7 +731,7 @@ export default function AuditTrailPage() {
               ) : groupedActivities.length === 0 ? (
                 <div data-testid="activities-empty" className="flex flex-col items-center justify-center h-64 text-gray-400">
                   <Bell className="w-12 h-12 mb-4 opacity-50" />
-                  <p className="text-sm">Geen activiteiten gevonden</p>
+                  <p className="text-sm">{t('noActivities')}</p>
                 </div>
               ) : (
                 <>
@@ -763,7 +767,7 @@ export default function AuditTrailPage() {
                   {/* Load more / summary */}
                   <div className="flex items-center justify-between pt-2">
                     <span className="text-xs text-gray-400">
-                      {activities.length} van {total} activiteiten
+                      {t('ofActivities', { shown: activities.length, total })}
                     </span>
                     {hasMore && (
                       <button
@@ -773,7 +777,7 @@ export default function AuditTrailPage() {
                         className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
                       >
                         {isLoadingMore && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                        {isLoadingMore ? 'Laden...' : 'Meer laden'}
+                        {isLoadingMore ? t('loading') : t('loadMore')}
                       </button>
                     )}
                   </div>

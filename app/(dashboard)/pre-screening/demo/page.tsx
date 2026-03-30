@@ -18,82 +18,65 @@ import { InterviewQuestionsPanel, type GeneratedQuestion } from '@/components/bl
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
+import { useTranslations, useLocale } from '@/lib/i18n';
 import { getPreScreeningVacancies, getPreScreening, getVacancy, getPreScreeningConfig } from '@/lib/interview-api';
 import { usePlaygroundSession } from '@/hooks/use-playground-session';
 import type { Vacancy, AgentVacancy } from '@/lib/types';
 
-const VOICE_OPTIONS: VoiceOption[] = [
-  {
-    id: 'liv',
-    name: 'Anna',
-    description: 'Warm en professioneel',
-    gender: 'female',
-    voiceId: 'ANHrhmaFeVN0QJaa0PhL',
-    avatar: '/avatars/large/female_6.png',
-  },
-  {
-    id: 'bob',
-    name: 'Bob',
-    description: 'Zelfverzekerd en helder',
-    gender: 'male',
-    avatar: '/avatars/large/male_2.png',
-    voiceId: 's7Z6uboUuE4Nd8Q2nye6',
-  },
-  {
-    id: 'louise',
-    name: 'Louise',
-    description: 'Vriendelijk en natuurlijk',
-    gender: 'female',
-    voiceId: 'pFZP5JQG7iQjIQuC4Bku',
-    avatar: '/avatars/large/female_1.png',
-  },
-  {
-    id: 'luc',
-    name: 'Luc',
-    description: 'Energiek en vriendelijk',
-    gender: 'male',
-    avatar: '/avatars/large/male_1.png',
-  },
+// Voice options — descriptions use translation keys resolved at render time
+const VOICE_OPTIONS_BASE: (Omit<VoiceOption, 'description'> & { descKey: string })[] = [
+  { id: 'liv', name: 'Anna', descKey: 'voiceWarm', gender: 'female', voiceId: 'ANHrhmaFeVN0QJaa0PhL', avatar: '/avatars/large/female_6.png' },
+  { id: 'bob', name: 'Bob', descKey: 'voiceConfident', gender: 'male', avatar: '/avatars/large/male_2.png', voiceId: 's7Z6uboUuE4Nd8Q2nye6' },
+  { id: 'louise', name: 'Louise', descKey: 'voiceFriendly', gender: 'female', voiceId: 'pFZP5JQG7iQjIQuC4Bku', avatar: '/avatars/large/female_1.png' },
+  { id: 'luc', name: 'Luc', descKey: 'voiceEnergetic', gender: 'male', avatar: '/avatars/large/male_1.png' },
 ];
 
 
 type CandidateContext = 'unknown' | 'known' | 'known_with_vacancy' | 'blocked';
 
 // Compute a weekday +3 days from now for the "active vacancy" scenario
-function getNextWeekday3Days(): { short: string; full: string } {
+function getNextWeekday3Days(intlLocale: string, atTimeLabel: string): { short: string; full: string } {
   const date = new Date();
   date.setDate(date.getDate() + 3);
   const day = date.getDay();
-  if (day === 0) date.setDate(date.getDate() + 1); // Sun → Mon
-  if (day === 6) date.setDate(date.getDate() + 2); // Sat → Mon
-  const days = ['zondag', 'maandag', 'dinsdag', 'woensdag', 'donderdag', 'vrijdag', 'zaterdag'];
-  const months = ['januari', 'februari', 'maart', 'april', 'mei', 'juni', 'juli', 'augustus', 'september', 'oktober', 'november', 'december'];
-  const monthsShort = ['jan', 'feb', 'mrt', 'apr', 'mei', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'];
+  if (day === 0) date.setDate(date.getDate() + 1);
+  if (day === 6) date.setDate(date.getDate() + 2);
+  const shortFmt = new Intl.DateTimeFormat(intlLocale, { day: 'numeric', month: 'short' });
+  const fullFmt = new Intl.DateTimeFormat(intlLocale, { weekday: 'long', day: 'numeric', month: 'long' });
   return {
-    short: `${date.getDate()} ${monthsShort[date.getMonth()]}`,
-    full: `${days[date.getDay()]} ${date.getDate()} ${months[date.getMonth()]} om 10 uur`,
+    short: shortFmt.format(date),
+    full: `${fullFmt.format(date)} ${atTimeLabel}`,
   };
 }
 
-const BOOKING_DATE = getNextWeekday3Days();
-
-const CANDIDATE_CONTEXT_OPTIONS: { id: CandidateContext; label: string; description: string; candidateName: string; icon: typeof User; iconBg: string }[] = [
-  { id: 'unknown', label: 'Onbekende kandidaat', description: 'Nieuw persoon, geen data bekend', candidateName: 'Onbekende beller', icon: HelpCircle, iconBg: 'bg-gray-500' },
-  { id: 'known', label: 'Bekende kandidaat', description: 'Werkvergunning al gevalideerd, wordt overgeslagen', candidateName: 'Jan de Vries', icon: UserCheck, iconBg: 'bg-sky-600' },
-  { id: 'known_with_vacancy', label: 'Kandidaat met actieve vacature', description: `Interview bij zelfde opdrachtgever op ${BOOKING_DATE.short}`, candidateName: 'Sophie Bakker', icon: Briefcase, iconBg: 'bg-emerald-600' },
-  { id: 'blocked', label: 'Geblokkeerde kandidaat', description: 'Kandidaat staat op de blokkeerlijst', candidateName: 'Geblokkeerd Persoon', icon: ShieldOff, iconBg: 'bg-red-600' },
-];
-
 type StartAgent = 'greeting' | 'screening' | 'open_questions' | 'scheduling';
 
-const START_AGENT_OPTIONS: { id: StartAgent; label: string; description: string }[] = [
-  { id: 'greeting', label: 'Welkom', description: 'Start bij de begroeting' },
-  { id: 'screening', label: 'Knockout-vragen', description: 'Start bij de screeningvragen' },
-  { id: 'open_questions', label: 'Kwalificatievragen', description: 'Start bij de open vragen' },
-  { id: 'scheduling', label: 'Inplannen interview', description: 'Start bij het inplannen' },
-];
-
 export default function PreScreeningDemoPage() {
+  const t = useTranslations('psPlayground');
+  const { locale } = useLocale();
+
+  // Build translated config arrays
+  const VOICE_OPTIONS: VoiceOption[] = VOICE_OPTIONS_BASE.map(v => ({
+    ...v, description: t(v.descKey),
+  }));
+
+  const intlLocale = locale === 'en' ? 'en-GB' : 'nl-BE';
+  const BOOKING_DATE = getNextWeekday3Days(intlLocale, t('atTime'));
+
+  const CANDIDATE_CONTEXT_OPTIONS: { id: CandidateContext; label: string; description: string; candidateName: string; icon: typeof User; iconBg: string }[] = [
+    { id: 'unknown', label: t('ctxUnknown'), description: t('ctxUnknownDesc'), candidateName: t('ctxUnknownName'), icon: HelpCircle, iconBg: 'bg-gray-500' },
+    { id: 'known', label: t('ctxKnown'), description: t('ctxKnownDesc'), candidateName: 'Jan de Vries', icon: UserCheck, iconBg: 'bg-sky-600' },
+    { id: 'known_with_vacancy', label: t('ctxKnownWithVacancy'), description: t('ctxKnownWithVacancyDesc', { date: BOOKING_DATE.short }), candidateName: 'Sophie Bakker', icon: Briefcase, iconBg: 'bg-emerald-600' },
+    { id: 'blocked', label: t('ctxBlocked'), description: t('ctxBlockedDesc'), candidateName: t('ctxBlockedName'), icon: ShieldOff, iconBg: 'bg-red-600' },
+  ];
+
+  const START_AGENT_OPTIONS: { id: StartAgent; label: string; description: string }[] = [
+    { id: 'greeting', label: t('stageGreeting'), description: t('stageGreetingDesc') },
+    { id: 'screening', label: t('stageKnockout'), description: t('stageKnockoutDesc') },
+    { id: 'open_questions', label: t('stageQualification'), description: t('stageQualificationDesc') },
+    { id: 'scheduling', label: t('stageScheduling'), description: t('stageSchedulingDesc') },
+  ];
+
   // Voice selection
   const [selectedVoice, setSelectedVoice] = useState('liv');
   const [voiceSelectOpen, setVoiceSelectOpen] = useState(false);
@@ -212,6 +195,7 @@ export default function PreScreeningDemoPage() {
   const [askConsent, setAskConsent] = useState(false);
   const [isUrgent, setIsUrgent] = useState(false);
   const [allowInterruption, setAllowInterruption] = useState(false);
+  const [conversationLanguage, setConversationLanguage] = useState<string>("");
 
   // Trigger interview dialog
   const [showTriggerDialog, setShowTriggerDialog] = useState(false);
@@ -281,8 +265,9 @@ export default function PreScreeningDemoPage() {
       voice_id: selectedVoiceData?.voiceId,
       known_answers: isKnown ? { ko_1: 'ja' } : undefined,
       existing_booking_date: candidateContext === 'known_with_vacancy' ? BOOKING_DATE.full : undefined,
+      conversation_language: conversationLanguage || undefined,
     });
-  }, [startSession, selectedVacancy, selectedCandidateContextData, startAgent, askConsent, candidateContext, allowEscalation, selectedVoiceData]);
+  }, [startSession, selectedVacancy, selectedCandidateContextData, startAgent, askConsent, candidateContext, allowEscalation, selectedVoiceData, conversationLanguage]);
 
   const handleCallStateChange = useCallback((state: CallState) => {
     if (isSimulatedRinging) {
@@ -313,7 +298,7 @@ export default function PreScreeningDemoPage() {
     return (
       <div className="flex items-center justify-center h-[calc(100vh-40px)]">
         <div className="w-5 h-5 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
-        <span className="ml-2 text-gray-500">Vacatures laden...</span>
+        <span className="ml-2 text-gray-500">{t('loadingVacancies')}</span>
       </div>
     );
   }
@@ -373,8 +358,8 @@ export default function PreScreeningDemoPage() {
             {/* Voice Selection */}
             <section className={cn("space-y-3", isSessionActive && "opacity-50 pointer-events-none")}>
               <div>
-                <h2 className="text-sm font-semibold text-gray-900">Selecteer stem</h2>
-                <p className="text-xs text-gray-500 mt-0.5">Kies een stem voor de demo</p>
+                <h2 className="text-sm font-semibold text-gray-900">{t('selectVoice')}</h2>
+                <p className="text-xs text-gray-500 mt-0.5">{t('selectVoiceDesc')}</p>
               </div>
 
               <Popover open={voiceSelectOpen} onOpenChange={setVoiceSelectOpen}>
@@ -466,8 +451,8 @@ export default function PreScreeningDemoPage() {
             {/* Vacancy Selection */}
             <section className={cn("space-y-3", isSessionActive && "opacity-50 pointer-events-none")}>
               <div>
-                <h2 className="text-sm font-semibold text-gray-900">Selecteer vacature</h2>
-                <p className="text-xs text-gray-500 mt-0.5">Kies een vacature voor de demo</p>
+                <h2 className="text-sm font-semibold text-gray-900">{t('selectVacancy')}</h2>
+                <p className="text-xs text-gray-500 mt-0.5">{t('selectVacancyDesc')}</p>
               </div>
 
               {vacanciesLoading ? (
@@ -481,7 +466,7 @@ export default function PreScreeningDemoPage() {
               ) : vacancies.length === 0 ? (
                 <div className="flex items-center gap-3 p-3 rounded-lg border border-dashed border-gray-300 text-gray-400">
                   <Briefcase className="w-5 h-5" />
-                  <span className="text-sm">Geen vacatures met pre-screening gevonden</span>
+                  <span className="text-sm">{t('noVacancies')}</span>
                 </div>
               ) : (
               <Popover open={vacancySelectOpen} onOpenChange={setVacancySelectOpen}>
@@ -540,8 +525,8 @@ export default function PreScreeningDemoPage() {
             {/* Candidate Context */}
             <section className={cn("space-y-3", isSessionActive && "opacity-50 pointer-events-none")}>
               <div>
-                <h2 className="text-sm font-semibold text-gray-900">Kandidaat context</h2>
-                <p className="text-xs text-gray-500 mt-0.5">Welk type kandidaat belt er in</p>
+                <h2 className="text-sm font-semibold text-gray-900">{t('candidateContext')}</h2>
+                <p className="text-xs text-gray-500 mt-0.5">{t('candidateContextDesc')}</p>
               </div>
 
               <Popover open={candidateContextOpen} onOpenChange={setCandidateContextOpen}>
@@ -602,8 +587,8 @@ export default function PreScreeningDemoPage() {
             {/* Start Agent */}
             <section className={cn("space-y-3", isSessionActive && "opacity-50 pointer-events-none")}>
               <div>
-                <h2 className="text-sm font-semibold text-gray-900">Start interview bij</h2>
-                <p className="text-xs text-gray-500 mt-0.5">Kies bij welke stap het interview begint</p>
+                <h2 className="text-sm font-semibold text-gray-900">{t('startAt')}</h2>
+                <p className="text-xs text-gray-500 mt-0.5">{t('startAtDesc')}</p>
               </div>
 
               <Popover open={startAgentOpen} onOpenChange={setStartAgentOpen}>
@@ -658,8 +643,8 @@ export default function PreScreeningDemoPage() {
             {/* Flags */}
             <section className={cn("space-y-3", isSessionActive && "opacity-50 pointer-events-none")}>
               <div>
-                <h2 className="text-sm font-semibold text-gray-900">Opties</h2>
-                <p className="text-xs text-gray-500 mt-0.5">Extra instellingen voor de demo</p>
+                <h2 className="text-sm font-semibold text-gray-900">{t('options')}</h2>
+                <p className="text-xs text-gray-500 mt-0.5">{t('optionsDesc')}</p>
               </div>
 
               <div className="flex items-center justify-between p-3 rounded-lg border border-gray-200 bg-white">
@@ -687,7 +672,7 @@ export default function PreScreeningDemoPage() {
               <div className="flex items-center justify-between p-3 rounded-lg border border-gray-200 bg-white">
                 <div className="flex items-center gap-2">
                   <AlertTriangle className="w-4 h-4 text-amber-500" />
-                  <span className="text-sm font-medium text-gray-900">Urgente vacature</span>
+                  <span className="text-sm font-medium text-gray-900">{t('urgentVacancy')}</span>
                 </div>
                 <Switch
                   checked={isUrgent}
@@ -706,13 +691,35 @@ export default function PreScreeningDemoPage() {
                   onCheckedChange={setAllowInterruption}
                 />
               </div>
+
+              <div className="flex items-center justify-between p-3 rounded-lg border border-gray-200 bg-white">
+                <div className="flex items-center gap-2">
+                  <Globe className="w-4 h-4 text-brand-dark-blue" />
+                  <span className="text-sm font-medium text-gray-900">Conversation language</span>
+                </div>
+                <select
+                  value={conversationLanguage}
+                  onChange={(e) => setConversationLanguage(e.target.value)}
+                  disabled={isSessionActive}
+                  className="text-sm text-gray-700 bg-white border border-gray-200 rounded-md px-2 py-1 focus:outline-none focus:ring-1 focus:ring-brand-dark-blue"
+                >
+                  <option value="">Nederlands (standaard)</option>
+                  <option value="en">Engels</option>
+                  <option value="fr">Frans</option>
+                  <option value="de">Duits</option>
+                  <option value="es">Spaans</option>
+                  <option value="ar">Arabisch</option>
+                  <option value="tr">Turks</option>
+                  <option value="pl">Pools</option>
+                </select>
+              </div>
             </section>
 
             {/* Actions */}
             <section className="space-y-3">
               <div>
-                <h2 className="text-sm font-semibold text-gray-900">Acties</h2>
-                <p className="text-xs text-gray-500 mt-0.5">Test specifieke acties</p>
+                <h2 className="text-sm font-semibold text-gray-900">{t('actions')}</h2>
+                <p className="text-xs text-gray-500 mt-0.5">{t('actionsDesc')}</p>
               </div>
 
               <button
@@ -761,7 +768,7 @@ export default function PreScreeningDemoPage() {
                     ? 'bg-gray-900 text-white'
                     : 'text-gray-400 hover:text-gray-600'
                 )}
-                title="Interview vragen"
+                title={t('tabQuestions')}
               >
                 <ListChecks className="h-4 w-4" />
               </button>
@@ -774,7 +781,7 @@ export default function PreScreeningDemoPage() {
                     ? 'bg-gray-900 text-white'
                     : 'text-gray-400 hover:text-gray-600'
                 )}
-                title="Website simulatie"
+                title={t('tabWebsite')}
               >
                 <Globe className="h-4 w-4" />
               </button>
@@ -800,7 +807,7 @@ export default function PreScreeningDemoPage() {
                     ? 'bg-gray-900 text-white'
                     : 'text-gray-400 hover:text-gray-600'
                 )}
-                title="Voice simulatie"
+                title={t('tabVoice')}
               >
                 <Phone className="h-4 w-4" />
               </button>
@@ -816,7 +823,7 @@ export default function PreScreeningDemoPage() {
                       ))}
                     </div>
                   ) : questions.length === 0 ? (
-                    <p className="text-sm text-gray-400 text-center py-12">Geen vragen gevonden voor deze vacature</p>
+                    <p className="text-sm text-gray-400 text-center py-12">{t('noQuestions')}</p>
                   ) : (
                     <InterviewQuestionsPanel
                       questions={questions}
@@ -833,13 +840,13 @@ export default function PreScreeningDemoPage() {
                     scenario={chatScenario}
                     resetKey={chatResetKey}
                     vacancyId={selectedVacancy ?? undefined}
-                    candidateName="Test Kandidaat"
+                    candidateName={t('testCandidate')}
                     isActive
                   />
                 ) : simulatorChannel === 'voice' ? (
                   <VoiceCallMockup
                     callerName={selectedVoiceData?.name || 'Bob'}
-                    callerSubtitle="Taloo Voice Agent"
+                    callerSubtitle={t('voiceAgent')}
                     callerAvatar={selectedVoiceData?.avatar}
                     callState={callState}
                     onStateChange={handleCallStateChange}
@@ -897,7 +904,7 @@ export default function PreScreeningDemoPage() {
                     <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
                       <div>
                         <p className="text-[10px] text-indigo-600 font-medium uppercase tracking-wider">Vacature</p>
-                        <h2 className="text-lg font-bold text-gray-900 mt-0.5">{vacancyDetail?.title || 'Vacature laden...'}</h2>
+                        <h2 className="text-lg font-bold text-gray-900 mt-0.5">{vacancyDetail?.title || t('loadingVacancy')}</h2>
                       </div>
 
                       <div className="flex flex-wrap gap-2">
@@ -955,7 +962,7 @@ export default function PreScreeningDemoPage() {
                     }`}
                   >
                     <Phone className="w-4 h-4" />
-                    Bel kandidaat
+                    {t('callCandidate')}
                   </button>
                 </div>
               )}

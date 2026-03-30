@@ -111,6 +111,8 @@ export interface SolliciteerDialogProps {
   onStartCall?: () => void;
   /** Called on successful submission */
   onSuccess?: (result: { method: 'email' | 'whatsapp' | 'phone'; applicationId?: string }) => void;
+  /** Render inline without Dialog wrapper (for iframe/embed use) */
+  embedded?: boolean;
 }
 
 // Random Dutch names for testing in development
@@ -137,6 +139,7 @@ export function SolliciteerDialog({
   source = 'test',
   onStartCall,
   onSuccess,
+  embedded = false,
 }: SolliciteerDialogProps) {
   const isTest = source === 'test';
   const isLocal = process.env.NODE_ENV === 'development';
@@ -285,6 +288,86 @@ export function SolliciteerDialog({
     }
   }
 
+  const innerContent = (
+    <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_380px] min-h-[520px]">
+      {/* Left: Content */}
+      <div className="p-8 md:p-10 flex flex-col justify-center">
+        {step === 'choose' && (
+          <ChooseStep
+            personaName={personaName}
+            content={popupContent?.choice_screen}
+            onSelectPhone={() => setStep('phone-form')}
+            onSelectCv={() => setStep('cv-form')}
+          />
+        )}
+        {step === 'phone-form' && (
+          <PhoneFormStep
+            personaName={personaName}
+            content={popupContent?.phone_form}
+            firstName={firstName}
+            lastName={lastName}
+            phoneValue={phoneValue}
+            channel={channel}
+            showChannelToggle={hasBothChannels}
+            phoneError={phoneError}
+            privacyConsent={privacyConsent}
+            onPrivacyConsentChange={setPrivacyConsent}
+            onFirstNameChange={setFirstName}
+            onLastNameChange={setLastName}
+            onPhoneChange={(val) => { setPhoneValue(val); setPhoneError(null); }}
+            onChannelChange={setChannel}
+            onSubmit={handlePhoneSubmit}
+            onSwitchToCv={hasCv ? () => setStep('cv-form') : undefined}
+            onBack={hasBothOptions ? () => setStep('choose') : undefined}
+          />
+        )}
+        {step === 'cv-form' && (
+          <CvFormStep
+            personaName={personaName}
+            content={popupContent?.cv_form}
+            firstName={cvFirstName}
+            lastName={cvLastName}
+            email={email}
+            cvFile={cvFile}
+            cvError={cvError}
+            isSubmitting={isSubmittingCv}
+            privacyConsent={privacyConsent}
+            onPrivacyConsentChange={setPrivacyConsent}
+            onFirstNameChange={setCvFirstName}
+            onLastNameChange={setCvLastName}
+            onEmailChange={setEmail}
+            onCvFileChange={setCvFile}
+            onSubmit={handleCvSubmit}
+            onSwitchToAnna={hasPhoneOption ? () => setStep('phone-form') : undefined}
+            onBack={hasBothOptions ? () => setStep('choose') : undefined}
+          />
+        )}
+        {step === 'call-prep' && <CallPrepStep personaName={personaName} />}
+      </div>
+
+      {/* Right: Image */}
+      <div className="hidden md:block relative w-[380px] min-w-[380px]">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="https://images.pexels.com/photos/3184291/pexels-photo-3184291.jpeg?auto=compress&cs=tinysrgb&w=1400"
+          alt=""
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+      </div>
+    </div>
+  );
+
+  if (embedded) {
+    if (!open) return null;
+    return (
+      <Dialog open={true} onOpenChange={handleOpenChange} modal={false}>
+        <div className="w-full overflow-hidden bg-white">
+          {innerContent}
+        </div>
+      </Dialog>
+    );
+  }
+
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent
@@ -294,73 +377,7 @@ export function SolliciteerDialog({
         <DialogDescription className="sr-only">
           Kies hoe je wilt solliciteren
         </DialogDescription>
-
-        <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_380px] min-h-[520px]">
-          {/* Left: Content */}
-          <div className="p-8 md:p-10 flex flex-col justify-center">
-            {step === 'choose' && (
-              <ChooseStep
-                personaName={personaName}
-                content={popupContent?.choice_screen}
-                onSelectPhone={() => setStep('phone-form')}
-                onSelectCv={() => setStep('cv-form')}
-              />
-            )}
-            {step === 'phone-form' && (
-              <PhoneFormStep
-                personaName={personaName}
-                content={popupContent?.phone_form}
-                firstName={firstName}
-                lastName={lastName}
-                phoneValue={phoneValue}
-                channel={channel}
-                showChannelToggle={hasBothChannels}
-                phoneError={phoneError}
-                privacyConsent={privacyConsent}
-                onPrivacyConsentChange={setPrivacyConsent}
-                onFirstNameChange={setFirstName}
-                onLastNameChange={setLastName}
-                onPhoneChange={(val) => { setPhoneValue(val); setPhoneError(null); }}
-                onChannelChange={setChannel}
-                onSubmit={handlePhoneSubmit}
-                onSwitchToCv={hasCv ? () => setStep('cv-form') : undefined}
-                onBack={hasBothOptions ? () => setStep('choose') : undefined}
-              />
-            )}
-            {step === 'cv-form' && (
-              <CvFormStep
-                personaName={personaName}
-                content={popupContent?.cv_form}
-                firstName={cvFirstName}
-                lastName={cvLastName}
-                email={email}
-                cvFile={cvFile}
-                cvError={cvError}
-                isSubmitting={isSubmittingCv}
-                privacyConsent={privacyConsent}
-                onPrivacyConsentChange={setPrivacyConsent}
-                onFirstNameChange={setCvFirstName}
-                onLastNameChange={setCvLastName}
-                onEmailChange={setEmail}
-                onCvFileChange={setCvFile}
-                onSubmit={handleCvSubmit}
-                onSwitchToAnna={hasPhoneOption ? () => setStep('phone-form') : undefined}
-                onBack={hasBothOptions ? () => setStep('choose') : undefined}
-              />
-            )}
-            {step === 'call-prep' && <CallPrepStep personaName={personaName} />}
-          </div>
-
-          {/* Right: Image */}
-          <div className="hidden md:block relative w-[380px] min-w-[380px]">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="https://images.pexels.com/photos/3184291/pexels-photo-3184291.jpeg?auto=compress&cs=tinysrgb&w=1400"
-              alt=""
-              className="absolute inset-0 w-full h-full object-cover"
-            />
-          </div>
-        </div>
+        {innerContent}
       </DialogContent>
     </Dialog>
   );

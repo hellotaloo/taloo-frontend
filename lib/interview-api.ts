@@ -311,7 +311,7 @@ interface BackendVacancy {
   company: string;
   location: string;
   description: string;
-  status: 'new' | 'draft' | 'in_progress' | 'agent_created' | 'screening_active' | 'archived' | 'concept' | 'open' | 'on_hold' | 'filled' | 'closed';
+  status: 'new' | 'draft' | 'in_progress' | 'agent_created' | 'screening_active' | 'archived' | 'concept' | 'open' | 'on_hold' | 'filled';
   created_at: string;
   archived_at: string | null;
   source: 'salesforce' | 'bullhorn' | 'manual' | null;
@@ -1237,6 +1237,11 @@ export interface PreScreeningGeneratorSettings {
   custom_instructions: string;
 }
 
+export interface PreScreeningLanguageSettings {
+  allow_language_switch: boolean;
+  allowed_languages: string[];
+}
+
 export interface PreScreeningSettings {
   voice: PreScreeningVoiceSettings;
   general: PreScreeningGeneralSettings;
@@ -1245,6 +1250,7 @@ export interface PreScreeningSettings {
   interview: PreScreeningInterviewSettings;
   escalation: PreScreeningEscalationSettings;
   publishing?: PreScreeningPublishingSettings;
+  language?: PreScreeningLanguageSettings;
 }
 
 export interface PreScreeningConfig {
@@ -1263,6 +1269,7 @@ export interface PreScreeningConfigUpdate {
     interview?: Partial<PreScreeningInterviewSettings>;
     escalation?: Partial<PreScreeningEscalationSettings>;
     publishing?: Partial<PreScreeningPublishingSettings>;
+    language?: Partial<PreScreeningLanguageSettings>;
   };
 }
 

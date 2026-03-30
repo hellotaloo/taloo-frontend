@@ -7,6 +7,7 @@ import {
   PageLayoutHeader,
   PageLayoutContent,
 } from '@/components/layout/page-layout';
+import { useTranslations } from '@/lib/i18n';
 
 interface AdminCardProps {
   title: string;
@@ -27,10 +28,11 @@ function AdminCard({
   testId,
   comingSoon,
 }: AdminCardProps) {
+  const tCommon = useTranslations('common');
   const content = (
     <>
       {comingSoon && (
-        <span className="absolute top-3 right-3 text-xs text-gray-400 bg-gray-50 px-2 py-0.5 rounded-full">coming soon</span>
+        <span className="absolute top-3 right-3 text-xs text-gray-400 bg-gray-50 px-2 py-0.5 rounded-full">{tCommon('comingSoon')}</span>
       )}
       <div className="w-10 h-10 rounded-lg bg-brand-dark-blue flex items-center justify-center mb-4">
         <Icon className="w-5 h-5 text-white" />
@@ -73,17 +75,20 @@ function AdminCard({
 }
 
 export default function AdminPage() {
+  const t = useTranslations('admin');
+  const tPages = useTranslations('pages');
+
   return (
     <PageLayout>
       <PageLayoutHeader />
       <PageLayoutContent>
         <div className="max-w-4xl">
           <section className="space-y-4">
-            <h2 className="text-lg font-semibold text-gray-900">Data Management</h2>
+            <h2 className="text-lg font-semibold text-gray-900">{t('dataManagement')}</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <AdminCard
-                title="Ontology"
-                description="Beheer functies, documenten en vereisten"
+                title={tPages('ontology')}
+                description={t('ontologyDesc')}
                 href="/admin/ontology"
                 icon={Network}
                 animationDelay={150}
@@ -93,20 +98,19 @@ export default function AdminPage() {
           </section>
 
           <section className="space-y-4 mt-8">
-            <h2 className="text-lg font-semibold text-gray-900">System</h2>
+            <h2 className="text-lg font-semibold text-gray-900">{t('system')}</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <AdminCard
-                title="General Settings"
-                description="Configure general application settings"
-                href="/admin"
+                title={t('generalSettings')}
+                description={t('generalSettingsDesc')}
+                href="/admin/settings"
                 icon={Settings}
                 animationDelay={250}
                 testId="admin-card-settings"
-                comingSoon
               />
               <AdminCard
-                title="Workspace Members"
-                description="Manage workspace access and permissions"
+                title={t('workspaceMembers')}
+                description={t('workspaceMembersDesc')}
                 href="/admin/members"
                 icon={Users}
                 animationDelay={300}
@@ -116,11 +120,11 @@ export default function AdminPage() {
           </section>
 
           <section className="space-y-4 mt-8">
-            <h2 className="text-lg font-semibold text-gray-900">Integraties</h2>
+            <h2 className="text-lg font-semibold text-gray-900">{t('integrationsSection')}</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <AdminCard
-                title="Externe integraties"
-                description="Beheer koppelingen met externe systemen zoals ATS, Teams en meer"
+                title={tPages('integrations')}
+                description={t('integrationsDesc')}
                 href="/admin/integrations"
                 icon={Plug}
                 animationDelay={350}
@@ -128,6 +132,7 @@ export default function AdminPage() {
               />
             </div>
           </section>
+
         </div>
       </PageLayoutContent>
     </PageLayout>

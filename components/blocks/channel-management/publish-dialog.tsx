@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Switch } from '@/components/ui/switch';
 import { Phone, MessageSquare, Loader2, FileText } from 'lucide-react';
+import { useTranslations } from '@/lib/i18n';
 
 export interface PublishChannels {
   voice: boolean;
@@ -25,6 +26,7 @@ interface PublishDialogProps {
   onOpenChange: (open: boolean) => void;
   onPublish: (channels: PublishChannels) => Promise<void>;
   isRepublish?: boolean;
+  defaultChannels?: PublishChannels;
 }
 
 export function PublishDialog({
@@ -32,11 +34,23 @@ export function PublishDialog({
   onOpenChange,
   onPublish,
   isRepublish = false,
+  defaultChannels,
 }: PublishDialogProps) {
-  const [enableVoice, setEnableVoice] = useState(true);
-  const [enableWhatsApp, setEnableWhatsApp] = useState(true);
-  const [enableCv, setEnableCv] = useState(true);
+  const [enableVoice, setEnableVoice] = useState(defaultChannels?.voice ?? true);
+  const [enableWhatsApp, setEnableWhatsApp] = useState(defaultChannels?.whatsapp ?? true);
+  const [enableCv, setEnableCv] = useState(defaultChannels?.cv ?? true);
   const [isPublishing, setIsPublishing] = useState(false);
+  const t = useTranslations('screening');
+  const tCommon = useTranslations('common');
+
+  // Sync state when defaultChannels loads (async fetch)
+  useEffect(() => {
+    if (defaultChannels) {
+      setEnableVoice(defaultChannels.voice);
+      setEnableWhatsApp(defaultChannels.whatsapp);
+      setEnableCv(defaultChannels.cv);
+    }
+  }, [defaultChannels]);
 
   const handlePublish = async () => {
     if (!enableVoice && !enableWhatsApp && !enableCv) {
@@ -61,17 +75,15 @@ export function PublishDialog({
       <AlertDialogContent className="sm:max-w-md">
         <AlertDialogHeader>
           <AlertDialogTitle>
-            {isRepublish ? 'Wijzigingen publiceren?' : 'Pre-screening publiceren?'}
+            {isRepublish ? t('republish') : t('publish')}
           </AlertDialogTitle>
           <AlertDialogDescription>
-            {isRepublish
-              ? 'Je staat op het punt om de wijzigingen te publiceren. De AI-agents worden bijgewerkt met de nieuwe vragen.'
-              : 'Je staat op het punt om dit pre-screening interview te publiceren. Na publicatie kunnen kandidaten direct starten met het interview.'}
+            {isRepublish ? t('republishDesc') : t('publishDesc')}
           </AlertDialogDescription>
         </AlertDialogHeader>
 
         <div className="py-4 space-y-4">
-          <p className="text-sm font-medium text-gray-700">Kanalen activeren</p>
+          <p className="text-sm font-medium text-gray-700">{t('activateChannels')}</p>
           
           <div className="space-y-3">
             <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
@@ -80,8 +92,8 @@ export function PublishDialog({
                   <Phone className="w-4 h-4 text-white" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-900">Voice Call</p>
-                  <p className="text-xs text-gray-500">Voice agent voor telefonische interviews</p>
+                  <p className="text-sm font-medium text-gray-900">{t('voiceCall')}</p>
+                  <p className="text-xs text-gray-500">{t('voiceDesc')}</p>
                 </div>
               </div>
               <Switch
@@ -98,8 +110,8 @@ export function PublishDialog({
                   <MessageSquare className="w-4 h-4 text-white" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-900">WhatsApp</p>
-                  <p className="text-xs text-gray-500">Chat-agent voor WhatsApp berichten</p>
+                  <p className="text-sm font-medium text-gray-900">{t('whatsapp')}</p>
+                  <p className="text-xs text-gray-500">{t('whatsappDesc')}</p>
                 </div>
               </div>
               <Switch
@@ -116,8 +128,8 @@ export function PublishDialog({
                   <FileText className="w-4 h-4 text-white" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-900">Smart CV</p>
-                  <p className="text-xs text-gray-500">Automatische CV-analyse en screening</p>
+                  <p className="text-sm font-medium text-gray-900">{t('smartCv')}</p>
+                  <p className="text-xs text-gray-500">{t('cvDesc')}</p>
                 </div>
               </div>
               <Switch
@@ -131,13 +143,13 @@ export function PublishDialog({
 
           {!canPublish && (
             <p className="text-xs text-red-500">
-              Selecteer minimaal één kanaal om te publiceren.
+              {t('selectChannel')}
             </p>
           )}
         </div>
 
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={isPublishing}>Annuleren</AlertDialogCancel>
+          <AlertDialogCancel disabled={isPublishing}>{tCommon('cancel')}</AlertDialogCancel>
           <AlertDialogAction
             onClick={(e) => {
               e.preventDefault();
@@ -149,10 +161,10 @@ export function PublishDialog({
             {isPublishing ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Publiceren...
+                {tCommon('publishing')}
               </>
             ) : (
-              isRepublish ? 'Bijwerken' : 'Publiceren'
+              isRepublish ? tCommon('update') : tCommon('publish')
             )}
           </AlertDialogAction>
         </AlertDialogFooter>

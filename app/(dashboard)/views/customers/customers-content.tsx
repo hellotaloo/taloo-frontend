@@ -8,8 +8,10 @@ import { SearchInput } from '@/components/kit/search-input';
 import { CustomersTable } from '@/components/blocks/views';
 import type { APIClient } from '@/lib/types';
 import { getClients } from '@/lib/api';
+import { useTranslations } from '@/lib/i18n';
 
 export function CustomersContent() {
+  const t = useTranslations('views');
   const [searchQuery, setSearchQuery] = useState('');
   const [subTab, setSubTab] = useState<'active' | 'archived'>('active');
 
@@ -54,14 +56,14 @@ export function CustomersContent() {
             <TabsList variant="line">
               <TabsTrigger value="active">
                 <List className="w-3.5 h-3.5" />
-                Alle
+                {t('all')}
                 <span className="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-500 text-white">
                   {loading ? '...' : clients.length}
                 </span>
               </TabsTrigger>
               <TabsTrigger value="archived">
                 <Archive className="w-3.5 h-3.5" />
-                Gearchiveerd
+                {t('archived')}
                 <span className="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-500 text-white">
                   {loading ? '...' : 0}
                 </span>
@@ -71,7 +73,7 @@ export function CustomersContent() {
           <SearchInput
             value={searchQuery}
             onChange={setSearchQuery}
-            placeholder="Zoeken..."
+            placeholder={t('search')}
             className="w-64"
           />
         </div>

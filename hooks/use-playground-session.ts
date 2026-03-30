@@ -16,6 +16,7 @@ interface PlaygroundStartRequest {
   voice_id?: string;
   known_answers?: Record<string, string>;
   existing_booking_date?: string;
+  conversation_language?: string;
 }
 
 interface PlaygroundStartResponse {

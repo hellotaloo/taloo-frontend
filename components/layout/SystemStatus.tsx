@@ -14,6 +14,7 @@ import {
   type IntegrationStatusItem,
   type SystemStatusResponse,
 } from '@/lib/api';
+import { useTranslations } from '@/lib/i18n';
 import {
   Bot,
   Globe,
@@ -40,18 +41,11 @@ function getStatusColor(status: StatusValue): string {
   }
 }
 
-function getOverallLabel(status: string): string {
-  switch (status) {
-    case 'online':
-      return 'Operationeel';
-    case 'degraded':
-      return 'Verstoord';
-    case 'offline':
-      return 'Offline';
-    default:
-      return 'Onbekend';
-  }
-}
+const overallLabelKeys: Record<string, string> = {
+  online: 'operational',
+  degraded: 'degraded',
+  offline: 'offline',
+};
 
 const serviceIcons: Record<string, ElementType> = {
   platform: Server,
@@ -103,6 +97,7 @@ function IntegrationRow({ item }: { item: IntegrationStatusItem }) {
 }
 
 export function SystemStatus() {
+  const t = useTranslations('systemStatus');
   const [data, setData] = useState<SystemStatusResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
@@ -150,14 +145,14 @@ export function SystemStatus() {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-72">
         <DropdownMenuLabel className="flex items-center justify-between">
-          <span>Systeemstatus</span>
+          <span>{t('title')}</span>
           <span className="flex items-center gap-1.5 text-xs font-normal text-gray-500">
             {loading ? (
               <RefreshCw className="w-3 h-3 animate-spin" />
             ) : (
               <StatusDot status={overallStatus} size="xs" />
             )}
-            {getOverallLabel(data?.overall ?? 'unknown')}
+            {t(overallLabelKeys[data?.overall ?? ''] || 'unknown')}
           </span>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
@@ -171,7 +166,7 @@ export function SystemStatus() {
             <ServiceRow key={service.slug} item={service} />
           ))}
           {!data && !loading && (
-            <p className="px-2 py-2 text-xs text-gray-400">Niet beschikbaar</p>
+            <p className="px-2 py-2 text-xs text-gray-400">{t('unavailable')}</p>
           )}
         </div>
 
@@ -181,7 +176,7 @@ export function SystemStatus() {
             <DropdownMenuSeparator />
             <div className="p-1">
               <p className="px-2 py-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
-                Integraties
+                {t('integrations')}
               </p>
               {data.integrations.map((integration) => (
                 <IntegrationRow key={integration.slug} item={integration} />

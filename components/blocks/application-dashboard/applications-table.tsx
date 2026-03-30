@@ -14,6 +14,7 @@ import { StatusBadge } from '@/components/kit/status-badge';
 import { TagBadge } from '@/components/kit/tag-badge';
 import { Application } from './dashboard-metrics';
 import { formatTimestamp as formatTimestampUtil } from '@/lib/utils';
+import { useTranslations, useLocale } from '@/lib/i18n';
 
 interface ApplicationsTableProps {
   applications: Application[];
@@ -27,13 +28,15 @@ interface ApplicationsTableProps {
 const formatTimestamp = formatTimestampUtil;
 const formatInterviewSlot = formatTimestampUtil;
 
-export function ApplicationsTable({ 
-  applications, 
+export function ApplicationsTable({
+  applications,
   selectedId,
   onSelectApplication,
   isPublished = true,
   onPublishClick,
 }: ApplicationsTableProps) {
+  const t = useTranslations('appDashboard');
+  const { locale } = useLocale();
   if (applications.length === 0) {
     // Show different empty state based on whether pre-screening is published
     if (!isPublished && onPublishClick) {
@@ -47,7 +50,7 @@ export function ApplicationsTable({
             <Users className="w-6 h-6 text-gray-400 group-hover:text-green-500 transition-colors" />
           </div>
           <p className="text-sm text-gray-500 group-hover:text-green-600 transition-colors">
-            Klik hier om de pre-screening te publiceren
+            {t('clickToPublish')}
           </p>
         </button>
       );
@@ -58,7 +61,7 @@ export function ApplicationsTable({
         <div className="w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center mx-auto mb-3">
           <Users className="w-6 h-6 text-gray-400" />
         </div>
-        <p className="text-sm text-gray-500">Nog geen kandidaten ontvangen</p>
+        <p className="text-sm text-gray-500">{t('noCandidates')}</p>
       </div>
     );
   }
@@ -67,12 +70,12 @@ export function ApplicationsTable({
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead className="w-full">Kandidaat</TableHead>
-          <TableHead className="px-4 text-center">Kanaal</TableHead>
-          <TableHead className="px-4">Gestart</TableHead>
-          <TableHead className="px-4">Afgerond</TableHead>
-          <TableHead className="px-4">Resultaat</TableHead>
-          <TableHead className="px-4 text-center">Synced</TableHead>
+          <TableHead className="w-full">{t('candidate')}</TableHead>
+          <TableHead className="px-4 text-center">{t('channel')}</TableHead>
+          <TableHead className="px-4">{t('started')}</TableHead>
+          <TableHead className="px-4">{t('completed')}</TableHead>
+          <TableHead className="px-4">{t('result')}</TableHead>
+          <TableHead className="px-4 text-center">{t('synced')}</TableHead>
           <TableHead className="text-right pl-4"></TableHead>
         </TableRow>
       </TableHeader>
@@ -130,7 +133,7 @@ export function ApplicationsTable({
                   {application.interactionTime}
                 </span>
               ) : (
-                <span className="text-gray-400 animate-pulse">Bezig</span>
+                <span className="text-gray-400 animate-pulse">{t('processing')}</span>
               )}
             </TableCell>
             <TableCell className="px-4">
@@ -151,7 +154,7 @@ export function ApplicationsTable({
                   }}
                   className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-50 rounded-md hover:bg-gray-50 transition-colors"
                 >
-                  Details bekijken
+                  Details
                   <ArrowRight className="w-3 h-3" />
                 </button>
               </TableCell>
@@ -164,29 +167,30 @@ export function ApplicationsTable({
 }
 
 function StatusLabel({ status, qualified, interviewSlot }: { status: 'active' | 'processing' | 'completed' | 'abandoned'; qualified: boolean; interviewSlot?: string | null }) {
+  const t = useTranslations('appDashboard');
   if (status === 'active') {
-    return <StatusBadge label="Bezig" variant="blue" animate />;
+    return <StatusBadge label={t('processing')} variant="blue" animate />;
   }
 
   if (status === 'processing') {
-    return <StatusBadge label="Verwerken..." variant="orange" icon={Loader2} animate />;
+    return <StatusBadge label={t('processing')} variant="orange" icon={Loader2} animate />;
   }
 
   if (status === 'abandoned') {
-    return <StatusBadge label="Afgebroken" variant="gray" />;
+    return <StatusBadge label={t('abandoned')} variant="gray" />;
   }
 
   // status === 'completed'
   if (!qualified) {
-    return <StatusBadge label="Niet geslaagd" variant="red" />;
+    return <StatusBadge label={t('notPassed')} variant="red" />;
   }
 
   // Qualified with interview slot
   if (interviewSlot) {
-    return <StatusBadge label={`Gesprek: ${formatInterviewSlot(interviewSlot)}`} variant="green" icon={Calendar} />;
+    return <StatusBadge label={`${t('interview')} ${formatInterviewSlot(interviewSlot)}`} variant="green" icon={Calendar} />;
   }
 
-  return <StatusBadge label="Review nodig" variant="orange" />;
+  return <StatusBadge label={t('needsReview')} variant="orange" />;
 }
 
 function ScoreDisplayInline({

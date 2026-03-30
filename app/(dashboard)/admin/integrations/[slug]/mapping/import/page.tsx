@@ -18,8 +18,11 @@ import {
   discoverSourceFields,
   updateConnection,
 } from '@/lib/integrations-api';
+import { useTranslations, useLocale } from '@/lib/i18n';
 
 export default function MappingImportPage() {
+  const t = useTranslations('integrations');
+  const { t: tRoot } = useLocale();
   const params = useParams();
   const slug = params.slug as string;
 
@@ -38,7 +41,7 @@ export default function MappingImportPage() {
         const connections = await getConnections();
         const conn = connections.find((c) => c.integration.slug === slug);
         if (!conn) {
-          toast.error('Geen verbinding gevonden');
+          toast.error(t('noConnection'));
           return;
         }
         setConnection(conn);
@@ -54,7 +57,7 @@ export default function MappingImportPage() {
         }
         setMappings(initial);
       } catch {
-        toast.error('Kon mapping schema niet laden');
+        toast.error(t('schemaLoadFailed'));
       } finally {
         setLoading(false);
       }
@@ -69,7 +72,7 @@ export default function MappingImportPage() {
       defaults[field.name] = schema.default_mapping[field.name]?.template ?? '';
     }
     setMappings(defaults);
-    toast.success('Standaard mapping geladen');
+    toast.success(t('defaultsLoaded'));
   };
 
   const handleDiscoverFields = async () => {
@@ -80,9 +83,9 @@ export default function MappingImportPage() {
       // Reload the mapping schema to get the freshly cached fields
       const data = await getMappingSchema(connection.id);
       setSchema(data);
-      toast.success(`${data.source_fields.length} velden opgehaald uit bronsysteem`);
+      toast.success(`${data.source_fields.length}${t('fieldsDiscovered')}`);
     } catch {
-      toast.error('Kon velden niet ophalen uit het bronsysteem');
+      toast.error(t('fieldsDiscoveryFailed'));
     } finally {
       setDiscovering(false);
     }
@@ -107,9 +110,9 @@ export default function MappingImportPage() {
           },
         },
       });
-      toast.success('Mapping opgeslagen');
+      toast.success(t('mappingSaved'));
     } catch {
-      toast.error('Opslaan mislukt');
+      toast.error(t('saveFailedShort'));
     } finally {
       setSaving(false);
     }
@@ -118,7 +121,7 @@ export default function MappingImportPage() {
   const copySourceField = (fieldName: string) => {
     const text = `{{${fieldName}}}`;
     navigator.clipboard.writeText(text);
-    toast.success(`${text} gekopieerd`, { duration: 1500 });
+    toast.success(`${text}${t('copied')}`, { duration: 1500 });
   };
 
   // Determine if a target field needs a textarea (multi-line) or input
@@ -136,7 +139,7 @@ export default function MappingImportPage() {
     const groups: { label: string; fields: typeof schema.target_fields }[] = [];
     const seen = new Map<string, number>();
     for (const field of schema.target_fields) {
-      const group = field.group ?? 'Algemeen';
+      const group = field.group ? tRoot(field.group) : t('defaultGroup');
       const idx = seen.get(group);
       if (idx !== undefined) {
         groups[idx].fields.push(field);
@@ -146,14 +149,14 @@ export default function MappingImportPage() {
       }
     }
     return groups;
-  }, [schema]);
+  }, [schema, tRoot, t]);
 
   // Filter source fields by search query — only show when searching
   const hasSearch = fieldSearch.trim().length > 0;
   const filteredFields = hasSearch
     ? (schema?.source_fields.filter((field) => {
         const q = fieldSearch.toLowerCase();
-        return field.name.toLowerCase().includes(q) || field.label.toLowerCase().includes(q);
+        return field.name.toLowerCase().includes(q) || tRoot(field.label).toLowerCase().includes(q);
       }) ?? [])
     : [];
 
@@ -171,9 +174,9 @@ export default function MappingImportPage() {
     <div className="space-y-6 max-w-4xl">
       {/* Page description */}
       <div style={{ animation: 'fade-in-up 0.3s ease-out backwards' }}>
-        <h2 className="text-base font-semibold text-gray-900">Vacature import mapping</h2>
+        <h2 className="text-base font-semibold text-gray-900">{t('mappingTitle')}</h2>
         <p className="text-sm text-gray-500 mt-1">
-          Configureer hoe vacaturevelden uit het bronsysteem worden omgezet naar Taloo-velden.
+          {t('mappingDesc')}
         </p>
       </div>
 
@@ -194,12 +197,12 @@ export default function MappingImportPage() {
             }
             <div>
               <h4 className="text-sm font-medium text-gray-900">
-                Beschikbare bronvelden
+                {t('sourceFields')}
                 <span className="text-xs font-normal text-gray-400 ml-1.5">
                   ({schema.source_fields.length})
                 </span>
               </h4>
-              <p className="text-xs text-gray-500 mt-0.5">Klik op een veld om het te kopiëren</p>
+              <p className="text-xs text-gray-500 mt-0.5">{t('clickToCopy')}</p>
             </div>
           </button>
           <Button
@@ -212,7 +215,7 @@ export default function MappingImportPage() {
               ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
               : <RefreshCw className="w-3.5 h-3.5" />
             }
-            Velden ophalen
+            {t('discoverFields')}
           </Button>
         </div>
 
@@ -225,7 +228,7 @@ export default function MappingImportPage() {
                 type="text"
                 value={fieldSearch}
                 onChange={(e) => setFieldSearch(e.target.value)}
-                placeholder="Zoek op veldnaam of label..."
+                placeholder={t('searchFields')}
                 className="w-full pl-8 pr-3 py-1.5 text-xs rounded-md border border-gray-200 bg-gray-50 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
@@ -238,16 +241,16 @@ export default function MappingImportPage() {
                   type="button"
                   className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-gray-100 hover:bg-blue-50 hover:text-blue-700 text-xs font-mono text-gray-700 transition-colors cursor-pointer border border-transparent hover:border-blue-200"
                   onClick={() => copySourceField(field.name)}
-                  title={field.label}
+                  title={tRoot(field.label)}
                 >
                   {field.name}
                 </button>
               ))}
               {!hasSearch && (
-                <p className="text-xs text-gray-400 py-1">Typ om velden te zoeken uit {schema.source_fields.length} beschikbare velden</p>
+                <p className="text-xs text-gray-400 py-1">{t('searchHint')}{schema.source_fields.length}{t('availableFields')}</p>
               )}
               {hasSearch && filteredFields.length === 0 && (
-                <p className="text-xs text-gray-400 py-1">Geen velden gevonden</p>
+                <p className="text-xs text-gray-400 py-1">{t('noFieldsFound')}</p>
               )}
             </div>
           </div>
@@ -260,9 +263,9 @@ export default function MappingImportPage() {
         style={{ animation: 'fade-in-up 0.3s ease-out 100ms backwards' }}
       >
         <div>
-          <h3 className="font-semibold text-gray-900">Veldmapping</h3>
+          <h3 className="font-semibold text-gray-900">{t('fieldMapping')}</h3>
           <p className="text-sm text-gray-500 mt-1">
-            Gebruik <code className="text-xs bg-gray-100 px-1 py-0.5 rounded font-mono">{'{{veldnaam}}'}</code> syntax om bronvelden te koppelen. Combineer meerdere velden op aparte regels.
+            {t('fieldMappingHelp')}
           </p>
         </div>
 
@@ -277,15 +280,15 @@ export default function MappingImportPage() {
               {group.fields.map((field) => (
                 <div key={field.name} className="space-y-1.5">
                   <Label htmlFor={`mapping-${field.name}`} className="flex items-center gap-2">
-                    {field.label}
+                    {tRoot(field.label)}
                     {field.required && (
                       <span className="text-[10px] font-medium text-red-500 bg-red-50 px-1.5 py-0.5 rounded">
-                        verplicht
+                        {t('required')}
                       </span>
                     )}
                     <span className="text-[10px] text-gray-400 font-normal">{field.type}</span>
                   </Label>
-                  <p className="text-xs text-gray-400">{field.description}</p>
+                  <p className="text-xs text-gray-400">{field.description ? tRoot(field.description) : ''}</p>
                   {isMultiLine(field) ? (
                     <textarea
                       id={`mapping-${field.name}`}
@@ -313,11 +316,11 @@ export default function MappingImportPage() {
         <div className="flex items-center justify-between pt-2">
           <Button variant="outline" size="sm" onClick={handleLoadDefaults}>
             <RotateCcw className="w-3.5 h-3.5" />
-            Standaard laden
+            {t('loadDefaults')}
           </Button>
           <Button onClick={handleSave} disabled={saving || !isValid}>
             {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-            Opslaan
+            {t('save')}
           </Button>
         </div>
       </div>

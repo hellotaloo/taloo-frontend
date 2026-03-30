@@ -52,23 +52,24 @@ import { getNavigationCounts, getAvailableAgents, type NavigationCounts } from '
 import { AGENT_REGISTRY, type AgentMeta } from '@/lib/agent-registry';
 import { useAuth } from '@/contexts/auth-context';
 import { useRealtimeTable } from '@/hooks/use-realtime-table';
+import { useTranslations } from '@/lib/i18n';
 
-// Navigation data
+// Navigation data — nameKey references nav.* translations
 const primaryNavItems = [
-  { name: 'Dashboard', href: '/', icon: LayoutDashboard },
-  { name: 'Activiteiten', href: '/activities', icon: Activity },
-  { name: 'Audit trail', href: '/audit-trail', icon: History },
+  { nameKey: 'dashboard', href: '/', icon: LayoutDashboard },
+  { nameKey: 'activities', href: '/activities', icon: Activity },
+  { nameKey: 'auditTrail', href: '/audit-trail', icon: History },
 ];
 
 const viewItems = [
-  { name: 'Pipelines', href: '/views/pipelines', icon: Kanban },
-  { name: 'Vacatures', href: '/views/vacancies', icon: Briefcase },
-  { name: 'Kandidaten', href: '/views/candidates', icon: Users },
-  { name: 'Klanten', href: '/views/customers', icon: Building2 },
+  { nameKey: 'pipelines', href: '/views/pipelines', icon: Kanban },
+  { nameKey: 'vacancies', href: '/views/vacancies', icon: Briefcase },
+  { nameKey: 'candidates', href: '/views/candidates', icon: Users },
+  { nameKey: 'customers', href: '/views/customers', icon: Building2 },
 ];
 
 const footerNavItems = [
-  { name: 'Instellingen', href: '/admin', icon: Settings }
+  { nameKey: 'settings', href: '/admin', icon: Settings }
 ];
 
 function getInitials(name: string): string {
@@ -87,6 +88,8 @@ export function AppSidebar() {
   const [agentsOpen, setAgentsOpen] = React.useState(true);
   const [counts, setCounts] = React.useState<NavigationCounts | null>(null);
   const [agentItems, setAgentItems] = React.useState<AgentMeta[]>([]);
+  const tNav = useTranslations('nav');
+  const tCommon = useTranslations('common');
 
   const fetchCounts = React.useCallback(() => {
     getNavigationCounts()
@@ -175,7 +178,7 @@ export function AppSidebar() {
                       {currentWorkspace?.name || 'Workspace'}
                     </p>
                     <p className="text-xs text-sidebar-foreground/60">
-                      Admin workspace
+                      {tCommon('adminWorkspace')}
                     </p>
                   </div>
                   <ChevronDown className="h-4 w-4 text-sidebar-foreground/60" />
@@ -203,7 +206,7 @@ export function AppSidebar() {
                 )}
                 <div className="flex-1">
                   <p className="text-sm font-medium">{workspace.name}</p>
-                  <p className="text-xs text-gray-500">Admin workspace</p>
+                  <p className="text-xs text-gray-500">{tCommon('adminWorkspace')}</p>
                 </div>
                 {workspace.id === currentWorkspace?.id && (
                   <Check className="h-4 w-4 text-green-600" />
@@ -227,11 +230,11 @@ export function AppSidebar() {
                 const showStuckWarning = isActivities && hasStuckActivities;
 
                 return (
-                  <SidebarMenuItem key={item.name}>
+                  <SidebarMenuItem key={item.nameKey}>
                     <SidebarMenuButton asChild isActive={isActive(item.href)}>
                       <Link href={item.href}>
                         <item.icon className="h-4 w-4" />
-                        <span className="text-sm">{item.name}</span>
+                        <span className="text-sm">{tNav(item.nameKey)}</span>
                       </Link>
                     </SidebarMenuButton>
                     {(showActivitiesCount || showStuckWarning) && (
@@ -254,7 +257,7 @@ export function AppSidebar() {
           <SidebarGroup className="py-0 mt-6">
             <SidebarGroupLabel asChild>
               <CollapsibleTrigger className="flex items-center gap-2 w-full group/label">
-                <span>Agents</span>
+                <span>{tNav('agents')}</span>
                 <ChevronRight className="ml-auto h-4 w-4 transition-transform group-data-[state=open]/label:rotate-90" />
               </CollapsibleTrigger>
             </SidebarGroupLabel>
@@ -281,7 +284,7 @@ export function AppSidebar() {
                     <SidebarMenuButton asChild className="text-sidebar-foreground/60">
                       <Link href="/agents">
                         <Plus className="h-4 w-4" />
-                        <span>Voeg agent toe</span>
+                        <span>{tCommon('addAgent')}</span>
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -296,7 +299,7 @@ export function AppSidebar() {
           <SidebarGroup className="py-0 mt-6">
             <SidebarGroupLabel asChild>
               <CollapsibleTrigger className="flex items-center gap-2 w-full group/label">
-                <span>Views</span>
+                <span>{tNav('views')}</span>
                 <ChevronRight className="ml-auto h-4 w-4 transition-transform group-data-[state=open]/label:rotate-90" />
               </CollapsibleTrigger>
             </SidebarGroupLabel>
@@ -304,11 +307,11 @@ export function AppSidebar() {
               <SidebarGroupContent>
                 <SidebarMenu>
                   {viewItems.map((item) => (
-                    <SidebarMenuItem key={item.name}>
+                    <SidebarMenuItem key={item.nameKey}>
                       <SidebarMenuButton asChild isActive={isActive(item.href)}>
                         <Link href={item.href}>
                           <item.icon className="h-4 w-4" />
-                          <span>{item.name}</span>
+                          <span>{tNav(item.nameKey)}</span>
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -325,11 +328,11 @@ export function AppSidebar() {
       <SidebarFooter>
         <SidebarMenu>
           {footerNavItems.map((item) => (
-            <SidebarMenuItem key={item.name}>
+            <SidebarMenuItem key={item.nameKey}>
               <SidebarMenuButton asChild isActive={isActive(item.href)}>
                 <Link href={item.href}>
                   <item.icon className="h-4 w-4" />
-                  <span>{item.name}</span>
+                  <span>{tNav(item.nameKey)}</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
@@ -353,7 +356,7 @@ export function AppSidebar() {
                   </Avatar>
                   <div className="flex-1 text-left min-w-0">
                     <p className="text-sm font-medium truncate">
-                      {user?.full_name || 'Gebruiker'}
+                      {user?.full_name || tCommon('user')}
                     </p>
                     <p className="text-xs text-sidebar-foreground/60 truncate">
                       {user?.email || ''}
@@ -364,12 +367,12 @@ export function AppSidebar() {
               <DropdownMenuContent align="end" className="w-56">
                 <DropdownMenuItem disabled>
                   <User className="h-4 w-4 mr-2" />
-                  Profiel (coming soon)
+                  {tCommon('profile')} ({tCommon('comingSoon')})
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout} className="text-red-600">
                   <LogOut className="h-4 w-4 mr-2" />
-                  Uitloggen
+                  {tCommon('logOut')}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

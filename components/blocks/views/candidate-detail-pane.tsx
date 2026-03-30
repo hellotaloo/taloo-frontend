@@ -44,6 +44,7 @@ import {
 } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { cn, formatPhoneNumber } from '@/lib/utils';
+import { useTranslations, useLocale } from '@/lib/i18n';
 import { createCandidacy } from '@/lib/candidacy-api';
 import { putCandidateAttribute, deleteCandidateAttribute, getVacanciesFromAPI } from '@/lib/api';
 import { getAttributeTypes } from '@/lib/attribute-types-api';
@@ -70,13 +71,13 @@ export interface CandidateDetailPaneProps {
   onVacancyClick?: (vacancyId: string) => void;
 }
 
-// Status badge styles
-const statusStyles: Record<APICandidateStatus, { bg: string; text: string; label: string }> = {
-  new: { bg: 'bg-gray-500', text: 'text-white', label: 'Nieuw' },
-  qualified: { bg: 'bg-blue-500', text: 'text-white', label: 'Gekwalificeerd' },
-  active: { bg: 'bg-green-500', text: 'text-white', label: 'Actief' },
-  placed: { bg: 'bg-emerald-500', text: 'text-white', label: 'Geplaatst' },
-  inactive: { bg: 'bg-gray-50 border border-gray-200', text: 'text-gray-500', label: 'Inactief' },
+// Status badge styles (labels resolved via i18n at render time)
+const statusStyles: Record<APICandidateStatus, { bg: string; text: string; labelKey: string }> = {
+  new: { bg: 'bg-gray-500', text: 'text-white', labelKey: 'new' },
+  qualified: { bg: 'bg-blue-500', text: 'text-white', labelKey: 'qualified' },
+  active: { bg: 'bg-green-500', text: 'text-white', labelKey: 'active' },
+  placed: { bg: 'bg-emerald-500', text: 'text-white', labelKey: 'placed' },
+  inactive: { bg: 'bg-gray-50 border border-gray-200', text: 'text-gray-500', labelKey: 'inactive' },
 };
 
 // Availability labels
@@ -93,18 +94,18 @@ const channelIcons: Record<string, typeof MessageSquare> = {
   cv: FileText,
 };
 
-function formatDate(dateString: string) {
+function formatDate(dateString: string, locale: string = 'nl-BE') {
   const date = new Date(dateString);
-  return date.toLocaleDateString('nl-BE', {
+  return date.toLocaleDateString(locale === 'en' ? 'en-GB' : 'nl-BE', {
     day: 'numeric',
     month: 'short',
     year: 'numeric',
   });
 }
 
-function formatDateTime(dateString: string) {
+function formatDateTime(dateString: string, locale: string = 'nl-BE') {
   const date = new Date(dateString);
-  return date.toLocaleDateString('nl-BE', {
+  return date.toLocaleDateString(locale === 'en' ? 'en-GB' : 'nl-BE', {
     day: 'numeric',
     month: 'short',
     year: 'numeric',
@@ -114,12 +115,13 @@ function formatDateTime(dateString: string) {
 }
 
 function StatusBadge({ status }: { status: APICandidateStatus }) {
+  const t = useTranslations('candidateDetail');
   const style = statusStyles[status];
   return (
     <span
       className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${style.bg} ${style.text}`}
     >
-      {style.label}
+      {t(style.labelKey)}
     </span>
   );
 }
@@ -153,6 +155,7 @@ const timelineEventConfig: Record<string, { icon: typeof Clock; color: string }>
 };
 
 function CandidateTimelineEvent({ activity, isLast }: { activity: APIActivityResponse; isLast: boolean }) {
+  const { locale } = useLocale();
   const config = timelineEventConfig[activity.event_type] ?? timelineEventConfig.default;
   const Icon = config.icon;
   const ChannelIcon = activity.channel ? channelIcons[activity.channel] : null;
@@ -179,7 +182,7 @@ function CandidateTimelineEvent({ activity, isLast }: { activity: APIActivityRes
             )}
           </div>
           <span className="text-[10px] text-gray-400 whitespace-nowrap">
-            {formatDateTime(activity.created_at)}
+            {formatDateTime(activity.created_at, locale)}
           </span>
         </div>
       </div>
@@ -256,6 +259,7 @@ interface AddVacancyModalProps {
 }
 
 function AddVacancyModal({ candidateId, excludeVacancyIds = [], onSuccess, onClose }: AddVacancyModalProps) {
+  const t = useTranslations('candidateDetail');
   const [query, setQuery] = useState('');
   const [adding, setAdding] = useState<string | null>(null);
   const [vacancies, setVacancies] = useState<APIVacancyListItem[]>([]);
@@ -299,9 +303,9 @@ function AddVacancyModal({ candidateId, excludeVacancyIds = [], onSuccess, onClo
       onClose();
     } catch (err) {
       if (err instanceof Error && err.message === 'CONFLICT') {
-        toast.error('Kandidaat staat al in deze pipeline');
+        toast.error(t('alreadyInPipeline'));
       } else {
-        toast.error('Toevoegen mislukt');
+        toast.error(t('addFailed'));
       }
     } finally {
       setAdding(null);
@@ -312,7 +316,7 @@ function AddVacancyModal({ candidateId, excludeVacancyIds = [], onSuccess, onClo
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Vacature toevoegen</DialogTitle>
+          <DialogTitle>{t('addVacancy')}</DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
           <div className="relative">
@@ -353,7 +357,7 @@ function AddVacancyModal({ candidateId, excludeVacancyIds = [], onSuccess, onClo
               ))}
             </div>
           ) : (
-            <p className="text-sm text-gray-400 text-center py-4">Geen vacatures gevonden</p>
+            <p className="text-sm text-gray-400 text-center py-4">{t('noVacanciesFound')}</p>
           )}
         </div>
       </DialogContent>
@@ -364,6 +368,8 @@ function AddVacancyModal({ candidateId, excludeVacancyIds = [], onSuccess, onClo
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export function CandidateDetailPane({ candidate, isLoading, onClose, onRefresh, onVacancyClick }: CandidateDetailPaneProps) {
+  const t = useTranslations('candidateDetail');
+  const { locale } = useLocale();
   const [activeTab, setActiveTab] = useState<'tijdlijn' | 'vacatures' | 'kenmerken' | 'resultaten'>('tijdlijn');
   const [showAddVacancyModal, setShowAddVacancyModal] = useState(false);
   const [showAddAttributeModal, setShowAddAttributeModal] = useState(false);
@@ -450,7 +456,7 @@ export function CandidateDetailPane({ candidate, isLoading, onClose, onRefresh, 
             </p>
             <p className="text-sm font-medium text-gray-900 truncate">
               {candidate.available_from
-                ? `Vanaf ${formatDate(candidate.available_from)}`
+                ? `Vanaf ${formatDate(candidate.available_from, locale)}`
                 : availabilityLabels[candidate.availability]}
             </p>
           </div>
@@ -458,7 +464,7 @@ export function CandidateDetailPane({ candidate, isLoading, onClose, onRefresh, 
           {/* Vacancies Count */}
           <div className="bg-gray-50 rounded-lg p-3">
             <p className="text-[10px] font-medium text-gray-500 uppercase tracking-wide mb-1">
-              Vacatures
+              {t('vacancies')}
             </p>
             <p className="text-sm font-medium text-gray-900">
               {candidacies.length} totaal
@@ -497,12 +503,12 @@ export function CandidateDetailPane({ candidate, isLoading, onClose, onRefresh, 
         <div className="flex items-center gap-4 mt-4 text-xs text-gray-400">
           <span className="flex items-center gap-1">
             <Calendar className="w-3 h-3" />
-            Synced: {formatDate(candidate.created_at)}
+            Synced: {formatDate(candidate.created_at, locale)}
           </span>
           {candidate.last_activity && (
             <span className="flex items-center gap-1">
               <Briefcase className="w-3 h-3" />
-              Laatste activiteit: {formatDate(candidate.last_activity)}
+              {t('lastActivity')} {formatDate(candidate.last_activity, locale)}
             </span>
           )}
         </div>
@@ -514,7 +520,7 @@ export function CandidateDetailPane({ candidate, isLoading, onClose, onRefresh, 
           <div className="flex gap-6">
             {([
               { key: 'tijdlijn' as const, label: 'Tijdlijn', count: timeline.length },
-              { key: 'vacatures' as const, label: 'Vacatures', count: candidacies.length },
+              { key: 'vacatures' as const, label: t('vacancies'), count: candidacies.length },
               { key: 'kenmerken' as const, label: 'Gegevens', count: attributes.length + documents.length },
               { key: 'resultaten' as const, label: 'Agents', count: candidacies.filter(c => c.screening_result || c.document_collection).length },
             ]).map(tab => {
@@ -561,7 +567,7 @@ export function CandidateDetailPane({ candidate, isLoading, onClose, onRefresh, 
                   onClick={() => setShowAddVacancyModal(true)}
                 >
                   <Plus className="w-3 h-3" />
-                  Vacature toevoegen
+                  {t('addVacancy')}
                 </Button>
               </div>
               {candidacies.length > 0 ? (
@@ -572,7 +578,7 @@ export function CandidateDetailPane({ candidate, isLoading, onClose, onRefresh, 
                 </div>
               ) : (
                 <p className="text-sm text-gray-400 text-center py-8">
-                  Geen vacatures
+                  {t('noVacancies')}
                 </p>
               )}
             </div>
@@ -615,7 +621,7 @@ export function CandidateDetailPane({ candidate, isLoading, onClose, onRefresh, 
                 </div>
               ) : (
                 <p className="text-sm text-gray-400 text-center py-8">
-                  Geen activiteit
+                  {t('noActivity')}
                 </p>
               )}
             </div>
@@ -668,6 +674,7 @@ const SOURCE_KOPPELING: Record<string, string> = {
 };
 
 function AttributeSourceInfo({ source }: { source: string }) {
+  const t = useTranslations('candidateDetail');
   const label = SOURCE_LABELS[source] ?? source;
   const koppeling = SOURCE_KOPPELING[source];
 
@@ -681,7 +688,7 @@ function AttributeSourceInfo({ source }: { source: string }) {
       <TooltipContent side="top" className="max-w-xs">
         <div className="space-y-0.5 text-xs">
           <div>
-            <span className="text-gray-400">Bron: </span>
+            <span className="text-gray-400">{t('source')} </span>
             <span>{label}</span>
           </div>
           {koppeling && (
@@ -803,6 +810,7 @@ interface AttributesSectionProps {
 }
 
 function AttributesSection({ attributes, candidateId, onRefresh, onAddClick }: AttributesSectionProps) {
+  const t = useTranslations('candidateDetail');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
   const [saving, setSaving] = useState(false);
@@ -841,7 +849,7 @@ function AttributesSection({ attributes, candidateId, onRefresh, onAddClick }: A
       setEditingId(null);
       onRefresh?.();
     } catch {
-      toast.error('Opslaan mislukt');
+      toast.error(t('saveFailed'));
     } finally {
       setSaving(false);
     }
@@ -864,7 +872,7 @@ function AttributesSection({ attributes, candidateId, onRefresh, onAddClick }: A
       toast.success(`${attr.name} verwijderd`);
       onRefresh?.();
     } catch {
-      toast.error('Verwijderen mislukt');
+      toast.error(t('deleteFailed'));
     } finally {
       setDeletingId(null);
     }
@@ -888,7 +896,7 @@ function AttributesSection({ attributes, candidateId, onRefresh, onAddClick }: A
       </div>
 
       {sortedCategories.length === 0 && (
-        <p className="text-sm text-gray-400 text-center py-4">Geen kenmerken</p>
+        <p className="text-sm text-gray-400 text-center py-4">{t('noAttributes')}</p>
       )}
 
       {sortedCategories.map((category) => {
@@ -1010,14 +1018,14 @@ function AttributesSection({ attributes, candidateId, onRefresh, onAddClick }: A
             </p>
             <div className="flex justify-end gap-2 mt-2">
               <Button variant="outline" size="sm" onClick={() => setConfirmDeleteAttr(null)}>
-                Annuleren
+                {t('cancel')}
               </Button>
               <Button
                 size="sm"
                 className="bg-red-600 hover:bg-red-700 text-white"
                 onClick={() => doDelete(confirmDeleteAttr)}
               >
-                Verwijderen
+                {t('delete')}
               </Button>
             </div>
           </DialogContent>
@@ -1039,6 +1047,7 @@ interface InlineAttributeEditorProps {
 }
 
 function InlineAttributeEditor({ attr, value, onChange, onSave, onCancel, saving }: InlineAttributeEditorProps) {
+  const t = useTranslations('candidateDetail');
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') onSave(value);
     if (e.key === 'Escape') onCancel();
@@ -1107,7 +1116,7 @@ function InlineAttributeEditor({ attr, value, onChange, onSave, onCancel, saving
           </div>
           <div className="flex gap-1">
             <Button size="sm" className="h-6 text-[10px] px-2" onClick={() => onSave(value)} disabled={saving}>
-              {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Opslaan'}
+              {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : t('save')}
             </Button>
             <button onClick={onCancel} className="p-1 rounded hover:bg-gray-200">
               <X className="w-3 h-3 text-gray-400" />
@@ -1191,6 +1200,7 @@ interface AddAttributeModalProps {
 }
 
 function AddAttributeModal({ candidateId, existingAttributeTypeIds, onSuccess, onClose }: AddAttributeModalProps) {
+  const t = useTranslations('candidateDetail');
   const [attributeTypes, setAttributeTypes] = useState<AttributeType[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedType, setSelectedType] = useState<AttributeType | null>(null);
@@ -1228,7 +1238,7 @@ function AddAttributeModal({ candidateId, existingAttributeTypeIds, onSuccess, o
       onSuccess();
       onClose();
     } catch {
-      toast.error('Toevoegen mislukt');
+      toast.error(t('addFailed'));
     } finally {
       setSaving(false);
     }
@@ -1248,7 +1258,7 @@ function AddAttributeModal({ candidateId, existingAttributeTypeIds, onSuccess, o
       onSuccess();
       onClose();
     } catch {
-      toast.error('Toevoegen mislukt');
+      toast.error(t('addFailed'));
     } finally {
       setSaving(false);
     }
@@ -1307,7 +1317,7 @@ function AddAttributeModal({ candidateId, existingAttributeTypeIds, onSuccess, o
               <p className="text-sm text-gray-400 text-center py-4">
                 {attributeTypes.length === 0
                   ? 'Alle kenmerken zijn al ingesteld'
-                  : 'Geen resultaten'}
+                  : t('noResults')}
               </p>
             )}
           </div>
@@ -1334,11 +1344,11 @@ function AddAttributeModal({ candidateId, existingAttributeTypeIds, onSuccess, o
             {selectedType.data_type !== 'boolean' && (
               <div className="flex justify-end gap-2">
                 <Button variant="outline" size="sm" onClick={onClose}>
-                  Annuleren
+                  {t('cancel')}
                 </Button>
                 <Button size="sm" onClick={handleSave} disabled={saving || !value.trim()}>
                   {saving ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : null}
-                  Toevoegen
+                  {t('add')}
                 </Button>
               </div>
             )}
@@ -1480,6 +1490,7 @@ const DOC_STATUS_STYLES: Record<string, { bg: string; text: string; label: strin
 };
 
 function DocumentsSection({ documents }: { documents: DocumentSummary[] }) {
+  const { locale } = useLocale();
   return (
     <div className="space-y-3">
       <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
@@ -1503,7 +1514,7 @@ function DocumentsSection({ documents }: { documents: DocumentSummary[] }) {
                 <div className="flex items-center gap-2 mt-0.5 text-xs text-gray-500">
                   {doc.expiration_date && (
                     <span>
-                      Verloopt {formatDate(doc.expiration_date)}
+                      Verloopt {formatDate(doc.expiration_date, locale)}
                     </span>
                   )}
                   {doc.document_number && (

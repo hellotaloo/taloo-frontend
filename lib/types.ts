@@ -2,7 +2,7 @@
 // Legacy status values (used in existing frontend code)
 export type LegacyVacancyStatus = 'new' | 'draft' | 'in_progress' | 'agent_created' | 'screening_active' | 'archived';
 // New API status values (lifecycle-based)
-export type APIVacancyStatus = 'concept' | 'open' | 'on_hold' | 'filled' | 'closed';
+export type APIVacancyStatus = 'concept' | 'open' | 'on_hold' | 'filled' | 'archived';
 // Combined for transition period - includes both for backward compatibility
 export type VacancyStatus = LegacyVacancyStatus | APIVacancyStatus;
 export type VacancySource = 'salesforce' | 'bullhorn' | 'manual';

@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import { Users } from 'lucide-react';
 import { APICandidateListItem } from '@/lib/types';
-import { formatPhoneNumber } from '@/lib/utils';
+import { formatPhoneNumber, formatRelativeDate } from '@/lib/utils';
 import {
   DataTable,
   DataTableHeader,
@@ -11,6 +11,7 @@ import {
   DataTableEmpty,
   Column,
 } from '@/components/kit/data-table';
+import { useTranslations, useLocale } from '@/lib/i18n';
 
 export interface CandidatesTableProps {
   candidates: APICandidateListItem[];
@@ -18,27 +19,13 @@ export interface CandidatesTableProps {
   onRowClick?: (candidate: APICandidateListItem) => void;
 }
 
-function formatRelativeDate(dateString: string | null | undefined) {
-  if (!dateString) return '-';
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMs / 3600000);
-  const diffDays = Math.floor(diffMs / 86400000);
-
-  if (diffMins < 1) return 'Zojuist';
-  if (diffMins < 60) return `${diffMins}m geleden`;
-  if (diffHours < 24) return `${diffHours}u geleden`;
-  if (diffDays < 7) return `${diffDays}d geleden`;
-  return date.toLocaleDateString('nl-BE', { day: 'numeric', month: 'short' });
-}
-
 export function CandidatesTable({ candidates, selectedId, onRowClick }: CandidatesTableProps) {
+  const t = useTranslations('candidates');
+  const { locale } = useLocale();
   const columns: Column<APICandidateListItem>[] = [
     {
       key: 'name',
-      header: 'Kandidaat',
+      header: t('title'),
       sortable: true,
       className: 'min-w-[200px] pl-0',
       accessor: (item) => item.full_name,
@@ -58,7 +45,7 @@ export function CandidatesTable({ candidates, selectedId, onRowClick }: Candidat
     },
     {
       key: 'vacancies',
-      header: 'Vacatures',
+      header: t('vacancies'),
       sortable: false,
       className: 'min-w-[200px]',
       accessor: () => '',
@@ -84,7 +71,7 @@ export function CandidatesTable({ candidates, selectedId, onRowClick }: Candidat
     },
     {
       key: 'source',
-      header: 'Bron',
+      header: t('source'),
       sortable: false,
       className: 'w-[60px] text-center',
       accessor: () => 'salesforce',
@@ -101,7 +88,7 @@ export function CandidatesTable({ candidates, selectedId, onRowClick }: Candidat
     },
     {
       key: 'last_activity',
-      header: 'Laatste activiteit',
+      header: t('lastActivity'),
       sortable: true,
       className: 'w-[160px]',
       accessor: (item) => item.last_activity || item.created_at || '',
@@ -113,7 +100,7 @@ export function CandidatesTable({ candidates, selectedId, onRowClick }: Candidat
         }
         return (
           <span className="text-gray-500 text-sm">
-            {formatRelativeDate(activityDate || fallbackDate)}
+            {formatRelativeDate(activityDate || fallbackDate, locale)}
           </span>
         );
       },
@@ -124,8 +111,8 @@ export function CandidatesTable({ candidates, selectedId, onRowClick }: Candidat
     return (
       <DataTableEmpty
         icon={Users}
-        title="Geen kandidaten gevonden"
-        description="Er zijn nog geen kandidaten die voldoen aan je zoekopdracht."
+        title={t('noCandidates')}
+        description={t('noCandidatesDesc')}
       />
     );
   }

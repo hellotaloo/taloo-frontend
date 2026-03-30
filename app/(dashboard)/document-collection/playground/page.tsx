@@ -29,6 +29,7 @@ import Link from 'next/link';
 import ReactMarkdown from 'react-markdown';
 import type { CollectionProgress } from '@/hooks/use-playground-chat';
 import { cn, formatTimestamp } from '@/lib/utils';
+import { useTranslations, useLocale } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { StatusBadge } from '@/components/kit/status-badge';
@@ -57,11 +58,18 @@ import type {
 // Status configs
 // =============================================================================
 
-const statusConfig: Record<string, { label: string; variant: 'blue' | 'green' | 'orange' | 'red' }> = {
-  active:       { label: 'Lopend',            variant: 'blue' },
-  completed:    { label: 'Afgerond',          variant: 'green' },
-  needs_review: { label: 'Beoordeling nodig', variant: 'orange' },
-  abandoned:    { label: 'Verlaten',          variant: 'red' },
+const statusLabelKeys: Record<string, string> = {
+  active: 'statusActive',
+  completed: 'statusCompleted',
+  needs_review: 'statusNeedsReview',
+  abandoned: 'statusAbandoned',
+};
+
+const statusVariants: Record<string, 'blue' | 'green' | 'orange' | 'red'> = {
+  active: 'blue',
+  completed: 'green',
+  needs_review: 'orange',
+  abandoned: 'red',
 };
 
 // =============================================================================
@@ -69,6 +77,8 @@ const statusConfig: Record<string, { label: string; variant: 'blue' | 'green' | 
 // =============================================================================
 
 export default function DocumentCollectionPlayground() {
+  const t = useTranslations('dcPlayground');
+  const { locale } = useLocale();
   const clock = useClock();
   const [collections, setCollections] = useState<DocumentCollectionResponse[]>([]);
   const [loading, setLoading] = useState(true);
@@ -184,8 +194,8 @@ export default function DocumentCollectionPlayground() {
               {/* Collection selector */}
               <section className="space-y-3">
                 <div>
-                  <h2 className="text-sm font-semibold text-gray-900">Selecteer collectie</h2>
-                  <p className="text-xs text-gray-500 mt-0.5">Kies een collectie voor de demo</p>
+                  <h2 className="text-sm font-semibold text-gray-900">{t('selectCollection')}</h2>
+                  <p className="text-xs text-gray-500 mt-0.5">{t('selectCollectionDesc')}</p>
                 </div>
 
                 {/* Dropdown */}
@@ -200,7 +210,7 @@ export default function DocumentCollectionPlayground() {
                 ) : filtered.length === 0 ? (
                   <div className="flex items-center gap-3 p-3 rounded-lg border border-dashed border-gray-300 text-gray-400">
                     <FileText className="w-5 h-5" />
-                    <span className="text-sm">Geen lopende collecties gevonden</span>
+                    <span className="text-sm">{t('noCollections')}</span>
                   </div>
                 ) : (
                   <Popover open={selectOpen} onOpenChange={setSelectOpen}>
@@ -218,11 +228,11 @@ export default function DocumentCollectionPlayground() {
                               <>
                                 <span className="font-medium text-gray-900 text-sm">{selectedCollection.candidate_name}</span>
                                 <p className="text-xs text-gray-500">
-                                  {selectedCollection.vacancy_title || 'Documentcollectie'}
+                                  {selectedCollection.vacancy_title || t('documentCollection')}
                                 </p>
                               </>
                             ) : (
-                              <span className="text-sm text-gray-400">Selecteer een collectie...</span>
+                              <span className="text-sm text-gray-400">{t('selectPlaceholder')}</span>
                             )}
                           </div>
                         </div>
@@ -259,7 +269,7 @@ export default function DocumentCollectionPlayground() {
                                   {collection.candidate_name}
                                 </span>
                                 <p className="text-xs text-gray-500">
-                                  {collection.vacancy_title || 'Documentcollectie'}
+                                  {collection.vacancy_title || t('documentCollection')}
                                 </p>
                               </div>
                               {selectedId === collection.id && (
@@ -289,8 +299,8 @@ export default function DocumentCollectionPlayground() {
             {!selectedId ? (
               <div className="text-center text-gray-400">
                 <MessageCircle className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-                <p className="text-sm font-medium">Selecteer een collectie</p>
-                <p className="text-xs mt-1">Kies een collectie om het gesprek te bekijken</p>
+                <p className="text-sm font-medium">{t('selectEmpty')}</p>
+                <p className="text-xs mt-1">{t('selectEmptyDesc')}</p>
               </div>
             ) : detailLoading && !detail ? (
               <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
@@ -301,7 +311,7 @@ export default function DocumentCollectionPlayground() {
                     scenario="manual"
                     agentType="document_collection"
                     contextId={selectedId}
-                    candidateName={detail?.candidate_name || 'Kandidaat'}
+                    candidateName={detail?.candidate_name || t('candidate')}
                     resetKey={chatResetKey}
                     isActive={true}
                     liveMode={liveMode}
@@ -340,7 +350,7 @@ export default function DocumentCollectionPlayground() {
                   <button
                     onClick={() => setChatResetKey((k) => k + 1)}
                     className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
-                    title="Reset gesprek"
+                    title={t('resetConversation')}
                   >
                     <RotateCcw className="w-4 h-4" />
                   </button>
@@ -397,7 +407,7 @@ export default function DocumentCollectionPlayground() {
                   <button
                     onClick={() => setChatResetKey((k) => k + 1)}
                     className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
-                    title="Reset gesprek"
+                    title={t('resetConversation')}
                   >
                     <RotateCcw className="w-4 h-4" />
                   </button>
@@ -427,14 +437,14 @@ export default function DocumentCollectionPlayground() {
 // =============================================================================
 
 const WORK_AUTH_SLUGS = new Set(['prato_5', 'prato_9', 'prato_20', 'prato_101', 'prato_102']);
-const GROUP_LABELS: Record<string, string> = { identity: 'Identiteitsbewijs' };
-const ID_FIELD_LABELS: Record<string, string> = {
-  holder_name: 'Naam',
-  date_of_birth: 'Geboortedatum',
-  nationality: 'Nationaliteit',
-  national_registry_number: 'Rijksregisternr',
-  expiry_date: 'Vervaldatum',
-  document_number: 'Documentnr',
+const GROUP_LABEL_KEYS: Record<string, string> = { identity: 'groupIdentity' };
+const ID_FIELD_LABEL_KEYS: Record<string, string> = {
+  holder_name: 'fieldName',
+  date_of_birth: 'fieldDateOfBirth',
+  nationality: 'fieldNationality',
+  national_registry_number: 'fieldNationalRegistry',
+  expiry_date: 'fieldExpiry',
+  document_number: 'fieldDocNumber',
 };
 const DATE_FIELDS = new Set(['date_of_birth', 'expiry_date', 'issue_date']);
 const DAY_NAMES_NL = ['zo', 'ma', 'di', 'woe', 'do', 'vr', 'za'];
@@ -451,24 +461,26 @@ function formatIdFieldValue(key: string, val: string): string {
   } catch { return val; }
 }
 
-// Step type → short label for stepper
-const STEP_LABELS: Record<string, string> = {
-  greeting_and_consent: 'Consent',
-  identity_verification: 'Identiteit',
-  address_collection: 'Adres',
-  collect_attributes: 'Gegevens',
-  collect_documents: 'Optioneel',
-  medical_screening: 'Medisch',
-  contract_signing: 'Contract',
+// Step type → translation key for stepper
+const STEP_LABEL_KEYS: Record<string, string> = {
+  greeting_and_consent: 'stepConsent',
+  identity_verification: 'stepIdentity',
+  address_collection: 'stepAddress',
+  collect_attributes: 'stepData',
+  collect_documents: 'stepOptional',
+  medical_screening: 'stepMedical',
+  contract_signing: 'stepContract',
 };
 
 function ConversationStepProgress({ steps }: { steps: { step: number; type: string; description: string; completed: boolean; current: boolean }[] }) {
+  const t = useTranslations('dcPlayground');
   if (!steps || steps.length === 0) return null;
 
   return (
     <div className="flex items-start w-full py-1">
       {steps.map((s, i) => {
-        const label = STEP_LABELS[s.type] || s.description || s.type;
+        const labelKey = STEP_LABEL_KEYS[s.type];
+        const label = labelKey ? t(labelKey) : (s.description || s.type);
         const isLast = i === steps.length - 1;
 
         return (
@@ -528,6 +540,7 @@ function ConversationStepProgress({ steps }: { steps: { step: number; type: stri
 }
 
 function CollectionOverview({ detail, liveProgress, reviewFlags }: { detail: DocumentCollectionFullDetailResponse; liveProgress?: CollectionProgress | null; reviewFlags?: CollectionProgress['review_flags'] }) {
+  const t = useTranslations('dcPlayground');
   const documents = detail.collection_items.filter((i) => i.type === 'document');
   const attributes = detail.collection_items.filter((i) => i.type === 'attribute');
   const tasks = detail.collection_items.filter((i) => i.type === 'task');
@@ -613,7 +626,7 @@ function CollectionOverview({ detail, liveProgress, reviewFlags }: { detail: Doc
       {attributes.length > 0 && (
         <section className="space-y-2">
           <h3 className="text-xs font-medium text-gray-400 uppercase tracking-wide">
-            Gegevens ({attributes.filter(isItemCollected).length}/{attributes.length})
+            {t('stepData')} ({attributes.filter(isItemCollected).length}/{attributes.length})
           </h3>
           <div className="space-y-1.5">
             {attributes.map((item) => (
@@ -685,6 +698,7 @@ type CollectedMapEntry = { collected: boolean; value?: string | Record<string, s
 type CollectedMap = Map<string, CollectedMapEntry> | null | undefined;
 
 function GroupedDocumentRow({ group, items, collectedMap, euCitizen }: { group: string; items: CollectionItemStatusResponse[]; collectedMap?: CollectedMap; euCitizen?: boolean }) {
+  const t = useTranslations('dcPlayground');
   const idDocs = items.filter((i) => !WORK_AUTH_SLUGS.has(i.slug));
   const workAuthDocs = items.filter((i) => WORK_AUTH_SLUGS.has(i.slug));
 
@@ -700,7 +714,8 @@ function GroupedDocumentRow({ group, items, collectedMap, euCitizen }: { group: 
   const workAuthReceived = workAuthLiveCollected || workAuthDocs.some((i) => ['received', 'verified'].includes(i.status));
 
   // Use detected document type from SSE (e.g. "Identiteitskaart") or fallback to static label
-  const label = idLiveEntry?.name || GROUP_LABELS[group] || group;
+  const groupLabelKey = GROUP_LABEL_KEYS[group];
+  const label = idLiveEntry?.name || (groupLabelKey ? t(groupLabelKey) : group);
   const idNames = idDocs.map((i) => i.name).join(' / ');
 
   // Extracted fields from identity document (from SSE value)
@@ -742,7 +757,7 @@ function GroupedDocumentRow({ group, items, collectedMap, euCitizen }: { group: 
         <div className="ml-8 space-y-0.5 mt-0.5">
           {Object.entries(extractedFields as Record<string, string>).map(([key, val]) => (
             <div key={key} className="flex items-center gap-2 py-0.5 px-2.5 text-xs">
-              <span className="text-gray-400 w-24 shrink-0">{ID_FIELD_LABELS[key] || key.replace(/_/g, ' ')}</span>
+              <span className="text-gray-400 w-24 shrink-0">{ID_FIELD_LABEL_KEYS[key] ? t(ID_FIELD_LABEL_KEYS[key]) : key.replace(/_/g, ' ')}</span>
               <span className="text-gray-600 font-mono truncate">{formatIdFieldValue(key, val)}</span>
             </div>
           ))}
@@ -854,6 +869,7 @@ function CollectionWhatsApp({
   messages: CollectionMessageResponse[];
   candidateName?: string;
 }) {
+  const t = useTranslations('dcPlayground');
   const clock = useClock();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [browserUrl, setBrowserUrl] = useState<string | null>(null);
@@ -901,7 +917,7 @@ function CollectionWhatsApp({
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-black font-semibold text-sm truncate">Taloo</p>
-          <p className="text-gray-500 text-[10px]">Documentcollectie</p>
+          <p className="text-gray-500 text-[10px]">{t('documentCollection')}</p>
         </div>
       </div>
 

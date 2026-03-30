@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Loader2, AlertCircle, Play, CheckCircle2, List, ArrowUp, ArrowDown, ChevronsUpDown, Eye, Check, Circle, AlertTriangle, PauseCircle, Clock, ChevronRight } from 'lucide-react';
 import { cn, formatRelativeDate } from '@/lib/utils';
+import { useTranslations, useLocale, useTranslateBackendLabel } from '@/lib/i18n';
+import { useTranslateStepLabel } from '@/components/kit/activity-helpers';
 import { PageLayout, PageLayoutHeader, PageLayoutContent } from '@/components/layout/page-layout';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -48,21 +50,21 @@ import type { APICandidateDetail, DocumentCollectionFullDetailResponse } from '@
 
 // Activity status badge using TagBadge
 function ActivityStatusBadge({ status, isStuck, currentStep }: { status: string; isStuck: boolean; currentStep: string }) {
+  const t = useTranslations('activities');
   if (isStuck || status === 'stuck') {
-    return <TagBadge label="Geblokkeerd" variant="orange" />;
+    return <TagBadge label={t('statusBlocked')} variant="orange" />;
   }
   if (status === 'completed') {
-    // Manually completed tasks show a different label with outline style
     if (currentStep === 'marked_as_complete') {
       return (
         <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-white text-gray-600 border border-gray-200">
-          Gemarkeerd als afgerond
+          {t('statusMarkedComplete')}
         </span>
       );
     }
-    return <TagBadge label="Afgerond" variant="gray" />;
+    return <TagBadge label={t('statusCompleted')} variant="gray" />;
   }
-  return <TagBadge label="Actief" variant="green" />;
+  return <TagBadge label={t('statusActive')} variant="green" />;
 }
 
 // Workflow type badge component using TagBadge
@@ -74,34 +76,6 @@ function WorkflowTypeBadge({ type, label }: { type: string; label: string }) {
   };
 
   return <TagBadge label={label} variant={variantMap[type] || 'gray'} />;
-}
-
-// Translate English step labels from API to Dutch
-const stepLabelNl: Record<string, string> = {
-  'Waiting': 'Wachtend',
-  'In Progress': 'Bezig',
-  'Completed': 'Afgerond',
-  'Failed': 'Mislukt',
-  'Pending': 'In afwachting',
-  'Scheduled': 'Ingepland',
-  'Sent': 'Verstuurd',
-  'Cancelled': 'Geannuleerd',
-  'Generating Plan': 'Plan genereren',
-  'Plan Generated': 'Plan opgesteld',
-  'Collecting Documents': 'Documenten verzamelen',
-  'Follow Up': 'Opvolging',
-  'Follow-up': 'Opvolging',
-  'Finished': 'Afgerond',
-  'WhatsApp Conversation': 'WhatsApp gesprek',
-  'Voice Call': 'Telefoongesprek',
-  'Screening': 'Screening',
-  'Review': 'Beoordeling',
-  'Approved': 'Goedgekeurd',
-  'Rejected': 'Afgewezen',
-};
-
-function translateStepLabel(label: string): string {
-  return stepLabelNl[label] || label;
 }
 
 type FilterStatus = 'active' | 'stuck' | 'completed' | 'all';
@@ -158,6 +132,8 @@ interface SLABadgeProps {
 }
 
 function SLABadge({ status, isStuck, timeRemainingSeconds: initialSeconds, durationSeconds }: SLABadgeProps) {
+  const t = useTranslations('activities');
+  const { locale } = useLocale();
   const [seconds, setSeconds] = useState(initialSeconds);
 
   // Reset when prop changes (e.g., after refetch)
@@ -194,7 +170,7 @@ function SLABadge({ status, isStuck, timeRemainingSeconds: initialSeconds, durat
     return (
       <span className="inline-flex items-center gap-1.5 text-sm font-medium tabular-nums text-red-600">
         <Clock className="w-3.5 h-3.5" />
-        {formatDuration(absSeconds)} te laat
+        {formatDuration(absSeconds)} {t('overdue')}
       </span>
     );
   }
@@ -222,6 +198,10 @@ function SLABadge({ status, isStuck, timeRemainingSeconds: initialSeconds, durat
 
 export default function ActivitiesPage() {
   const { user } = useAuth();
+  const t = useTranslations('activities');
+  const { locale } = useLocale();
+  const translateStepLabel = useTranslateStepLabel();
+  const translateBackendLabel = useTranslateBackendLabel();
   const [tasks, setTasks] = useState<TaskRow[]>([]);
   const [total, setTotal] = useState(0);
   const [activeCount, setActiveCount] = useState(0);
@@ -346,7 +326,7 @@ export default function ActivitiesPage() {
       }
     } catch (err) {
       console.error('Failed to fetch tasks:', err);
-      setError('Kon taken niet laden');
+      setError(t('loadFailed'));
     } finally {
       setIsLoading(false);
     }
@@ -515,28 +495,28 @@ export default function ActivitiesPage() {
           <TabsList variant="line">
             <TabsTrigger value="active" data-testid="filter-active">
               <Play className="w-3.5 h-3.5" />
-              Actief
+              {t('tabActive')}
               <span className="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-500 text-white">
                 {isLoading && activeCount === 0 ? '...' : activeCount}
               </span>
             </TabsTrigger>
             <TabsTrigger value="stuck" data-testid="filter-stuck">
               <PauseCircle className="w-3.5 h-3.5" />
-              Geblokkeerd
+              {t('tabBlocked')}
               <span className="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-500 text-white">
                 {isLoading && stuckCount === 0 ? '...' : stuckCount}
               </span>
             </TabsTrigger>
             <TabsTrigger value="completed" data-testid="filter-completed">
               <CheckCircle2 className="w-3.5 h-3.5" />
-              Afgerond
+              {t('tabCompleted')}
               <span className="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-500 text-white">
                 {isLoading && completedCount === 0 ? '...' : completedCount}
               </span>
             </TabsTrigger>
             <TabsTrigger value="all" data-testid="filter-all">
               <List className="w-3.5 h-3.5" />
-              Alles
+              {t('tabAll')}
             </TabsTrigger>
           </TabsList>
 
@@ -544,14 +524,14 @@ export default function ActivitiesPage() {
           {isLoading && tasks.length === 0 ? (
             <div data-testid="activities-loading" className="flex flex-col items-center justify-center h-64 text-gray-400 pt-2">
               <Loader2 className="w-8 h-8 mb-4 animate-spin" />
-              <p className="text-sm">Taken laden...</p>
+              <p className="text-sm">{t('loading')}</p>
             </div>
           ) : error ? (
             <div data-testid="activities-error" className="flex flex-col items-center justify-center h-64 text-gray-400 pt-2">
               <AlertCircle className="w-12 h-12 mb-4 opacity-50" />
               <p className="text-sm mb-4">{error}</p>
               <Button variant="outline" size="sm" onClick={handleRefresh}>
-                Opnieuw proberen
+                {t('retry')}
               </Button>
             </div>
           ) : tasks.length === 0 ? (
@@ -565,7 +545,7 @@ export default function ActivitiesPage() {
                 <div className="absolute inset-0 w-12 h-12 rounded-full border border-gray-200 animate-ping [animation-duration:2s] [animation-delay:500ms]" />
               </div>
               <p className="text-sm text-gray-500">
-                Luisteren naar nieuwe activiteiten
+                {t('listening')}
               </p>
             </div>
           ) : (
@@ -573,13 +553,13 @@ export default function ActivitiesPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <SortableHeader column="workflow_type" label="Agent" />
-                    <SortableHeader column="candidate_name" label="Kandidaat" />
-                    <SortableHeader column="vacancy_title" label="Vacature" />
-                    <SortableHeader column="current_step_label" label="Stap" />
-                    {activeFilter === 'all' && <SortableHeader column="status" label="Status" />}
-                    <SortableHeader column="sla" label="SLA" />
-                    <SortableHeader column="time_ago" label="Laatste Update" />
+                    <SortableHeader column="workflow_type" label={t('headerAgent')} />
+                    <SortableHeader column="candidate_name" label={t('headerCandidate')} />
+                    <SortableHeader column="vacancy_title" label={t('headerVacancy')} />
+                    <SortableHeader column="current_step_label" label={t('headerStep')} />
+                    {activeFilter === 'all' && <SortableHeader column="status" label={t('headerStatus')} />}
+                    <SortableHeader column="sla" label={t('headerSla')} />
+                    <SortableHeader column="time_ago" label={t('headerLastUpdate')} />
                     <TableHead className="w-[80px]" />
                   </TableRow>
                 </TableHeader>
@@ -614,7 +594,7 @@ export default function ActivitiesPage() {
                             }
                           </span>
                           {task.step_detail && (
-                            <span className="block text-xs text-gray-500 mt-0.5">{task.step_detail}</span>
+                            <span className="block text-xs text-gray-500 mt-0.5">{translateBackendLabel(task.step_detail)}</span>
                           )}
                         </div>
                       </TableCell>
@@ -632,7 +612,7 @@ export default function ActivitiesPage() {
                         />
                       </TableCell>
                       <TableCell className="text-gray-500 text-sm">
-                        {formatRelativeDate(task.updated_at)}
+                        {formatRelativeDate(task.updated_at, locale)}
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center justify-end gap-1">
@@ -643,7 +623,7 @@ export default function ActivitiesPage() {
                                 className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
                                 onClick={(e) => { e.stopPropagation(); setCompleteDialogTask(task); }}
                                 data-testid={`complete-task-${task.id}`}
-                                title="Markeer als afgerond"
+                                title={t('markComplete')}
                               >
                                 <CheckCircle2 className="w-4 h-4 text-green-600" />
                               </Button>
@@ -669,7 +649,7 @@ export default function ActivitiesPage() {
           {/* Total count */}
           {!isLoading && !error && tasks.length > 0 && (
             <p className="text-sm text-gray-500">
-              {total} {total === 1 ? 'taak' : 'taken'} gevonden
+              {total === 1 ? t('taskCountSingle', { count: total }) : t('taskCount', { count: total })}
             </p>
           )}
         </Tabs>
@@ -678,9 +658,9 @@ export default function ActivitiesPage() {
         <Sheet open={!!selectedTask} onOpenChange={(open) => !open && setSelectedTask(null)}>
           <SheetContent className="sm:max-w-md">
             <SheetHeader className="border-b pb-4">
-              <SheetTitle>Workflow Details</SheetTitle>
+              <SheetTitle>{t('workflowDetails')}</SheetTitle>
               <SheetDescription>
-                {selectedTask?.candidate_name || 'Onbekend'} — {selectedTask?.vacancy_title || 'Geen vacature'}
+                {selectedTask?.candidate_name || t('unknown')} — {selectedTask?.vacancy_title || t('noVacancy')}
               </SheetDescription>
             </SheetHeader>
 
@@ -693,9 +673,9 @@ export default function ActivitiesPage() {
                     <ActivityStatusBadge status={selectedTask.status} isStuck={selectedTask.is_stuck} currentStep={selectedTask.current_step} />
                   </div>
                   {selectedTask.step_detail && (
-                    <p className="text-sm text-gray-600">{selectedTask.step_detail}</p>
+                    <p className="text-sm text-gray-600">{translateBackendLabel(selectedTask.step_detail)}</p>
                   )}
-                  <p className="text-xs text-gray-400">Laatste update: {formatRelativeDate(selectedTask.updated_at)}</p>
+                  <p className="text-xs text-gray-400">{t('lastUpdate')} {formatRelativeDate(selectedTask.updated_at, locale)}</p>
                 </div>
 
                 {/* Agent detail card */}
@@ -706,9 +686,9 @@ export default function ActivitiesPage() {
                   >
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-gray-900 truncate">
-                        {selectedTask.workflow_type === 'pre_screening' ? 'Screening resultaat' : 'Documentcollectie'}
+                        {selectedTask.workflow_type === 'pre_screening' ? t('screeningResult') : t('documentCollection')}
                       </p>
-                      <p className="text-xs text-gray-500">Bekijk details</p>
+                      <p className="text-xs text-gray-500">{t('viewDetails')}</p>
                     </div>
                     <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-gray-600 transition-colors" />
                   </button>
@@ -722,9 +702,9 @@ export default function ActivitiesPage() {
                   >
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-gray-900 truncate">
-                        {selectedTask.candidate_name || 'Kandidaat dossier'}
+                        {selectedTask.candidate_name || t('candidateRecord')}
                       </p>
-                      <p className="text-xs text-gray-500">Bekijk kandidaat dossier</p>
+                      <p className="text-xs text-gray-500">{t('viewCandidateRecord')}</p>
                     </div>
                     <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-gray-600 transition-colors" />
                   </button>
@@ -732,7 +712,7 @@ export default function ActivitiesPage() {
 
                 {/* Workflow steps timeline */}
                 <div className="border-t pt-6">
-                  <h4 className="text-sm font-medium text-gray-900 mb-4">Workflow Voortgang</h4>
+                  <h4 className="text-sm font-medium text-gray-900 mb-4">{t('workflowProgress')}</h4>
                   <Timeline>
                     {selectedTask.workflow_steps?.map((step, index) => {
                       const dotColor = step.status === 'completed' ? 'green'
@@ -771,10 +751,10 @@ export default function ActivitiesPage() {
                                 step.status === 'pending' && 'text-gray-500',
                                 step.status === 'failed' && 'text-red-600',
                               )}>
-                                {translateStepLabel(step.label)}
+                                {translateBackendLabel(step.label)}
                               </span>
                               {step.status === 'current' && (
-                                <span className="ml-2 text-xs text-blue-600 animate-pulse">Actief</span>
+                                <span className="ml-2 text-xs text-blue-600 animate-pulse">{t('stepActive')}</span>
                               )}
                             </div>
                           </div>
@@ -797,24 +777,24 @@ export default function ActivitiesPage() {
         }}>
           <AlertDialogContent className="sm:max-w-md">
             <AlertDialogHeader>
-              <AlertDialogTitle>Taak afronden</AlertDialogTitle>
+              <AlertDialogTitle>{t('completeTaskTitle')}</AlertDialogTitle>
               <AlertDialogDescription>
-                Weet je zeker dat je deze taak wilt markeren als afgerond?
+                {t('completeTaskDesc')}
               </AlertDialogDescription>
             </AlertDialogHeader>
 
             {/* Task info summary */}
             <div className="py-2 px-3 bg-gray-50 rounded-lg text-sm">
-              <p className="font-medium">{completeDialogTask?.candidate_name || 'Onbekend'}</p>
-              <p className="text-gray-500">{completeDialogTask?.vacancy_title || 'Geen vacature'}</p>
+              <p className="font-medium">{completeDialogTask?.candidate_name || t('unknown')}</p>
+              <p className="text-gray-500">{completeDialogTask?.vacancy_title || t('noVacancy')}</p>
             </div>
 
             {/* Optional notes */}
             <div className="space-y-2">
-              <label className="text-sm font-medium">Notitie (optioneel)</label>
+              <label className="text-sm font-medium">{t('noteOptional')}</label>
               <textarea
                 className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                placeholder="Bijv. Kandidaat telefonisch gecontacteerd"
+                placeholder={t('notePlaceholder')}
                 value={completionNotes}
                 onChange={(e) => setCompletionNotes(e.target.value)}
                 rows={2}
@@ -822,7 +802,7 @@ export default function ActivitiesPage() {
             </div>
 
             <AlertDialogFooter>
-              <AlertDialogCancel disabled={isCompleting}>Annuleren</AlertDialogCancel>
+              <AlertDialogCancel disabled={isCompleting}>{t('cancel')}</AlertDialogCancel>
               <AlertDialogAction
                 onClick={(e: React.MouseEvent) => { e.preventDefault(); handleCompleteTask(); }}
                 disabled={isCompleting}
@@ -830,10 +810,10 @@ export default function ActivitiesPage() {
                 {isCompleting ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Afronden...
+                    {t('completing')}
                   </>
                 ) : (
-                  'Markeer als afgerond'
+                  t('markComplete')
                 )}
               </AlertDialogAction>
             </AlertDialogFooter>

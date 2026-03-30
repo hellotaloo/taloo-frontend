@@ -15,12 +15,14 @@ import { getVacanciesFromAPI, getVacancyDetail } from '@/lib/api';
 import { startSync, getSyncStatus } from '@/lib/integrations-api';
 import { useRealtimeTable } from '@/hooks/use-realtime-table';
 import { cn } from '@/lib/utils';
+import { useTranslations } from '@/lib/i18n';
 
-const archivedStatuses = new Set(['archived', 'closed', 'filled']);
+const archivedStatuses = new Set(['archived', 'filled']);
 
 export function VacanciesContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const t = useTranslations('views');
 
   const [searchQuery, setSearchQuery] = useState('');
   const [subTab, setSubTab] = useState<'active' | 'archived'>('active');
@@ -71,7 +73,7 @@ export function VacanciesContent() {
       initialLoadDone.current = true;
     } catch (err) {
       console.error('Failed to fetch vacancies:', err);
-      setError('Kon vacatures niet laden');
+      setError(t('loadFailed'));
     } finally {
       setLoading(false);
     }
@@ -89,7 +91,7 @@ export function VacanciesContent() {
   const handleSync = useCallback(async () => {
     try {
       setSyncing(true);
-      setSyncMessage('Starten...');
+      setSyncMessage(t('syncStarting'));
       await startSync();
 
       pollRef.current = setInterval(async () => {
@@ -98,36 +100,36 @@ export function VacanciesContent() {
 
           if (status.status === 'syncing') {
             const parts: string[] = [];
-            if (status.total_fetched > 0) parts.push(`${status.total_fetched} opgehaald`);
-            if (status.inserted > 0) parts.push(`${status.inserted} nieuw`);
-            if (status.updated > 0) parts.push(`${status.updated} bijgewerkt`);
-            setSyncMessage(parts.length > 0 ? parts.join(', ') : 'Bezig...');
+            if (status.total_fetched > 0) parts.push(t('syncFetched', { count: status.total_fetched }));
+            if (status.inserted > 0) parts.push(t('syncNew', { count: status.inserted }));
+            if (status.updated > 0) parts.push(t('syncUpdated', { count: status.updated }));
+            setSyncMessage(parts.length > 0 ? parts.join(', ') : t('syncBusy'));
           } else if (status.status === 'complete') {
             stopPolling();
             setSyncing(false);
             setSyncMessage('');
-            toast.success('Sync voltooid', {
-              description: `${status.inserted} nieuw, ${status.updated} bijgewerkt, ${status.skipped} overgeslagen`,
+            toast.success(t('syncComplete'), {
+              description: t('syncCompleteDesc', { inserted: status.inserted, updated: status.updated, skipped: status.skipped }),
             });
             fetchVacancies();
           } else if (status.status === 'error') {
             stopPolling();
             setSyncing(false);
             setSyncMessage('');
-            toast.error('Sync mislukt', { description: status.message });
+            toast.error(t('syncFailed'), { description: status.message });
           }
         } catch {
           stopPolling();
           setSyncing(false);
           setSyncMessage('');
-          toast.error('Kon sync status niet ophalen');
+          toast.error(t('syncStatusFailed'));
         }
       }, 2000);
     } catch (err) {
       setSyncing(false);
       setSyncMessage('');
-      toast.error('Sync starten mislukt', {
-        description: err instanceof Error ? err.message : 'Onbekende fout',
+      toast.error(t('syncStartFailed'), {
+        description: err instanceof Error ? err.message : t('unknownError'),
       });
     }
   }, [fetchVacancies, stopPolling]);
@@ -162,7 +164,7 @@ export function VacanciesContent() {
   const filteredVacancies = useMemo(() => {
     let result = subTab === 'archived'
       ? vacancies.filter((v) => archivedStatuses.has(v.status))
-      : vacancies;
+      : vacancies.filter((v) => !archivedStatuses.has(v.status));
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       result = result.filter(
@@ -175,8 +177,8 @@ export function VacanciesContent() {
     return result;
   }, [searchQuery, vacancies, subTab]);
 
-  const totalCount = vacancies.length;
   const archivedCount = vacancies.filter((v) => archivedStatuses.has(v.status)).length;
+  const totalCount = vacancies.length - archivedCount;
 
   return (
     <>
@@ -185,7 +187,7 @@ export function VacanciesContent() {
           action={
             <Button variant="outline" size="sm" onClick={handleSync} disabled={syncing}>
               <RefreshCw className={cn("w-4 h-4", syncing && "animate-spin")} />
-              {syncing ? syncMessage : 'Synchroniseren'}
+              {syncing ? syncMessage : t('sync')}
             </Button>
           }
         />
@@ -195,14 +197,14 @@ export function VacanciesContent() {
               <TabsList variant="line">
                 <TabsTrigger value="active">
                   <List className="w-3.5 h-3.5" />
-                  Alle
+                  {t('all')}
                   <span className="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-500 text-white">
                     {loading ? '...' : totalCount}
                   </span>
                 </TabsTrigger>
                 <TabsTrigger value="archived">
                   <Archive className="w-3.5 h-3.5" />
-                  Gearchiveerd
+                  {t('archived')}
                   <span className="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-500 text-white">
                     {loading ? '...' : archivedCount}
                   </span>
@@ -212,7 +214,7 @@ export function VacanciesContent() {
             <SearchInput
               value={searchQuery}
               onChange={setSearchQuery}
-              placeholder="Zoeken..."
+              placeholder={t('search')}
               className="w-64"
             />
           </div>

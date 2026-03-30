@@ -30,6 +30,7 @@ import {
   updateConnection,
 } from '@/lib/integrations-api';
 import { getProviderBlueprint } from '@/lib/integration-registry';
+import { useTranslations } from '@/lib/i18n';
 
 /** Pretty-print a snake_case field name as a label */
 function fieldLabel(name: string): string {
@@ -40,6 +41,7 @@ function fieldLabel(name: string): string {
 }
 
 export default function IntegrationConnectionPage() {
+  const t = useTranslations('integrations');
   const params = useParams();
   const router = useRouter();
   const slug = params.slug as string;
@@ -76,7 +78,7 @@ export default function IntegrationConnectionPage() {
 
       const integration = integrations.find((i) => i.slug === slug);
       if (!integration) {
-        toast.error('Integratie niet gevonden');
+        toast.error(t('notFound'));
         router.push('/admin/integrations');
         return;
       }
@@ -97,7 +99,7 @@ export default function IntegrationConnectionPage() {
         setSfObject(String(conn.settings?.sf_object ?? ''));
       }
     } catch {
-      toast.error('Kon gegevens niet laden');
+      toast.error(t('dataLoadFailed'));
     } finally {
       setLoading(false);
     }
@@ -112,10 +114,10 @@ export default function IntegrationConnectionPage() {
     try {
       const conn = await saveCredentials(slug, formValues);
       setConnection(conn);
-      toast.success('Credentials opgeslagen');
+      toast.success(t('credentialsSaved'));
       handleHealthCheck(conn.id);
     } catch {
-      toast.error('Opslaan mislukt. Probeer opnieuw.');
+      toast.error(t('saveFailed'));
     } finally {
       setSaving(false);
     }
@@ -129,12 +131,12 @@ export default function IntegrationConnectionPage() {
         prev ? { ...prev, health_status: result.health_status, last_health_check_at: result.checked_at } : prev
       );
       if (result.health_status === 'healthy') {
-        toast.success(result.message || 'Verbinding getest');
+        toast.success(result.message || t('connectionTested'));
       } else {
-        toast.error(result.message || 'Verbinding mislukt');
+        toast.error(result.message || t('connectionFailed'));
       }
     } catch {
-      toast.error('Health check mislukt');
+      toast.error(t('healthCheckFailed'));
     } finally {
       setChecking(false);
     }
@@ -148,9 +150,9 @@ export default function IntegrationConnectionPage() {
         settings: { sf_object: sfObject.trim() || undefined },
       });
       setConnection(updated);
-      toast.success('Instellingen opgeslagen');
+      toast.success(t('settingsSaved'));
     } catch {
-      toast.error('Opslaan mislukt');
+      toast.error(t('saveFailedShort'));
     } finally {
       setSavingSettings(false);
     }
@@ -161,10 +163,10 @@ export default function IntegrationConnectionPage() {
     setDeleting(true);
     try {
       await deleteConnection(connection.id);
-      toast.success('Integratie verwijderd');
+      toast.success(t('deleted'));
       router.push('/admin/integrations');
     } catch {
-      toast.error('Verwijderen mislukt');
+      toast.error(t('deleteFailed'));
     } finally {
       setDeleting(false);
     }
@@ -211,16 +213,16 @@ export default function IntegrationConnectionPage() {
         style={{ animation: 'fade-in-up 0.3s ease-out 100ms backwards' }}
       >
         <div>
-          <h3 className="font-semibold text-gray-900">Credentials</h3>
+          <h3 className="font-semibold text-gray-900">{t('credentials')}</h3>
           <p className="text-sm text-gray-500 mt-1">
             {connection?.has_credentials
-              ? 'Vul nieuwe waarden in om de credentials te overschrijven.'
-              : 'Vul de credentials in om de verbinding te maken.'}
+              ? t('credentialsUpdateHelp')
+              : t('credentialsCreateHelp')}
           </p>
         </div>
 
         {fields.length === 0 ? (
-          <p className="text-sm text-gray-400">Geen velden beschikbaar voor deze integratie.</p>
+          <p className="text-sm text-gray-400">{t('noFields')}</p>
         ) : (
           <div className="space-y-4">
             {fields.map((field) => (
@@ -228,7 +230,7 @@ export default function IntegrationConnectionPage() {
                 <Label htmlFor={field.name}>
                   {fieldLabel(field.name)}
                   {!field.required && (
-                    <span className="text-gray-400 font-normal ml-1">(optioneel)</span>
+                    <span className="text-gray-400 font-normal ml-1">{t('optional')}</span>
                   )}
                 </Label>
                 <Input
@@ -250,12 +252,12 @@ export default function IntegrationConnectionPage() {
           {connection?.has_credentials && (
             <Button variant="outline" onClick={() => handleHealthCheck(connection.id)} disabled={checking}>
               {checking && <Loader2 className="w-4 h-4 animate-spin" />}
-              Testen
+              {t('test')}
             </Button>
           )}
           <Button onClick={handleSave} disabled={saving || !isFormValid}>
             {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-            Opslaan
+            {t('save')}
           </Button>
         </div>
       </div>
@@ -267,14 +269,14 @@ export default function IntegrationConnectionPage() {
           style={{ animation: 'fade-in-up 0.3s ease-out 150ms backwards' }}
         >
           <div>
-            <h3 className="font-semibold text-gray-900">Geavanceerde instellingen</h3>
+            <h3 className="font-semibold text-gray-900">{t('advancedSettings')}</h3>
             <p className="text-sm text-gray-500 mt-1">
-              Configuratie voor het ophalen van vacaturegegevens uit Salesforce.
+              {t('advancedSettingsDesc')}
             </p>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="sf-object">Salesforce object</Label>
+            <Label htmlFor="sf-object">{t('sfObject')}</Label>
             <Input
               id="sf-object"
               value={sfObject}
@@ -283,14 +285,14 @@ export default function IntegrationConnectionPage() {
               className="font-mono text-sm"
             />
             <p className="text-xs text-gray-400">
-              De API-naam van het vacature-object in Salesforce. Laat leeg voor de standaardwaarde.
+              {t('sfObjectHelp')}
             </p>
           </div>
 
           <div className="flex justify-end">
             <Button onClick={handleSaveSettings} disabled={savingSettings} size="sm">
               {savingSettings && <Loader2 className="w-4 h-4 animate-spin" />}
-              Opslaan
+              {t('save')}
             </Button>
           </div>
         </div>
@@ -304,9 +306,9 @@ export default function IntegrationConnectionPage() {
         >
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="font-semibold text-red-900">Integratie verwijderen</h3>
+              <h3 className="font-semibold text-red-900">{t('deleteIntegration')}</h3>
               <p className="text-sm text-red-700/70 mt-1">
-                Alle opgeslagen credentials worden permanent verwijderd.
+                {t('deleteIntegrationDesc')}
               </p>
             </div>
             <Button
@@ -314,7 +316,7 @@ export default function IntegrationConnectionPage() {
               className="border-red-300 text-red-700 hover:bg-red-100"
               onClick={() => setShowDelete(true)}
             >
-              Verwijderen
+              {t('delete')}
             </Button>
           </div>
         </div>
@@ -324,20 +326,20 @@ export default function IntegrationConnectionPage() {
       <AlertDialog open={showDelete} onOpenChange={setShowDelete}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Integratie verwijderen</AlertDialogTitle>
+            <AlertDialogTitle>{t('deleteConfirmTitle')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Weet je zeker dat je deze integratie wilt verwijderen? Alle opgeslagen credentials worden permanent verwijderd.
+              {t('deleteConfirmDesc')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleting}>Annuleren</AlertDialogCancel>
+            <AlertDialogCancel disabled={deleting}>{t('cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
               disabled={deleting}
               className="bg-red-600 hover:bg-red-700"
             >
               {deleting && <Loader2 className="w-4 h-4 animate-spin" />}
-              Verwijderen
+              {t('delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

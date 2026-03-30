@@ -11,12 +11,14 @@ import { CandidatesTable, CandidateDetailPane } from '@/components/blocks/views'
 import { APICandidateListItem, APICandidateDetail } from '@/lib/types';
 import { getCandidates, getCandidate } from '@/lib/api';
 import { useRealtimeTable } from '@/hooks/use-realtime-table';
+import { useTranslations } from '@/lib/i18n';
 
 const archivedStatuses = new Set(['inactive', 'placed']);
 
 export function CandidatesContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const t = useTranslations('views');
 
   const [searchQuery, setSearchQuery] = useState('');
   const [view, setView] = useState<'list' | 'archived'>(() => {
@@ -141,14 +143,14 @@ export function CandidatesContent() {
               <TabsList variant="line">
                 <TabsTrigger value="list">
                   <List className="w-3.5 h-3.5" />
-                  Lijst
+                  {t('list')}
                   <span className="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-500 text-white">
                     {loading ? '...' : totalCount}
                   </span>
                 </TabsTrigger>
                 <TabsTrigger value="archived">
                   <Archive className="w-3.5 h-3.5" />
-                  Gearchiveerd
+                  {t('archived')}
                   <span className="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-500 text-white">
                     {loading ? '...' : archivedCount}
                   </span>
@@ -158,7 +160,7 @@ export function CandidatesContent() {
             <SearchInput
               value={searchQuery}
               onChange={setSearchQuery}
-              placeholder="Zoeken..."
+              placeholder={t('search')}
               className="w-64"
             />
           </div>

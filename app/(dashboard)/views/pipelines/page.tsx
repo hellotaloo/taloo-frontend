@@ -10,8 +10,10 @@ import { CandidatesPipeline } from '@/components/blocks/candidates-pipeline';
 import { CandidateDetailPane } from '@/components/blocks/views';
 import { APICandidateDetail } from '@/lib/types';
 import { getCandidate } from '@/lib/api';
+import { useTranslations } from '@/lib/i18n';
 
 export default function PipelinePage() {
+  const t = useTranslations('views');
   const [searchQuery, setSearchQuery] = useState('');
 
   const [selectedCandidateId, setSelectedCandidateId] = useState<string | null>(null);
@@ -51,14 +53,14 @@ export default function PipelinePage() {
               <TabsList variant="line">
                 <TabsTrigger value="alle">
                   <List className="w-3.5 h-3.5" />
-                  Alle
+                  {t('all')}
                 </TabsTrigger>
               </TabsList>
             </Tabs>
             <SearchInput
               value={searchQuery}
               onChange={setSearchQuery}
-              placeholder="Zoeken..."
+              placeholder={t('search')}
               className="w-64"
             />
           </div>

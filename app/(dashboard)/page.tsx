@@ -20,6 +20,7 @@ import {
 import { MetricCard } from '@/components/kit/metric-card';
 import { StatusBadge } from '@/components/kit/status-badge';
 import { formatRelativeDate } from '@/lib/utils';
+import { useTranslations, useLocale } from '@/lib/i18n';
 import { PageLayout, PageLayoutHeader, PageLayoutContent } from '@/components/layout/page-layout';
 
 // --- Mock data ---
@@ -58,10 +59,10 @@ const agents = [
   { id: 4, name: 'Document Collector', type: 'Onboarding', status: 'offline' as const, activeTasks: 0, completedToday: 0 },
 ];
 
-const activityStatusMap = {
-  completed: { label: 'Afgerond', variant: 'green' as const },
-  active: { label: 'Bezig', variant: 'blue' as const },
-  stuck: { label: 'Vastgelopen', variant: 'orange' as const },
+const activityStatusKeys = {
+  completed: { key: 'statusCompleted', variant: 'green' as const },
+  active: { key: 'statusActive', variant: 'blue' as const },
+  stuck: { key: 'statusStuck', variant: 'orange' as const },
 };
 
 const agentStatusMap = {
@@ -72,6 +73,7 @@ const agentStatusMap = {
 // --- Components ---
 
 function ActivityChart() {
+  const t = useTranslations('dashboard');
   return (
     <div
       className="rounded-xl border border-gray-200 bg-white p-5"
@@ -79,8 +81,8 @@ function ActivityChart() {
     >
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-sm font-semibold text-gray-900">Agent activiteiten</h2>
-          <p className="text-xs text-gray-500 mt-0.5">Overzicht van alle agent interacties</p>
+          <h2 className="text-sm font-semibold text-gray-900">{t('agentActivities')}</h2>
+          <p className="text-xs text-gray-500 mt-0.5">{t('agentActivitiesDesc')}</p>
         </div>
         <div className="flex items-center gap-4 text-xs text-gray-500">
           <span className="flex items-center gap-1.5">
@@ -151,24 +153,26 @@ function ActivityChart() {
 }
 
 function RecentActivities() {
+  const t = useTranslations('dashboard');
+  const { locale } = useLocale();
   return (
     <div
       className="rounded-xl border border-gray-200 bg-white p-5"
       style={{ animation: 'fade-in-up 0.3s ease-out 300ms backwards' }}
     >
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-sm font-semibold text-gray-900">Recente activiteiten</h2>
+        <h2 className="text-sm font-semibold text-gray-900">{t('recentActivities')}</h2>
         <a
           href="/activities"
           className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-900 transition-colors"
         >
-          Bekijk alles
+          {t('viewAll')}
           <ArrowRight className="w-3 h-3" />
         </a>
       </div>
       <div className="divide-y divide-gray-100">
         {recentActivities.map((activity) => {
-          const statusConfig = activityStatusMap[activity.status];
+          const statusConfig = activityStatusKeys[activity.status];
           return (
             <div key={activity.id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
               <div className="w-8 h-8 rounded-lg bg-brand-dark-blue flex items-center justify-center shrink-0">
@@ -187,9 +191,9 @@ function RecentActivities() {
                 </p>
               </div>
               <div className="flex items-center gap-3 shrink-0">
-                <StatusBadge label={statusConfig.label} variant={statusConfig.variant} />
+                <StatusBadge label={t(statusConfig.key)} variant={statusConfig.variant} />
                 <span className="text-xs text-gray-400 w-16 text-right">
-                  {formatRelativeDate(activity.time)}
+                  {formatRelativeDate(activity.time, locale)}
                 </span>
               </div>
             </div>
@@ -201,18 +205,19 @@ function RecentActivities() {
 }
 
 function AgentsOverview() {
+  const t = useTranslations('dashboard');
   return (
     <div
       className="rounded-xl border border-gray-200 bg-white p-5"
       style={{ animation: 'fade-in-up 0.3s ease-out 400ms backwards' }}
     >
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-sm font-semibold text-gray-900">Agents overzicht</h2>
+        <h2 className="text-sm font-semibold text-gray-900">{t('agentsOverview')}</h2>
         <a
           href="/agents"
           className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-900 transition-colors"
         >
-          Beheer
+          {t('manage')}
           <ArrowRight className="w-3 h-3" />
         </a>
       </div>
@@ -240,13 +245,13 @@ function AgentsOverview() {
                 </div>
                 <p className="text-xs text-gray-500 mt-0.5">
                   {agent.activeTasks > 0
-                    ? `${agent.activeTasks} actief \u00b7 ${agent.completedToday} afgerond vandaag`
-                    : 'Geen actieve taken'}
+                    ? t('activeCount', { active: agent.activeTasks, completed: agent.completedToday })
+                    : t('noActiveTasks')}
                 </p>
               </div>
               <div className="text-right shrink-0">
                 <p className="text-lg font-semibold text-gray-900">{agent.completedToday}</p>
-                <p className="text-xs text-gray-500">vandaag</p>
+                <p className="text-xs text-gray-500">{t('today')}</p>
               </div>
             </div>
           );
@@ -259,6 +264,8 @@ function AgentsOverview() {
 // --- Page ---
 
 export default function DashboardPage() {
+  const t = useTranslations('dashboard');
+  const { t: tRoot } = useLocale();
   const totalToday = agents.reduce((sum, a) => sum + a.completedToday, 0);
   const activeAgents = agents.filter(a => a.status === 'online').length;
 
@@ -272,7 +279,7 @@ export default function DashboardPage() {
               Coming soon
             </span>
           </div>
-          <p className="text-sm text-gray-500">Overzicht van agent activiteiten en prestaties</p>
+          <p className="text-sm text-gray-500">{tRoot('pages.dashboardDesc')}</p>
         </div>
       </PageLayoutHeader>
       <PageLayoutContent>
@@ -280,32 +287,32 @@ export default function DashboardPage() {
           {/* Metric Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <MetricCard
-              title="Totaal activiteiten"
+              title={t('totalActivities')}
               value={totalToday}
-              label="Vandaag"
+              label={t('today')}
               icon={Phone}
               variant="blue"
               sparklineData={sparklineTrend}
             />
             <MetricCard
-              title="Voltooiingspercentage"
+              title={t('completionRate')}
               value="87%"
-              label="Gem"
+              label={t('avg')}
               icon={CheckCircle2}
               variant="dark"
               progress={87}
             />
             <MetricCard
-              title="Actieve agents"
+              title={t('activeAgents')}
               value={`${activeAgents}/${agents.length}`}
               label="Online"
               icon={Boxes}
               variant="lime"
             />
             <MetricCard
-              title="Gem. doorlooptijd"
+              title={t('avgDuration')}
               value="4m12s"
-              label="Per gesprek"
+              label={t('perConversation')}
               icon={Clock}
               variant="purple"
               sparklineData={[

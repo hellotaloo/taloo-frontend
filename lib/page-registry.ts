@@ -45,6 +45,8 @@ import {
 } from 'lucide-react';
 export type PageConfig = {
   title: string;
+  /** Key into the pages.* translation namespace */
+  titleKey?: string;
   description?: string;
   icon: LucideIcon;
 };
@@ -55,36 +57,38 @@ export type PageConfig = {
  */
 export const pageConfigs: Record<string, PageConfig> = {
   // Main pages
-  '/': { title: 'Dashboard', description: 'Overzicht van agent activiteiten en prestaties', icon: LayoutDashboard },
-  '/inbox': { title: 'Inbox', icon: Inbox },
-  '/views': { title: 'Views', description: 'Bekijk en beheer al je gegevens', icon: LayoutList },
-  '/views/vacancies': { title: 'Vacatures', description: 'Bekijk en beheer al je vacatures', icon: Briefcase },
-  '/views/candidates': { title: 'Kandidaten', description: 'Bekijk en beheer al je kandidaten', icon: Users },
-  '/views/pipelines': { title: 'Pipelines', description: 'Overzicht van alle actieve sollicitaties per fase', icon: Kanban },
-  '/views/customers': { title: 'Klanten', description: 'Bekijk en beheer al je klanten', icon: Building2 },
-  '/activities': { title: 'Activiteiten', description: 'Status van alle lopende en afgeronde agent activiteiten', icon: Activity },
-  '/agents': { title: 'Agents', description: 'Ontdek en activeer AI agents voor je workspace', icon: Boxes },
+  '/': { title: 'Dashboard', titleKey: 'dashboard', icon: LayoutDashboard },
+  '/inbox': { title: 'Inbox', titleKey: 'inbox', icon: Inbox },
+  '/views': { title: 'Views', titleKey: 'views', icon: LayoutList },
+  '/views/vacancies': { title: 'Vacatures', titleKey: 'vacancies', icon: Briefcase },
+  '/views/candidates': { title: 'Kandidaten', titleKey: 'candidates', icon: Users },
+  '/views/pipelines': { title: 'Pipelines', titleKey: 'pipelines', icon: Kanban },
+  '/views/customers': { title: 'Klanten', titleKey: 'customers', icon: Building2 },
+  '/activities': { title: 'Activiteiten', titleKey: 'activities', icon: Activity },
+  '/agents': { title: 'Agents', titleKey: 'agents', icon: Boxes },
 
   // Pre-screening
-  '/pre-screening': { title: 'Pre-screening', description: 'Overzicht en beheer van de pre-screening agents per vacature', icon: Phone },
-  '/pre-screening/settings': { title: 'Pre-screening instellingen', icon: Settings },
-  '/pre-screening/demo': { title: 'Pre-screening playground', icon: Play },
+  '/pre-screening': { title: 'Pre-screening', titleKey: 'preScreening', icon: Phone },
+  '/pre-screening/settings': { title: 'Pre-screening instellingen', titleKey: 'preScreeningSettings', icon: Settings },
+  '/pre-screening/demo': { title: 'Pre-screening playground', titleKey: 'preScreeningPlayground', icon: Play },
 
   // Documentcollectie
-  '/document-collection': { title: 'Documentcollectie', description: 'Verzamel documenten voor nieuwe medewerkers', icon: FileCheck },
-  '/document-collection/playground': { title: 'Documentcollectie playground', icon: Play },
+  '/document-collection': { title: 'Documentcollectie', titleKey: 'documentCollection', icon: FileCheck },
+  '/document-collection/playground': { title: 'Documentcollectie playground', titleKey: 'documentCollectionPlayground', icon: Play },
 
   // Other features
-  '/insights': { title: 'Pattern Finder', description: 'Ontdek verborgen patronen en optimaliseer je hiring proces', icon: ScanSearch },
-  '/audit-trail': { title: 'Audit trail', description: 'Geschiedenis van alle agent en systeem gebeurtenissen', icon: History },
+  '/insights': { title: 'Pattern Finder', titleKey: 'patternFinder', icon: ScanSearch },
+  '/audit-trail': { title: 'Audit trail', titleKey: 'auditTrail', icon: History },
 
   // Admin section
-  '/admin': { title: 'Instellingen', description: 'Beheer instellingen en configuraties', icon: Settings },
-'/admin/ontology': { title: 'Ontology', icon: Boxes },
-  '/admin/integrations': { title: 'Externe integraties', icon: Plug },
+  '/admin': { title: 'Instellingen', titleKey: 'admin', icon: Settings },
+  '/admin/members': { title: 'Leden', titleKey: 'members', icon: Users },
+  '/admin/settings': { title: 'Algemene instellingen', titleKey: 'generalSettings', icon: Settings },
+  '/admin/ontology': { title: 'Ontology', titleKey: 'ontology', icon: Boxes },
+  '/admin/integrations': { title: 'Externe integraties', titleKey: 'integrations', icon: Plug },
 
   // Agent settings
-  '/agent-settings/voice': { title: 'Voice Agent', description: 'Configure voice settings and test demo calls', icon: Mic },
+  '/agent-settings/voice': { title: 'Voice Agent', titleKey: 'voiceAgent', icon: Mic },
 
 };
 
@@ -94,24 +98,24 @@ export const pageConfigs: Record<string, PageConfig> = {
  */
 export const dynamicRoutes: Array<{ pattern: RegExp; config: PageConfig }> = [
   // Pre-screening dynamic routes
-  { pattern: /^\/pre-screening\/detail\//, config: { title: 'Pre-screening', icon: Phone } },
-  { pattern: /^\/pre-screening\/generate\//, config: { title: 'Pre-screening', icon: Phone } },
+  { pattern: /^\/pre-screening\/detail\//, config: { title: 'Pre-screening', titleKey: 'preScreening', icon: Phone } },
+  { pattern: /^\/pre-screening\/generate\//, config: { title: 'Pre-screening', titleKey: 'preScreening', icon: Phone } },
 
   // Interview routes
-  { pattern: /^\/interviews\/generate\//, config: { title: 'Interview vragen', icon: Phone } },
+  { pattern: /^\/interviews\/generate\//, config: { title: 'Interview vragen', titleKey: 'interviewQuestions', icon: Phone } },
 
   // Vacancy pipeline
-  { pattern: /^\/views\/vacancies\/[^/]+\/pipeline/, config: { title: 'Pipeline', icon: Briefcase } },
+  { pattern: /^\/views\/vacancies\/[^/]+\/pipeline/, config: { title: 'Pipeline', titleKey: 'pipeline', icon: Briefcase } },
 
   // Documentcollectie dynamic routes
-  { pattern: /^\/document-collection\/detail\//, config: { title: 'Documentcollectie', icon: FileCheck } },
-  { pattern: /^\/document-collection\/generate\//, config: { title: 'Documentcollectie', icon: FileCheck } },
+  { pattern: /^\/document-collection\/detail\//, config: { title: 'Documentcollectie', titleKey: 'documentCollection', icon: FileCheck } },
+  { pattern: /^\/document-collection\/generate\//, config: { title: 'Documentcollectie', titleKey: 'documentCollection', icon: FileCheck } },
 
   // Integration detail routes
-  { pattern: /^\/admin\/integrations\/[^/]+$/, config: { title: 'Integratie', icon: Plug } },
-  { pattern: /^\/admin\/integrations\/[^/]+\/mapping\/import/, config: { title: 'Vacature import', icon: Plug } },
-  { pattern: /^\/admin\/integrations\/[^/]+\/mapping\/export/, config: { title: 'Data terugkoppeling', icon: Plug } },
-  { pattern: /^\/admin\/integrations\/[^/]+\/mapping/, config: { title: 'Mapping', icon: Plug } },
+  { pattern: /^\/admin\/integrations\/[^/]+$/, config: { title: 'Integratie', titleKey: 'integration', icon: Plug } },
+  { pattern: /^\/admin\/integrations\/[^/]+\/mapping\/import/, config: { title: 'Vacature import', titleKey: 'vacancyImport', icon: Plug } },
+  { pattern: /^\/admin\/integrations\/[^/]+\/mapping\/export/, config: { title: 'Data terugkoppeling', titleKey: 'dataFeedback', icon: Plug } },
+  { pattern: /^\/admin\/integrations\/[^/]+\/mapping/, config: { title: 'Mapping', titleKey: 'mapping', icon: Plug } },
 
 ];
 
@@ -121,6 +125,7 @@ export const dynamicRoutes: Array<{ pattern: RegExp; config: PageConfig }> = [
  */
 export const defaultPageConfig: PageConfig = {
   title: 'Nieuw tabblad',
+  titleKey: 'newTab',
   icon: FileText,
 };
 

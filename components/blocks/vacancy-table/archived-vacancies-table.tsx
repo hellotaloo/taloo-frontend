@@ -4,8 +4,9 @@ import { useState, useMemo } from 'react';
 import { Building2, MapPin, Archive, ArrowUp, ArrowDown, ChevronsUpDown } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import type { AgentVacancy } from '@/lib/types';
-import { cn } from '@/lib/utils';
+import { cn, formatRelativeDate } from '@/lib/utils';
 import { getStatValue } from '@/lib/agent-utils';
+import { useTranslations, useLocale } from '@/lib/i18n';
 import {
   Table,
   TableBody,
@@ -62,20 +63,10 @@ export interface ArchivedVacanciesTableProps {
   vacancies: AgentVacancy[];
 }
 
-function formatRelativeDate(dateString: string | null | undefined) {
-  if (!dateString) return '-';
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffDays = Math.floor(diffMs / 86400000);
-
-  if (diffDays < 1) return 'Vandaag';
-  if (diffDays < 7) return `${diffDays}d geleden`;
-  return date.toLocaleDateString('nl-BE', { day: 'numeric', month: 'short', year: 'numeric' });
-}
-
 export function ArchivedVacanciesTable({ vacancies }: ArchivedVacanciesTableProps) {
   const router = useRouter();
+  const t = useTranslations('vacancyTable');
+  const { locale } = useLocale();
   const [sortKey, setSortKey] = useState<SortKey | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);
 
@@ -143,7 +134,7 @@ export function ArchivedVacanciesTable({ vacancies }: ArchivedVacanciesTableProp
         <div className="w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center mx-auto mb-3">
           <Archive className="w-6 h-6 text-gray-400" />
         </div>
-        <p className="text-sm text-gray-500">Geen gearchiveerde vacatures.</p>
+        <p className="text-sm text-gray-500">{t('noArchivedVacancies')}</p>
       </div>
     );
   }
@@ -153,7 +144,7 @@ export function ArchivedVacanciesTable({ vacancies }: ArchivedVacanciesTableProp
       <TableHeader>
         <TableRow>
           <SortableHeader
-            label="Vacature"
+            label={t('vacancy')}
             sortKey="title"
             currentSortKey={sortKey}
             sortDirection={sortDirection}
@@ -161,7 +152,7 @@ export function ArchivedVacanciesTable({ vacancies }: ArchivedVacanciesTableProp
             className="w-full"
           />
           <SortableHeader
-            label="Kandidaten"
+            label={t('candidates')}
             sortKey="candidatesCount"
             currentSortKey={sortKey}
             sortDirection={sortDirection}
@@ -169,7 +160,7 @@ export function ArchivedVacanciesTable({ vacancies }: ArchivedVacanciesTableProp
             className="text-center"
           />
           <SortableHeader
-            label="Afgerond"
+            label={t('completed')}
             sortKey="completedCount"
             currentSortKey={sortKey}
             sortDirection={sortDirection}
@@ -177,7 +168,7 @@ export function ArchivedVacanciesTable({ vacancies }: ArchivedVacanciesTableProp
             className="text-center"
           />
           <SortableHeader
-            label="Gekwalificeerd"
+            label={t('qualified')}
             sortKey="qualifiedCount"
             currentSortKey={sortKey}
             sortDirection={sortDirection}
@@ -185,7 +176,7 @@ export function ArchivedVacanciesTable({ vacancies }: ArchivedVacanciesTableProp
             className="text-center"
           />
           <SortableHeader
-            label="Laatste activiteit"
+            label={t('lastActivity')}
             sortKey="lastActivityAt"
             currentSortKey={sortKey}
             sortDirection={sortDirection}
@@ -245,7 +236,7 @@ export function ArchivedVacanciesTable({ vacancies }: ArchivedVacanciesTableProp
                 </span>
               </TableCell>
               <TableCell className="text-gray-500 text-sm">
-                {formatRelativeDate(vacancy.last_activity_at)}
+                {formatRelativeDate(vacancy.last_activity_at, locale)}
               </TableCell>
             </TableRow>
           );

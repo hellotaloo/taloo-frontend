@@ -11,6 +11,7 @@ import { usePathname } from 'next/navigation';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { SystemStatus } from './SystemStatus';
 import { getPageConfig } from '@/lib/page-registry';
+import { useTranslations } from '@/lib/i18n';
 
 /**
  * Application header with page tab bar.
@@ -22,7 +23,10 @@ import { getPageConfig } from '@/lib/page-registry';
  */
 export function Header() {
   const pathname = usePathname();
-  const { title: pageTitle, icon: PageIcon } = getPageConfig(pathname);
+  const { titleKey, title: fallbackTitle, icon: PageIcon } = getPageConfig(pathname);
+  const t = useTranslations('pages');
+  const tCommon = useTranslations('common');
+  const pageTitle = titleKey ? t(titleKey) : fallbackTitle;
 
   return (
     <header className="h-10 bg-[#fbfbfa] border-b border-gray-200 flex items-center sticky top-0 z-10">
@@ -61,7 +65,7 @@ export function Header() {
         <SystemStatus />
         <button className="flex items-center gap-1.5 px-2 py-1 text-sm text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded transition-colors">
           <HelpCircle className="w-4 h-4" />
-          <span>Hulp</span>
+          <span>{tCommon('help')}</span>
         </button>
       </div>
     </header>

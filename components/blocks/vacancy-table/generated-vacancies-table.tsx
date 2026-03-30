@@ -5,8 +5,9 @@ import { Building2, MapPin, ArrowUp, ArrowDown, ChevronsUpDown, AlertTriangle, A
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { AgentVacancy } from '@/lib/types';
-import { cn } from '@/lib/utils';
+import { cn, formatRelativeDate } from '@/lib/utils';
 import { getStatValue } from '@/lib/agent-utils';
+import { useTranslations, useLocale } from '@/lib/i18n';
 import type { ImportVacancy } from '@/hooks/use-ats-import';
 import {
   Table,
@@ -70,24 +71,10 @@ export interface PublishedVacanciesTableProps {
 // Keep old name as alias for backwards compatibility
 export type GeneratedVacanciesTableProps = PublishedVacanciesTableProps;
 
-function formatRelativeDate(dateString: string | null | undefined) {
-  if (!dateString) return '-';
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMs / 3600000);
-  const diffDays = Math.floor(diffMs / 86400000);
-
-  if (diffMins < 1) return 'Zojuist';
-  if (diffMins < 60) return `${diffMins}m geleden`;
-  if (diffHours < 24) return `${diffHours}u geleden`;
-  if (diffDays < 7) return `${diffDays}d geleden`;
-  return date.toLocaleDateString('nl-BE', { day: 'numeric', month: 'short' });
-}
-
 export function PublishedVacanciesTable({ vacancies, generationStatus, isImporting }: PublishedVacanciesTableProps) {
   const router = useRouter();
+  const t = useTranslations('vacancyTable');
+  const { locale } = useLocale();
   const [sortKey, setSortKey] = useState<SortKey | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);
   const handleSort = (key: SortKey) => {
@@ -155,12 +142,12 @@ export function PublishedVacanciesTable({ vacancies, generationStatus, isImporti
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="w-full">Vacature</TableHead>
-            <TableHead className="text-center">Kandidaten</TableHead>
-            <TableHead className="text-center">Afgerond</TableHead>
-            <TableHead className="text-center">Gekwalificeerd</TableHead>
-            <TableHead>Laatste activiteit</TableHead>
-            <TableHead className="text-right">Status</TableHead>
+            <TableHead className="w-full">{t('vacancy')}</TableHead>
+            <TableHead className="text-center">{t('candidates')}</TableHead>
+            <TableHead className="text-center">{t('completed')}</TableHead>
+            <TableHead className="text-center">{t('qualified')}</TableHead>
+            <TableHead>{t('lastActivity')}</TableHead>
+            <TableHead className="text-right">{t('status')}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -190,7 +177,7 @@ export function PublishedVacanciesTable({ vacancies, generationStatus, isImporti
         <div className="w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center mx-auto mb-3">
           <Phone className="w-6 h-6 text-gray-400" />
         </div>
-        <p className="text-sm text-gray-500">Geen vacatures met pre-screening.</p>
+        <p className="text-sm text-gray-500">{t('noVacancies')}</p>
       </div>
     );
   }
@@ -200,7 +187,7 @@ export function PublishedVacanciesTable({ vacancies, generationStatus, isImporti
       <TableHeader>
         <TableRow>
           <SortableHeader
-            label="Vacature"
+            label={t('vacancy')}
             sortKey="title"
             currentSortKey={sortKey}
             sortDirection={sortDirection}
@@ -208,7 +195,7 @@ export function PublishedVacanciesTable({ vacancies, generationStatus, isImporti
             className="w-full"
           />
           <SortableHeader
-            label="Kandidaten"
+            label={t('candidates')}
             sortKey="candidatesCount"
             currentSortKey={sortKey}
             sortDirection={sortDirection}
@@ -216,7 +203,7 @@ export function PublishedVacanciesTable({ vacancies, generationStatus, isImporti
             className="text-center"
           />
           <SortableHeader
-            label="Afgerond"
+            label={t('completed')}
             sortKey="completedCount"
             currentSortKey={sortKey}
             sortDirection={sortDirection}
@@ -224,7 +211,7 @@ export function PublishedVacanciesTable({ vacancies, generationStatus, isImporti
             className="text-center"
           />
           <SortableHeader
-            label="Gekwalificeerd"
+            label={t('qualified')}
             sortKey="qualifiedCount"
             currentSortKey={sortKey}
             sortDirection={sortDirection}
@@ -232,13 +219,13 @@ export function PublishedVacanciesTable({ vacancies, generationStatus, isImporti
             className="text-center"
           />
           <SortableHeader
-            label="Laatste activiteit"
+            label={t('lastActivity')}
             sortKey="lastActivityAt"
             currentSortKey={sortKey}
             sortDirection={sortDirection}
             onSort={handleSort}
           />
-          <TableHead className="text-right">Status</TableHead>
+          <TableHead className="text-right">{t('status')}</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -310,33 +297,33 @@ export function PublishedVacanciesTable({ vacancies, generationStatus, isImporti
                 </span>
               </TableCell>
               <TableCell className="text-gray-500 text-sm">
-                {formatRelativeDate(vacancy.last_activity_at)}
+                {formatRelativeDate(vacancy.last_activity_at, locale)}
               </TableCell>
               <TableCell className="text-right">
                 {genStatus?.status === 'published' ? (
-                  <StatusBadge label="Online" variant="green" />
+                  <StatusBadge label={t('online')} variant="green" />
                 ) : genStatus?.status === 'failed' ? (
-                  <StatusBadge label="Mislukt" variant="orange" icon={AlertTriangle} />
+                  <StatusBadge label={t('failed')} variant="orange" icon={AlertTriangle} />
                 ) : isGenerating ? (
-                  <span className="text-xs text-gray-400">Bezig...</span>
+                  <span className="text-xs text-gray-400">{t('busy')}</span>
                 ) : genStatus?.status === 'queued' ? (
                   <Link
                     href={`/pre-screening/detail/${vacancy.id}`}
                     onClick={(e) => e.stopPropagation()}
                     className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
                   >
-                    Genereren
+                    {t('generate')}
                     <ArrowRight className="w-3.5 h-3.5" />
                   </Link>
                 ) : isOnline || vacancy.agent_status === 'published' ? (
-                  <StatusBadge label="Online" variant="green" />
+                  <StatusBadge label={t('online')} variant="green" />
                 ) : vacancy.agent_status === 'generated' ? (
                   <Link
                     href={`/pre-screening/detail/${vacancy.id}?mode=edit`}
                     onClick={(e) => e.stopPropagation()}
                     className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors"
                   >
-                    Publiceren
+                    {t('publish')}
                     <Send className="w-3.5 h-3.5" />
                   </Link>
                 ) : (
@@ -345,7 +332,7 @@ export function PublishedVacanciesTable({ vacancies, generationStatus, isImporti
                     onClick={(e) => e.stopPropagation()}
                     className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
                   >
-                    Genereren
+                    {t('generate')}
                     <ArrowRight className="w-3.5 h-3.5" />
                   </Link>
                 )}

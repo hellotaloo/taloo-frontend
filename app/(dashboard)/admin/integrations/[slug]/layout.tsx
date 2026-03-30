@@ -22,6 +22,7 @@ import {
   updateConnection,
 } from '@/lib/integrations-api';
 import { getProviderBlueprint, getStatusDisplay } from '@/lib/integration-registry';
+import { useTranslations } from '@/lib/i18n';
 
 /**
  * Shared layout for integration detail pages.
@@ -33,6 +34,7 @@ export default function IntegrationDetailLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const t = useTranslations('integrations');
   const params = useParams();
   const pathname = usePathname();
   const router = useRouter();
@@ -55,7 +57,7 @@ export default function IntegrationDetailLayout({
 
       const found = integrations.find((i) => i.slug === slug);
       if (!found) {
-        toast.error('Integratie niet gevonden');
+        toast.error(t('notFound'));
         router.push('/admin/integrations');
         return;
       }
@@ -65,7 +67,7 @@ export default function IntegrationDetailLayout({
       const conn = connections.find((c) => c.integration.slug === slug);
       if (conn) setConnection(conn);
     } catch {
-      toast.error('Kon gegevens niet laden');
+      toast.error(t('dataLoadFailed'));
     } finally {
       setLoading(false);
     }
@@ -81,9 +83,9 @@ export default function IntegrationDetailLayout({
     try {
       const updated = await updateConnection(connection.id, { is_active: active });
       setConnection(updated);
-      toast.success(active ? 'Integratie geactiveerd' : 'Integratie gedeactiveerd');
+      toast.success(active ? t('activated') : t('deactivated'));
     } catch {
-      toast.error('Bijwerken mislukt');
+      toast.error(t('updateFailed'));
     } finally {
       setToggling(false);
     }
@@ -103,13 +105,13 @@ export default function IntegrationDetailLayout({
     <div className="flex flex-col h-full py-4">
       <div className="px-2">
         <div className="px-3 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
-          Configuratie
+          {t('sidebarConfig')}
         </div>
         <div className="mt-1 space-y-1">
           <Link href={basePath}>
             <NavItem
               icon={Plug}
-              label="Verbinding"
+              label={t('sidebarConnection')}
               active={!isMapping}
               testId="connection"
             />
@@ -117,12 +119,12 @@ export default function IntegrationDetailLayout({
           {showMapping && (
             <>
               <div className="px-3 pt-3 pb-1 text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                Mapping
+                {t('sidebarMapping')}
               </div>
               <Link href={`${basePath}/mapping/import`}>
                 <NavItem
                   icon={ArrowDownToLine}
-                  label="Vacature import"
+                  label={t('sidebarVacancyImport')}
                   active={isMappingImport}
                   testId="mapping-import"
                 />
@@ -130,7 +132,7 @@ export default function IntegrationDetailLayout({
               <Link href={`${basePath}/mapping/export`}>
                 <NavItem
                   icon={ArrowUpFromLine}
-                  label="Data terugkoppeling"
+                  label={t('sidebarDataFeedback')}
                   active={isMappingExport}
                   testId="mapping-export"
                 />
@@ -181,9 +183,9 @@ export default function IntegrationDetailLayout({
           <div className="flex items-center gap-4">
             {connection?.has_credentials && (
               <>
-                <StatusBadge label={status.label} variant={status.variant} />
+                <StatusBadge label={t(status.labelKey)} variant={status.variant} />
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-gray-500">Actief</span>
+                  <span className="text-xs text-gray-500">{t('active')}</span>
                   <Switch
                     checked={connection.is_active}
                     onCheckedChange={handleToggle}

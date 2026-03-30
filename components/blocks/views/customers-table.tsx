@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import { Building2, MapPin } from 'lucide-react';
 import { APIClient } from '@/lib/types';
+import { formatRelativeDate } from '@/lib/utils';
 import {
   DataTable,
   DataTableHeader,
@@ -10,32 +11,19 @@ import {
   DataTableEmpty,
   Column,
 } from '@/components/kit/data-table';
+import { useTranslations, useLocale } from '@/lib/i18n';
 
 export interface CustomersTableProps {
   customers: APIClient[];
 }
 
-function formatRelativeDate(dateString: string | null | undefined) {
-  if (!dateString) return '-';
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMs / 3600000);
-  const diffDays = Math.floor(diffMs / 86400000);
-
-  if (diffMins < 1) return 'Zojuist';
-  if (diffMins < 60) return `${diffMins}m geleden`;
-  if (diffHours < 24) return `${diffHours}u geleden`;
-  if (diffDays < 7) return `${diffDays}d geleden`;
-  return date.toLocaleDateString('nl-BE', { day: 'numeric', month: 'short' });
-}
-
 export function CustomersTable({ customers }: CustomersTableProps) {
+  const t = useTranslations('customers');
+  const { locale } = useLocale();
   const columns: Column<APIClient>[] = [
     {
       key: 'name',
-      header: 'Klant',
+      header: t('title'),
       sortable: true,
       className: 'min-w-[240px] pl-0',
       accessor: (item) => item.name,
@@ -70,7 +58,7 @@ export function CustomersTable({ customers }: CustomersTableProps) {
     },
     {
       key: 'source',
-      header: 'Bron',
+      header: t('source'),
       sortable: false,
       className: 'w-[60px] text-center',
       accessor: () => 'salesforce',
@@ -87,7 +75,7 @@ export function CustomersTable({ customers }: CustomersTableProps) {
     },
     {
       key: 'synced',
-      header: 'Synced',
+      header: t('synced'),
       sortable: true,
       className: 'w-[140px]',
       accessor: (item) => item.updated_at || item.created_at || '',
@@ -98,7 +86,7 @@ export function CustomersTable({ customers }: CustomersTableProps) {
         }
         return (
           <span className="text-gray-500 text-sm">
-            {formatRelativeDate(syncDate)}
+            {formatRelativeDate(syncDate, locale)}
           </span>
         );
       },
@@ -109,8 +97,8 @@ export function CustomersTable({ customers }: CustomersTableProps) {
     return (
       <DataTableEmpty
         icon={Building2}
-        title="Geen klanten gevonden"
-        description="Er zijn nog geen klanten die voldoen aan je zoekopdracht."
+        title={t('noCustomers')}
+        description={t('noCustomersDesc')}
       />
     );
   }

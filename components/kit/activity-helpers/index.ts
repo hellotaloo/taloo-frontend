@@ -1,1 +1,1 @@
-export { ActivityStatusBadge, SLABadge, translateStepLabel, stepLabelNl } from './activity-helpers';
+export { ActivityStatusBadge, SLABadge, translateStepLabel, useTranslateStepLabel } from './activity-helpers';

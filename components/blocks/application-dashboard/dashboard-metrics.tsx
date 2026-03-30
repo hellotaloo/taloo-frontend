@@ -3,6 +3,7 @@
 import { Users, CheckCircle, Award, BarChart3 } from 'lucide-react';
 import { MetricCard } from '@/components/kit/metric-card';
 import { cn } from '@/lib/utils';
+import { useTranslations } from '@/lib/i18n';
 
 export type AnswerRating = 'excellent' | 'good' | 'average' | 'below_average' | 'weak';
 export type ApplicationStatus = 'active' | 'processing' | 'completed' | 'abandoned';
@@ -41,6 +42,7 @@ interface InterviewDashboardProps {
 }
 
 export function InterviewDashboard({ applications }: InterviewDashboardProps) {
+  const t = useTranslations('appDashboard');
   const totalApplications = applications.length;
   const completedCount = applications.filter(a => a.status === 'completed').length;
   const qualifiedCount = applications.filter(a => a.qualified).length;
@@ -56,27 +58,27 @@ export function InterviewDashboard({ applications }: InterviewDashboardProps) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
       <MetricCard
-        title="Totaal sollicitaties"
+        title={t('totalApplications')}
         value={totalApplications}
         icon={Users}
         variant="blue"
-        label="kandidaten"
+        label={t('candidates')}
       />
       <MetricCard
-        title="Afgerond"
+        title={t('completed')}
         value={`${completionRate}%`}
         icon={CheckCircle}
         variant="lime"
         progress={completionRate}
-        label={`${completedCount} van ${totalApplications}`}
+        label={`${completedCount} ${t('of')} ${totalApplications}`}
       />
       <MetricCard
-        title="Gekwalificeerd"
+        title={t('qualified')}
         value={`${qualificationRate}%`}
         icon={Award}
         variant="dark"
         progress={qualificationRate}
-        label={`${qualifiedCount} van ${completedCount}`}
+        label={`${qualifiedCount} ${t('of')} ${completedCount}`}
       />
       <div
         className={cn(
@@ -86,10 +88,10 @@ export function InterviewDashboard({ applications }: InterviewDashboardProps) {
       >
         <div className="flex items-center gap-2 text-sm font-medium text-white">
           <BarChart3 className="w-4 h-4" />
-          Insights
+          {t('insights')}
         </div>
         <div className="my-3 flex-1 flex items-center justify-center">
-          <span className="text-sm text-white/70">Niet genoeg data</span>
+          <span className="text-sm text-white/70">{t('notEnoughData')}</span>
         </div>
       </div>
     </div>

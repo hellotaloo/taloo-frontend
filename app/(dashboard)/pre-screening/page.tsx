@@ -25,8 +25,9 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
-import { ActivityStatusBadge, SLABadge, translateStepLabel } from '@/components/kit/activity-helpers';
+import { ActivityStatusBadge, SLABadge, useTranslateStepLabel } from '@/components/kit/activity-helpers';
 import { cn, formatRelativeDate } from '@/lib/utils';
+import { useTranslations, useLocale, useTranslateBackendLabel } from '@/lib/i18n';
 
 type SortKey = 'candidate_name' | 'vacancy_title' | 'current_step_label' | 'status' | 'sla' | 'time_ago';
 type SortDirection = 'asc' | 'desc' | null;
@@ -34,6 +35,11 @@ type SortDirection = 'asc' | 'desc' | null;
 function PreScreeningContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const t = useTranslations('preScreening');
+  const tViews = useTranslations('views');
+  const { locale, t: tRoot } = useLocale();
+  const translateStepLabel = useTranslateStepLabel();
+  const translateBackendLabel = useTranslateBackendLabel();
 
   // Activity tasks state
   const [tasks, setTasks] = useState<TaskRow[]>([]);
@@ -255,7 +261,7 @@ function PreScreeningContent() {
     return (
       <div className="flex items-center justify-center py-24">
         <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
-        <span className="ml-2 text-gray-500">Pre-screenings laden...</span>
+        <span className="ml-2 text-gray-500">{t('loadingScreenings')}</span>
       </div>
     );
   }
@@ -268,7 +274,7 @@ function PreScreeningContent() {
           onClick={() => window.location.reload()}
           className="mt-4 text-blue-500 hover:underline"
         >
-          Opnieuw proberen
+          {t('retry')}
         </button>
       </div>
     );
@@ -289,7 +295,7 @@ function PreScreeningContent() {
               <Link href="/pre-screening/settings">
                 <Button variant="outline" size="sm" className="gap-2">
                   <Settings className="w-4 h-4" />
-                  Instellingen
+                  {t('settings')}
                 </Button>
               </Link>
             </div>
@@ -314,9 +320,9 @@ function PreScreeningContent() {
               return (
                 <MetricCard
                   key={metric.key}
-                  title={metric.label}
+                  title={tRoot(metric.label)}
                   value={value}
-                  label={metric.description ?? undefined}
+                  label={metric.description ? tRoot(metric.description) : undefined}
                   icon={Icon}
                   variant={variant}
                   progress={metric.suffix === '%' ? metric.value : undefined}
@@ -331,21 +337,21 @@ function PreScreeningContent() {
               <TabsList variant="line">
                 <TabsTrigger value="activities">
                   <Play className="w-3.5 h-3.5" />
-                  Activiteiten
+                  {t('activities')}
                   <span className="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-500 text-white">
                     {filteredTasks.length}
                   </span>
                 </TabsTrigger>
                 <TabsTrigger value="vacancies">
                   <Briefcase className="w-3.5 h-3.5" />
-                  Vacatures
+                  {t('vacancies')}
                   <span className="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-500 text-white">
                     {vacancies.length}
                   </span>
                 </TabsTrigger>
                 <TabsTrigger value="archived">
                   <Archive className="w-3.5 h-3.5" />
-                  Archief
+                  {t('archive')}
                   <span className="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-500 text-white">
                     {archivedVacancies.length}
                   </span>
@@ -358,7 +364,7 @@ function PreScreeningContent() {
               {tasksLoading && filteredTasks.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-64 text-gray-400 pt-2">
                   <Loader2 className="w-8 h-8 mb-4 animate-spin" />
-                  <p className="text-sm">Taken laden...</p>
+                  <p className="text-sm">{t('loadingTasks')}</p>
                 </div>
               ) : filteredTasks.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-64 text-gray-400 pt-2">
@@ -370,7 +376,7 @@ function PreScreeningContent() {
                     <div className="absolute inset-0 w-12 h-12 rounded-full border border-gray-200 animate-ping [animation-duration:2s] [animation-delay:500ms]" />
                   </div>
                   <p className="text-sm text-gray-500">
-                    Geen actieve pre-screenings
+                    {t('noActiveScreenings')}
                   </p>
                 </div>
               ) : (
@@ -378,12 +384,12 @@ function PreScreeningContent() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <SortableHeader column="candidate_name" label="Kandidaat" />
-                        <SortableHeader column="vacancy_title" label="Vacature" />
-                        <SortableHeader column="current_step_label" label="Stap" />
-                        <SortableHeader column="status" label="Status" />
-                        <SortableHeader column="sla" label="SLA" />
-                        <SortableHeader column="time_ago" label="Laatste Update" />
+                        <SortableHeader column="candidate_name" label={t('candidate')} />
+                        <SortableHeader column="vacancy_title" label={t('vacancy')} />
+                        <SortableHeader column="current_step_label" label={t('step')} />
+                        <SortableHeader column="status" label={t('status')} />
+                        <SortableHeader column="sla" label={t('sla')} />
+                        <SortableHeader column="time_ago" label={t('lastUpdate')} />
                         <TableHead className="w-[50px]" />
                       </TableRow>
                     </TableHeader>
@@ -410,7 +416,7 @@ function PreScreeningContent() {
                                 {translateStepLabel(task.current_step_label)}
                               </span>
                               {task.step_detail && (
-                                <span className="block text-xs text-gray-500 mt-0.5">{task.step_detail}</span>
+                                <span className="block text-xs text-gray-500 mt-0.5">{translateBackendLabel(task.step_detail)}</span>
                               )}
                             </div>
                           </TableCell>
@@ -425,7 +431,7 @@ function PreScreeningContent() {
                             />
                           </TableCell>
                           <TableCell className="text-gray-500 text-sm">
-                            {formatRelativeDate(task.updated_at)}
+                            {formatRelativeDate(task.updated_at, locale)}
                           </TableCell>
                           <TableCell>
                             <Button
@@ -443,7 +449,9 @@ function PreScreeningContent() {
                   </Table>
 
                   <p className="text-sm text-gray-500 mt-2">
-                    {filteredTasks.length} {filteredTasks.length === 1 ? 'screening' : 'screenings'} actief
+                    {filteredTasks.length === 1
+                      ? t('activeCountSingle', { count: filteredTasks.length })
+                      : t('activeCount', { count: filteredTasks.length })}
                   </p>
                 </div>
               )}
@@ -454,7 +462,7 @@ function PreScreeningContent() {
               {vacanciesLoading ? (
                 <div className="flex items-center justify-center py-12">
                   <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
-                  <span className="ml-2 text-sm text-gray-500">Vacatures laden...</span>
+                  <span className="ml-2 text-sm text-gray-500">{t('loadingVacancies')}</span>
                 </div>
               ) : (
                 <PublishedVacanciesTable
@@ -468,7 +476,7 @@ function PreScreeningContent() {
               {archivedLoading ? (
                 <div className="flex items-center justify-center py-12">
                   <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
-                  <span className="ml-2 text-sm text-gray-500">Archief laden...</span>
+                  <span className="ml-2 text-sm text-gray-500">{t('loadingArchive')}</span>
                 </div>
               ) : (
                 <ArchivedVacanciesTable

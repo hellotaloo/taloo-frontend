@@ -11,7 +11,8 @@ import {
   Column,
 } from '@/components/kit/data-table';
 import { AgentIcons } from '@/components/kit/status';
-import { cn } from '@/lib/utils';
+import { cn, formatRelativeDate } from '@/lib/utils';
+import { useTranslations, useLocale } from '@/lib/i18n';
 
 // Avatar color palette based on name hash
 const avatarColors = [
@@ -47,21 +48,18 @@ export interface VacanciesTableProps {
   onRowClick?: (vacancy: APIVacancyListItem) => void;
 }
 
-// Status display labels (Dutch) - supports both legacy and new API status values
-const statusLabels: Partial<Record<VacancyStatus, string>> = {
-  // New API statuses
-  concept: 'Concept',
-  open: 'Open',
-  on_hold: 'On hold',
-  filled: 'Ingevuld',
-  closed: 'Gesloten',
-  // Legacy statuses (mapped to display labels)
-  new: 'Concept',
-  draft: 'Concept',
-  in_progress: 'Open',
-  agent_created: 'Open',
-  screening_active: 'Open',
-  archived: 'Gesloten',
+// Maps API status values to translation keys in vacancies.*
+const statusTranslationKeys: Partial<Record<VacancyStatus, string>> = {
+  concept: 'statusConcept',
+  open: 'statusOpen',
+  on_hold: 'statusOnHold',
+  filled: 'statusFilled',
+  new: 'statusConcept',
+  draft: 'statusConcept',
+  in_progress: 'statusOpen',
+  agent_created: 'statusOpen',
+  screening_active: 'statusOpen',
+  archived: 'statusArchived',
 };
 
 // Status badge styling - supports both legacy and new API status values
@@ -71,7 +69,6 @@ const statusStyles: Partial<Record<VacancyStatus, { bg: string; text: string; do
   open: { bg: 'bg-white border border-green-200', text: 'text-green-700', dot: 'bg-green-500' },
   on_hold: { bg: 'bg-white border border-orange-200', text: 'text-orange-700', dot: 'bg-orange-500' },
   filled: { bg: 'bg-white border border-blue-200', text: 'text-blue-700', dot: 'bg-blue-500' },
-  closed: { bg: 'bg-gray-50', text: 'text-gray-500', dot: 'bg-gray-400' },
   // Legacy statuses (mapped to appropriate styles)
   new: { bg: 'bg-gray-50', text: 'text-gray-700', dot: 'bg-gray-400' },
   draft: { bg: 'bg-gray-50', text: 'text-gray-700', dot: 'bg-gray-400' },
@@ -83,9 +80,10 @@ const statusStyles: Partial<Record<VacancyStatus, { bg: string; text: string; do
 
 const defaultStyle = { bg: 'bg-gray-50', text: 'text-gray-700', dot: 'bg-gray-400' };
 
-function VacancyStatusBadge({ status }: { status: VacancyStatus }) {
+function VacancyStatusBadge({ status, t }: { status: VacancyStatus; t: (key: string) => string }) {
   const styles = statusStyles[status] || defaultStyle;
-  const label = statusLabels[status] || status;
+  const key = statusTranslationKeys[status];
+  const label = key ? t(key) : status;
 
   return (
     <span className={cn(
@@ -99,27 +97,13 @@ function VacancyStatusBadge({ status }: { status: VacancyStatus }) {
   );
 }
 
-function formatRelativeDate(dateString: string | null | undefined) {
-  if (!dateString) return '-';
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMs / 3600000);
-  const diffDays = Math.floor(diffMs / 86400000);
-
-  if (diffMins < 1) return 'Zojuist';
-  if (diffMins < 60) return `${diffMins}m geleden`;
-  if (diffHours < 24) return `${diffHours}u geleden`;
-  if (diffDays < 7) return `${diffDays}d geleden`;
-  return date.toLocaleDateString('nl-BE', { day: 'numeric', month: 'short' });
-}
-
 export function VacanciesTable({ vacancies, selectedId, onRowClick }: VacanciesTableProps) {
+  const t = useTranslations('vacancies');
+  const { locale } = useLocale();
   const columns: Column<APIVacancyListItem>[] = [
     {
       key: 'title',
-      header: 'Vacatures',
+      header: t('title'),
       sortable: true,
       className: 'min-w-[280px] pl-0',
       accessor: (item) => item.title,
@@ -127,7 +111,7 @@ export function VacanciesTable({ vacancies, selectedId, onRowClick }: VacanciesT
         <div className="min-w-0">
           <div className="flex items-center gap-2">
             <span className="font-medium text-gray-900 truncate">{item.title}</span>
-            <VacancyStatusBadge status={item.status} />
+            <VacancyStatusBadge status={item.status} t={t} />
           </div>
           <div className="flex items-center gap-2 text-xs text-gray-500 mt-0.5">
             <span className="flex items-center gap-1">
@@ -146,7 +130,7 @@ export function VacanciesTable({ vacancies, selectedId, onRowClick }: VacanciesT
     },
     {
       key: 'kandidaten',
-      header: 'Kandidaten',
+      header: t('candidates'),
       sortable: true,
       className: 'w-[110px]',
       accessor: (item) => item.candidates_count ?? 0,
@@ -164,7 +148,7 @@ export function VacanciesTable({ vacancies, selectedId, onRowClick }: VacanciesT
     },
     {
       key: 'agents',
-      header: 'Agents',
+      header: t('agents'),
       sortable: false,
       className: 'w-[240px]',
       accessor: () => '',
@@ -172,7 +156,7 @@ export function VacanciesTable({ vacancies, selectedId, onRowClick }: VacanciesT
     },
     {
       key: 'office',
-      header: 'Kantoor',
+      header: t('office'),
       sortable: true,
       className: 'w-[160px]',
       accessor: (item) => item.office?.name || '',
@@ -228,7 +212,7 @@ export function VacanciesTable({ vacancies, selectedId, onRowClick }: VacanciesT
     },
     {
       key: 'synced',
-      header: 'Synced',
+      header: t('synced'),
       sortable: true,
       className: 'w-[140px]',
       accessor: (item) => item.last_activity_at || item.created_at || '',
@@ -247,7 +231,7 @@ export function VacanciesTable({ vacancies, selectedId, onRowClick }: VacanciesT
               className="shrink-0"
             />
             <span className="text-gray-500 text-sm">
-              {formatRelativeDate(syncDate)}
+              {formatRelativeDate(syncDate, locale)}
             </span>
           </div>
         );
@@ -259,8 +243,8 @@ export function VacanciesTable({ vacancies, selectedId, onRowClick }: VacanciesT
     return (
       <DataTableEmpty
         icon={Briefcase}
-        title="Geen vacatures gevonden"
-        description="Er zijn nog geen vacatures die voldoen aan je zoekopdracht."
+        title={t('noVacancies')}
+        description={t('noVacanciesDesc')}
       />
     );
   }

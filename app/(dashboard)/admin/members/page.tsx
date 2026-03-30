@@ -56,6 +56,7 @@ import {
 } from '@/components/ui/select';
 
 import { useAuth } from '@/contexts/auth-context';
+import { useTranslations, useLocale } from '@/lib/i18n';
 import { formatRelativeDate } from '@/lib/utils';
 import {
   type WorkspaceMember,
@@ -121,6 +122,8 @@ function getInitials(name: string | null): string {
 
 export default function MembersPage() {
   const { user, currentWorkspace } = useAuth();
+  const t = useTranslations('members');
+  const { locale } = useLocale();
   const workspaceId = currentWorkspace?.id;
   const userRole = (currentWorkspace?.role || 'member') as MemberRole;
 
@@ -171,7 +174,7 @@ export default function MembersPage() {
       setMembers(results[0]);
       if (results[1]) setInvitations(results[1]);
     } catch {
-      toast.error('Kon leden niet laden');
+      toast.error(t('loadFailed'));
     } finally {
       setLoading(false);
     }
@@ -192,16 +195,16 @@ export default function MembersPage() {
         role: inviteRole,
       });
       if (result.status === 'added') {
-        toast.success('Lid toegevoegd aan workspace');
+        toast.success(t('memberAdded'));
       } else {
-        toast.success('Uitnodiging verstuurd');
+        toast.success(t('invitationSent'));
       }
       setInviteDialogOpen(false);
       setInviteEmail('');
       setInviteRole('member');
       await fetchData();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Uitnodigen mislukt');
+      toast.error(err instanceof Error ? err.message : t('inviteFailed'));
     } finally {
       setInviting(false);
     }
@@ -217,10 +220,10 @@ export default function MembersPage() {
           m.user_id === roleChangeTarget.user_id ? { ...m, role: newRole } : m
         )
       );
-      toast.success('Rol bijgewerkt');
+      toast.success(t('roleUpdated'));
       setRoleChangeTarget(null);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Kon rol niet bijwerken');
+      toast.error(err instanceof Error ? err.message : t('roleUpdateFailed'));
     } finally {
       setUpdatingRole(false);
     }
@@ -232,10 +235,10 @@ export default function MembersPage() {
     try {
       await removeMember(workspaceId, removeTarget.user_id);
       setMembers((prev) => prev.filter((m) => m.user_id !== removeTarget.user_id));
-      toast.success('Lid verwijderd');
+      toast.success(t('memberRemoved'));
       setRemoveTarget(null);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Kon lid niet verwijderen');
+      toast.error(err instanceof Error ? err.message : t('memberRemoveFailed'));
     } finally {
       setRemoving(false);
     }
@@ -247,10 +250,10 @@ export default function MembersPage() {
     try {
       await cancelInvitation(workspaceId, cancelTarget.id);
       setInvitations((prev) => prev.filter((i) => i.id !== cancelTarget.id));
-      toast.success('Uitnodiging geannuleerd');
+      toast.success(t('invitationCancelled'));
       setCancelTarget(null);
     } catch {
-      toast.error('Kon uitnodiging niet annuleren');
+      toast.error(t('invitationCancelFailed'));
     } finally {
       setCancelling(false);
     }
@@ -266,7 +269,7 @@ export default function MembersPage() {
             <Link href="/admin" className="text-gray-400 hover:text-gray-600 transition-colors">
               <ArrowLeft className="w-5 h-5" />
             </Link>
-            <h1 className="text-lg font-semibold text-gray-900">Leden</h1>
+            <h1 className="text-lg font-semibold text-gray-900">{t('title')}</h1>
           </div>
           {canInvite && (
             <Button
@@ -275,7 +278,7 @@ export default function MembersPage() {
               className="gap-1.5"
             >
               <UserPlus className="w-4 h-4" />
-              Uitnodigen
+              {t('invite')}
             </Button>
           )}
         </div>
@@ -292,7 +295,7 @@ export default function MembersPage() {
               {/* Members section */}
               <section>
                 <h2 className="text-sm font-medium text-gray-500 mb-3">
-                  Leden ({members.length})
+                  {t('membersCount')} ({members.length})
                 </h2>
                 <div className="rounded-xl border border-gray-200 bg-white divide-y divide-gray-100">
                   {members.map((member, idx) => {
@@ -318,7 +321,7 @@ export default function MembersPage() {
                               {member.full_name || member.email}
                             </span>
                             {isSelf && (
-                              <span className="text-xs text-gray-400">(jij)</span>
+                              <span className="text-xs text-gray-400">{t('you')}</span>
                             )}
                           </div>
                           <p className="text-xs text-gray-500 truncate">{member.email}</p>
@@ -327,7 +330,7 @@ export default function MembersPage() {
                         <div className="flex items-center gap-3 shrink-0">
                           {getRoleBadge(member.role)}
                           <span className="text-xs text-gray-400 hidden sm:block">
-                            {formatRelativeDate(member.joined_at)}
+                            {formatRelativeDate(member.joined_at, locale)}
                           </span>
 
                           {showActions ? (
@@ -345,7 +348,7 @@ export default function MembersPage() {
                                   }}
                                 >
                                   <Shield className="w-4 h-4 mr-2" />
-                                  Rol wijzigen
+                                  {t('changeRole')}
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem
@@ -353,7 +356,7 @@ export default function MembersPage() {
                                   onClick={() => setRemoveTarget(member)}
                                 >
                                   <Trash2 className="w-4 h-4 mr-2" />
-                                  Verwijderen
+                                  {t('remove')}
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
@@ -367,7 +370,7 @@ export default function MembersPage() {
                   })}
                   {members.length === 0 && (
                     <div className="px-5 py-10 text-center text-sm text-gray-400">
-                      Geen leden gevonden.
+                      {t('noMembers')}
                     </div>
                   )}
                 </div>
@@ -379,7 +382,7 @@ export default function MembersPage() {
                   style={{ animation: `fade-in-up 0.3s ease-out ${100 + members.length * 50 + 100}ms backwards` }}
                 >
                   <h2 className="text-sm font-medium text-gray-500 mb-3">
-                    Openstaande uitnodigingen ({invitations.length})
+                    {t('pendingInvitations')} ({invitations.length})
                   </h2>
                   <div className="rounded-xl border border-gray-200 bg-white divide-y divide-gray-100">
                     {invitations.map((invitation) => (
@@ -397,9 +400,9 @@ export default function MembersPage() {
                           </p>
                           <p className="text-xs text-gray-500">
                             {invitation.invited_by_name
-                              ? `Uitgenodigd door ${invitation.invited_by_name}`
-                              : 'Uitgenodigd'}
-                            {invitation.created_at && ` · ${formatRelativeDate(invitation.created_at)}`}
+                              ? t('invitedBy', { name: invitation.invited_by_name })
+                              : t('invited')}
+                            {invitation.created_at && ` · ${formatRelativeDate(invitation.created_at, locale)}`}
                           </p>
                         </div>
 
@@ -418,7 +421,7 @@ export default function MembersPage() {
                     ))}
                     {invitations.length === 0 && (
                       <div className="px-5 py-10 text-center text-sm text-gray-400">
-                        Geen openstaande uitnodigingen.
+                        {t('noInvitations')}
                       </div>
                     )}
                   </div>
@@ -433,15 +436,15 @@ export default function MembersPage() {
       <Dialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Lid uitnodigen</DialogTitle>
+            <DialogTitle>{t('inviteTitle')}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-2">
-              <Label htmlFor="invite-email">E-mailadres</Label>
+              <Label htmlFor="invite-email">{t('email')}</Label>
               <Input
                 id="invite-email"
                 type="email"
-                placeholder="naam@voorbeeld.nl"
+                placeholder={t('emailPlaceholder')}
                 value={inviteEmail}
                 onChange={(e) => setInviteEmail(e.target.value)}
                 autoFocus
@@ -451,7 +454,7 @@ export default function MembersPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="invite-role">Rol</Label>
+              <Label htmlFor="invite-role">{t('role')}</Label>
               <Select
                 value={inviteRole}
                 onValueChange={(v) => setInviteRole(v as 'admin' | 'member')}
@@ -463,7 +466,7 @@ export default function MembersPage() {
                   {assignableRoles.includes('admin') && (
                     <SelectItem value="admin">Admin</SelectItem>
                   )}
-                  <SelectItem value="member">Lid</SelectItem>
+                  <SelectItem value="member">{t('member')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -473,14 +476,14 @@ export default function MembersPage() {
               variant="outline"
               onClick={() => setInviteDialogOpen(false)}
             >
-              Annuleren
+              {t('cancel')}
             </Button>
             <Button
               onClick={handleInvite}
               disabled={!inviteEmail.trim() || inviting}
             >
               {inviting && <Loader2 className="w-4 h-4 animate-spin mr-1.5" />}
-              Uitnodigen
+              {t('invite')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -493,15 +496,15 @@ export default function MembersPage() {
       >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Rol wijzigen</DialogTitle>
+            <DialogTitle>{t('changeRole')}</DialogTitle>
           </DialogHeader>
           {roleChangeTarget && (
             <div className="space-y-4 py-2">
               <p className="text-sm text-gray-600">
-                Wijzig de rol van <strong>{roleChangeTarget.full_name || roleChangeTarget.email}</strong>.
+                {t('changeRoleDesc')} <strong>{roleChangeTarget.full_name || roleChangeTarget.email}</strong>.
               </p>
               <div className="space-y-2">
-                <Label htmlFor="new-role">Nieuwe rol</Label>
+                <Label htmlFor="new-role">{t('newRole')}</Label>
                 <Select
                   value={newRole}
                   onValueChange={(v) => setNewRole(v as 'admin' | 'member')}
@@ -522,14 +525,14 @@ export default function MembersPage() {
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setRoleChangeTarget(null)}>
-              Annuleren
+              {t('cancel')}
             </Button>
             <Button
               onClick={handleUpdateRole}
               disabled={updatingRole || newRole === roleChangeTarget?.role}
             >
               {updatingRole && <Loader2 className="w-4 h-4 animate-spin mr-1.5" />}
-              Opslaan
+              {t('save')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -542,21 +545,20 @@ export default function MembersPage() {
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Lid verwijderen</AlertDialogTitle>
+            <AlertDialogTitle>{t('removeMemberTitle')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Weet je zeker dat je <strong>{removeTarget?.full_name || removeTarget?.email}</strong> wilt
-              verwijderen uit deze workspace? Dit kan niet ongedaan worden gemaakt.
+              {t('removeMemberDesc', { name: removeTarget?.full_name || removeTarget?.email || '' })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Annuleren</AlertDialogCancel>
+            <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleRemoveMember}
               disabled={removing}
               className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
             >
               {removing && <Loader2 className="w-4 h-4 animate-spin mr-1.5" />}
-              Verwijderen
+              {t('remove')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -569,20 +571,20 @@ export default function MembersPage() {
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Uitnodiging annuleren</AlertDialogTitle>
+            <AlertDialogTitle>{t('cancelInviteTitle')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Weet je zeker dat je de uitnodiging voor <strong>{cancelTarget?.email}</strong> wilt annuleren?
+              {t('cancelInviteDesc', { email: cancelTarget?.email || '' })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Terug</AlertDialogCancel>
+            <AlertDialogCancel>{t('back')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleCancelInvitation}
               disabled={cancelling}
               className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
             >
               {cancelling && <Loader2 className="w-4 h-4 animate-spin mr-1.5" />}
-              Annuleren
+              {t('cancel')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

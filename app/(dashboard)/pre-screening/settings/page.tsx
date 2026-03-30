@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Save, Calendar, MessageCircle, CheckCircle2, ShieldQuestion, MessageSquare, Pencil, Check, X, Phone, Info, Mic, SlidersHorizontal, ListOrdered, ChevronDown, User, Briefcase, PanelTop } from 'lucide-react';
+import { ArrowLeft, Save, Calendar, MessageCircle, CheckCircle2, ShieldQuestion, MessageSquare, Pencil, Check, X, Phone, Info, Mic, SlidersHorizontal, ListOrdered, ChevronDown, User, Briefcase, PanelTop, Globe } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import {
@@ -14,6 +14,7 @@ import { type VoiceOption } from '@/components/blocks/voice-settings';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { Timeline, TimelineNode } from '@/components/kit/timeline';
@@ -21,6 +22,7 @@ import { NavItem } from '@/components/kit/nav-item';
 import { toast } from 'sonner';
 import { getPreScreeningConfig, updatePreScreeningConfig, getApplyPopupContent, updateApplyPopupContent } from '@/lib/interview-api';
 import { getElevenLabsVoiceConfig } from '@/lib/api';
+import { useTranslations } from '@/lib/i18n';
 
 const ELEVENLABS_AGENT_ID = process.env.NEXT_PUBLIC_ELEVENLABS_DEMO_AGENT_ID || '';
 
@@ -52,10 +54,46 @@ const VOICE_OPTIONS: VoiceOption[] = [
   }
 ];
 
-type SettingsSection = 'voice' | 'algemeen' | 'generator' | 'planning' | 'escalatie' | 'interview' | 'popup';
+const SUPPORTED_LANGUAGES = [
+  { code: 'ar', label: 'Arabic' },
+  { code: 'bg', label: 'Bulgarian' },
+  { code: 'zh', label: 'Chinese' },
+  { code: 'hr', label: 'Croatian' },
+  { code: 'cs', label: 'Czech' },
+  { code: 'da', label: 'Danish' },
+  { code: 'nl', label: 'Dutch' },
+  { code: 'en', label: 'English' },
+  { code: 'fil', label: 'Filipino' },
+  { code: 'fi', label: 'Finnish' },
+  { code: 'fr', label: 'French' },
+  { code: 'de', label: 'German' },
+  { code: 'el', label: 'Greek' },
+  { code: 'hu', label: 'Hungarian' },
+  { code: 'hi', label: 'Hindi' },
+  { code: 'id', label: 'Indonesian' },
+  { code: 'it', label: 'Italian' },
+  { code: 'ja', label: 'Japanese' },
+  { code: 'ko', label: 'Korean' },
+  { code: 'ms', label: 'Malay' },
+  { code: 'no', label: 'Norwegian' },
+  { code: 'pl', label: 'Polish' },
+  { code: 'pt', label: 'Portuguese' },
+  { code: 'ro', label: 'Romanian' },
+  { code: 'ru', label: 'Russian' },
+  { code: 'sk', label: 'Slovak' },
+  { code: 'es', label: 'Spanish' },
+  { code: 'sv', label: 'Swedish' },
+  { code: 'ta', label: 'Tamil' },
+  { code: 'tr', label: 'Turkish' },
+  { code: 'uk', label: 'Ukrainian' },
+  { code: 'vi', label: 'Vietnamese' },
+] as const;
+
+type SettingsSection = 'voice' | 'algemeen' | 'generator' | 'planning' | 'escalatie' | 'interview' | 'taal' | 'popup';
 
 export default function PreScreeningSettingsPage() {
   const router = useRouter();
+  const t = useTranslations('psSettings');
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -93,6 +131,10 @@ export default function PreScreeningSettingsPage() {
   const [requireReview, setRequireReview] = useState(false);
   const [defaultChannels, setDefaultChannels] = useState({ voice: true, whatsapp: true, cv: true });
   const [autoGenerate, setAutoGenerate] = useState(true);
+
+  // Language switching
+  const [allowLanguageSwitch, setAllowLanguageSwitch] = useState(true);
+  const [allowedLanguages, setAllowedLanguages] = useState<string[]>([]);
 
   // Persona name (general setting, used by voice agent + popup)
   const [personaName, setPersonaName] = useState('Anna');
@@ -147,6 +189,10 @@ export default function PreScreeningSettingsPage() {
         if (publishing?.default_channels) setDefaultChannels(publishing.default_channels);
         else if (general.default_channels) setDefaultChannels(general.default_channels);
         setAutoGenerate(publishing?.auto_generate ?? true);
+        if (config.settings.language) {
+          setAllowLanguageSwitch(config.settings.language.allow_language_switch ?? true);
+          setAllowedLanguages(config.settings.language.allowed_languages ?? []);
+        }
         setSchedulingOption(planning.planning_mode as 'funnel' | 'direct');
         if (general.intro_message) {
           setIntroMessage(general.intro_message);
@@ -158,7 +204,7 @@ export default function PreScreeningSettingsPage() {
         }
       } catch (error) {
         console.error('Failed to load pre-screening config:', error);
-        setLoadError('Kon instellingen niet laden');
+        setLoadError(t('loadFailed'));
       } finally {
         setIsLoading(false);
       }
@@ -251,10 +297,10 @@ export default function PreScreeningSettingsPage() {
         variables: popupVariables,
       });
       setPopupVersion(data.version);
-      toast.success('Popup content opgeslagen');
+      toast.success(t('popupSaved'));
     } catch (error) {
       console.error('Failed to save popup content:', error);
-      toast.error('Opslaan mislukt. Controleer de YAML syntax.');
+      toast.error(t('popupSaveFailed'));
     } finally {
       setIsPopupSaving(false);
     }
@@ -290,13 +336,17 @@ export default function PreScreeningSettingsPage() {
             require_review: requireReview,
             default_channels: defaultChannels,
           },
+          language: {
+            allow_language_switch: allowLanguageSwitch,
+            allowed_languages: allowedLanguages,
+          },
         },
       });
-      toast.success('Instellingen opgeslagen');
+      toast.success(t('saved'));
       router.refresh();
     } catch (error) {
       console.error('Failed to save config:', error);
-      toast.error('Opslaan mislukt. Probeer opnieuw.');
+      toast.error(t('saveFailed'));
     } finally {
       setIsSaving(false);
     }
@@ -315,6 +365,8 @@ export default function PreScreeningSettingsPage() {
     defaultChannels,
     autoGenerate,
     generatorInstructions,
+    allowLanguageSwitch,
+    allowedLanguages,
   ]);
 
   const sidebar = (
@@ -322,49 +374,56 @@ export default function PreScreeningSettingsPage() {
       <div className="px-2 space-y-1">
         <NavItem
           icon={SlidersHorizontal}
-          label="Algemeen"
+          label={t('navGeneral')}
           active={activeSection === 'algemeen'}
           onClick={() => setActiveSection('algemeen')}
           testId="settings-algemeen"
         />
         <NavItem
           icon={Mic}
-          label="Voice"
+          label={t('navVoice')}
           active={activeSection === 'voice'}
           onClick={() => setActiveSection('voice')}
           testId="settings-voice"
         />
         <NavItem
           icon={Calendar}
-          label="Planning"
+          label={t('navPlanning')}
           active={activeSection === 'planning'}
           onClick={() => setActiveSection('planning')}
           testId="settings-planning"
         />
         <NavItem
           icon={Phone}
-          label="Escalatie"
+          label={t('navEscalation')}
           active={activeSection === 'escalatie'}
           onClick={() => setActiveSection('escalatie')}
           testId="settings-escalatie"
         />
         <NavItem
           icon={Briefcase}
-          label="Interview Generator"
+          label={t('navGenerator')}
           active={activeSection === 'generator'}
           onClick={() => setActiveSection('generator')}
           testId="settings-generator"
         />
         <NavItem
           icon={ListOrdered}
-          label="Interview"
+          label={t('navInterview')}
           active={activeSection === 'interview'}
           onClick={() => setActiveSection('interview')}
           testId="settings-interview"
         />
         <NavItem
+          icon={Globe}
+          label={t('navLanguage')}
+          active={activeSection === 'taal'}
+          onClick={() => setActiveSection('taal')}
+          testId="settings-taal"
+        />
+        <NavItem
           icon={PanelTop}
-          label="Sollicitatie popup"
+          label={t('navPopup')}
           active={activeSection === 'popup'}
           onClick={() => setActiveSection('popup')}
           testId="settings-popup"
@@ -384,11 +443,11 @@ export default function PreScreeningSettingsPage() {
             >
               <ArrowLeft className="w-5 h-5" />
             </Link>
-            <h1 className="text-lg font-semibold text-gray-900">Instellingen</h1>
+            <h1 className="text-lg font-semibold text-gray-900">{t('title')}</h1>
           </div>
           <Button onClick={handleSave} disabled={isSaving} className="gap-2 bg-blue-500 hover:bg-blue-600">
             <Save className="w-4 h-4" />
-            {isSaving ? 'Bewaren...' : 'Bewaren'}
+            {isSaving ? t('saving') : t('save')}
           </Button>
         </div>
       </PageLayoutHeader>
@@ -400,7 +459,7 @@ export default function PreScreeningSettingsPage() {
       >
         {isLoading ? (
           <div className="flex items-center justify-center h-64">
-            <p className="text-gray-500">Instellingen laden...</p>
+            <p className="text-gray-500">{t('loading')}</p>
           </div>
         ) : loadError ? (
           <div className="flex flex-col items-center justify-center h-64 gap-4">
@@ -409,7 +468,7 @@ export default function PreScreeningSettingsPage() {
               onClick={() => window.location.reload()}
               className="text-blue-500 hover:underline text-sm"
             >
-              Opnieuw proberen
+              {t('retry')}
             </button>
           </div>
         ) : (
@@ -418,32 +477,31 @@ export default function PreScreeningSettingsPage() {
           {activeSection === 'generator' && (
             <section className="space-y-4">
               <div>
-                <h2 className="text-lg font-semibold text-gray-900">Interview Generator</h2>
+                <h2 className="text-lg font-semibold text-gray-900">{t('generator')}</h2>
                 <p className="text-sm text-gray-500 mt-1">
-                  Extra instructies die de AI-agent meekrijgt bij het genereren van interviewvragen.
-                  Gebruik dit om sector-specifieke richtlijnen, bedrijfsregels of specifieke vraagstijlen mee te geven.
+                  {t('generatorDesc')}
                 </p>
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="generator-instructions" className="text-sm font-medium text-gray-700">
-                  Extra instructies
+                  {t('generatorLabel')}
                 </Label>
                 <textarea
                   id="generator-instructions"
                   value={generatorInstructions}
                   onChange={(e) => setGeneratorInstructions(e.target.value)}
                   rows={12}
-                  placeholder="Bijv: Stel altijd een vraag over ervaring met heftrucks. Gebruik een informele toon. Vermijd vragen over leeftijd."
+                  placeholder={t('generatorPlaceholder')}
                   className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 resize-y font-mono"
                 />
                 <p className="text-xs text-gray-400">
-                  Ondersteunt markdown. Deze instructies worden aan elke nieuwe interviewgeneratie meegegeven.
+                  {t('generatorHint')}
                 </p>
               </div>
 
               <section className="rounded-xl bg-gray-50 border border-gray-200 p-5">
-                <h3 className="font-medium text-gray-900 mb-2">Voorbeelden</h3>
+                <h3 className="font-medium text-gray-900 mb-2">{t('generatorExamples')}</h3>
                 <ul className="text-sm text-gray-600 space-y-1 list-disc list-inside">
                   <li>Stel altijd een vraag over beschikbaarheid voor weekendwerk</li>
                   <li>Gebruik een informele, vlotte toon — geen formeel taalgebruik</li>
@@ -458,15 +516,15 @@ export default function PreScreeningSettingsPage() {
           {activeSection === 'voice' && (
             <section className="space-y-4">
               <div>
-                <h2 className="text-lg font-semibold text-gray-900">Selecteer stem</h2>
+                <h2 className="text-lg font-semibold text-gray-900">{t('selectVoice')}</h2>
                 <p className="text-sm text-gray-500 mt-1">
-                  Kies een stem voor je AI-agent
+                  {t('selectVoiceDesc')}
                 </p>
               </div>
 
               {isVoiceLoading ? (
                 <div className="flex items-center justify-center h-32">
-                  <div className="text-gray-500">Voice instellingen laden...</div>
+                  <div className="text-gray-500">{t('voiceLoading')}</div>
                 </div>
               ) : (
                 <Popover open={voiceSelectOpen} onOpenChange={setVoiceSelectOpen}>
@@ -560,16 +618,16 @@ export default function PreScreeningSettingsPage() {
               {/* Assistant Name */}
               <section className="space-y-4">
                 <div>
-                  <h2 className="text-lg font-semibold text-gray-900">Assistent</h2>
+                  <h2 className="text-lg font-semibold text-gray-900">{t('assistant')}</h2>
                   <p className="text-sm text-gray-500 mt-1">
-                    De naam van de virtuele assistent zoals kandidaten deze zien
+                    {t('assistantDesc')}
                   </p>
                 </div>
                 <div className="flex items-center justify-between p-4 rounded-lg border border-gray-200 bg-white">
                   <div className="flex-1">
-                    <Label htmlFor="persona-name" className="font-medium text-gray-900">Naam assistent</Label>
+                    <Label htmlFor="persona-name" className="font-medium text-gray-900">{t('assistantName')}</Label>
                     <p className="text-sm text-gray-500 mt-0.5">
-                      Wordt gebruikt in de sollicitatie popup en voice gesprekken
+                      {t('assistantNameDesc')}
                     </p>
                   </div>
                   <input
@@ -586,9 +644,9 @@ export default function PreScreeningSettingsPage() {
               {/* Exit Thresholds */}
               <section className="space-y-4">
                 <div>
-                  <h2 className="text-lg font-semibold text-gray-900">Exit drempels</h2>
+                  <h2 className="text-lg font-semibold text-gray-900">{t('exitThresholds')}</h2>
                   <p className="text-sm text-gray-500 mt-1">
-                    Configureer wanneer het gesprek wordt beëindigd
+                    {t('exitThresholdsDesc')}
                   </p>
                 </div>
 
@@ -596,13 +654,13 @@ export default function PreScreeningSettingsPage() {
                   <div className="flex items-center justify-between p-4 rounded-lg border border-gray-200 bg-white">
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
-                        <Label className="font-medium text-gray-900">Max irrelevante antwoorden</Label>
+                        <Label className="font-medium text-gray-900">{t('maxIrrelevant')}</Label>
                         {maxUnrelatedAnswers === 2 && (
-                          <span className="text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded-full">optimaal</span>
+                          <span className="text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded-full">{t('optimal')}</span>
                         )}
                       </div>
                       <p className="text-sm text-gray-500 mt-0.5">
-                        Beëindig het gesprek na dit aantal irrelevante antwoorden
+                        {t('maxIrrelevantDesc')}
                       </p>
                     </div>
                     <div className="flex items-center gap-3">
@@ -627,18 +685,18 @@ export default function PreScreeningSettingsPage() {
               {/* Consent Recording */}
               <section className="space-y-4">
                 <div>
-                  <h2 className="text-lg font-semibold text-gray-900">Opname toestemming</h2>
+                  <h2 className="text-lg font-semibold text-gray-900">{t('consent')}</h2>
                   <p className="text-sm text-gray-500 mt-1">
-                    Vraag toestemming aan de kandidaat om het gesprek op te nemen voor kwaliteitsdoeleinden
+                    {t('consentDesc')}
                   </p>
                 </div>
 
                 <div className="space-y-3">
                   <div className="flex items-center justify-between p-4 rounded-lg border border-gray-200 bg-white">
                     <div className="flex-1">
-                      <Label className="font-medium text-gray-900">Toestemming vragen</Label>
+                      <Label className="font-medium text-gray-900">{t('consentAsk')}</Label>
                       <p className="text-sm text-gray-500 mt-0.5">
-                        Aan het begin van het gesprek wordt toestemming gevraagd voor opname
+                        {t('consentAskDesc')}
                       </p>
                     </div>
                     <Switch
@@ -654,9 +712,9 @@ export default function PreScreeningSettingsPage() {
                   >
                     <div className="p-4 rounded-lg border border-gray-200 bg-white space-y-3">
                       <div>
-                        <Label className="font-medium text-gray-900">Toestemmingsbericht</Label>
+                        <Label className="font-medium text-gray-900">{t('consentMessage')}</Label>
                         <p className="text-sm text-gray-500 mt-0.5">
-                          Dit bericht wordt voorgelezen aan het begin van het gesprek
+                          {t('consentMessageDesc')}
                         </p>
                       </div>
 
@@ -718,9 +776,9 @@ export default function PreScreeningSettingsPage() {
               {/* Review & Publish */}
               <section className="space-y-4">
                 <div>
-                  <h2 className="text-lg font-semibold text-gray-900">Review & publicatie</h2>
+                  <h2 className="text-lg font-semibold text-gray-900">{t('reviewPublish')}</h2>
                   <p className="text-sm text-gray-500 mt-1">
-                    Bepaal hoe pre-screenings worden goedgekeurd en gepubliceerd
+                    {t('reviewPublishDesc')}
                   </p>
                 </div>
 
@@ -729,7 +787,7 @@ export default function PreScreeningSettingsPage() {
                   <div className="flex items-center justify-between p-4 rounded-lg border border-gray-200 bg-white">
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
-                        <Label className="font-medium text-gray-900">Automatisch genereren</Label>
+                        <Label className="font-medium text-gray-900">{t('autoGenerate')}</Label>
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <button type="button" className="text-gray-400 hover:text-gray-600 transition-colors">
@@ -737,12 +795,12 @@ export default function PreScreeningSettingsPage() {
                             </button>
                           </TooltipTrigger>
                           <TooltipContent side="right" className="max-w-[260px]">
-                            Indien ingeschakeld wordt elke vacature die vanuit het ATS wordt geïmporteerd automatisch omgezet naar een pre-screening. Pre-screenings kunnen altijd later worden aangepast.
+                            {t('autoGenerateTooltip')}
                           </TooltipContent>
                         </Tooltip>
                       </div>
                       <p className="text-sm text-gray-500 mt-0.5">
-                        Genereer automatisch pre-screening vragen voor nieuwe vacatures
+                        {t('autoGenerateDesc')}
                       </p>
                     </div>
                     <Switch
@@ -755,7 +813,7 @@ export default function PreScreeningSettingsPage() {
                   <div className="flex items-center justify-between p-4 rounded-lg border border-gray-200 bg-white">
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
-                        <Label className="font-medium text-gray-900">Review vereisen</Label>
+                        <Label className="font-medium text-gray-900">{t('requireReview')}</Label>
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <button type="button" className="text-gray-400 hover:text-gray-600 transition-colors">
@@ -763,12 +821,12 @@ export default function PreScreeningSettingsPage() {
                             </button>
                           </TooltipTrigger>
                           <TooltipContent side="right" className="max-w-[260px]">
-                            Indien ingeschakeld wordt elke pre-screening eerst ter review aangeboden aan de manager, ook bij een positief verdict. Een negatief verdict vereist altijd review.
+                            {t('requireReviewTooltip')}
                           </TooltipContent>
                         </Tooltip>
                       </div>
                       <p className="text-sm text-gray-500 mt-0.5">
-                        Stuur alle resultaten ter goedkeuring naar de manager
+                        {t('requireReviewDesc')}
                       </p>
                     </div>
                     <Switch
@@ -781,7 +839,7 @@ export default function PreScreeningSettingsPage() {
                   <div className="p-4 rounded-lg border border-gray-200 bg-white space-y-3">
                     <div>
                       <div className="flex items-center gap-2">
-                        <Label className="font-medium text-gray-900">Standaard kanalen</Label>
+                        <Label className="font-medium text-gray-900">{t('defaultChannels')}</Label>
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <button type="button" className="text-gray-400 hover:text-gray-600 transition-colors">
@@ -789,12 +847,12 @@ export default function PreScreeningSettingsPage() {
                             </button>
                           </TooltipTrigger>
                           <TooltipContent side="right" className="max-w-[260px]">
-                            Kanalen die standaard worden ingeschakeld wanneer een pre-screening automatisch wordt gepubliceerd.
+                            {t('defaultChannelsTooltip')}
                           </TooltipContent>
                         </Tooltip>
                       </div>
                       <p className="text-sm text-gray-500 mt-0.5">
-                        Selecteer welke kanalen standaard actief zijn bij publicatie
+                        {t('defaultChannelsDesc')}
                       </p>
                     </div>
 
@@ -842,9 +900,9 @@ export default function PreScreeningSettingsPage() {
           {activeSection === 'planning' && (
             <section className="space-y-4">
               <div>
-                <h2 className="text-lg font-semibold text-gray-900">Planning</h2>
+                <h2 className="text-lg font-semibold text-gray-900">{t('planning')}</h2>
                 <p className="text-sm text-gray-500 mt-1">
-                  Configureer de beschikbare planning slots
+                  {t('planningDesc')}
                 </p>
               </div>
 
@@ -852,13 +910,13 @@ export default function PreScreeningSettingsPage() {
                 <div className="flex items-center justify-between p-4 rounded-lg border border-gray-200 bg-white">
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <Label className="font-medium text-gray-900">Dagen vooruit</Label>
+                      <Label className="font-medium text-gray-900">{t('daysAhead')}</Label>
                       {scheduleDaysAhead === 3 && (
                         <span className="text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded-full">optimaal</span>
                       )}
                     </div>
                     <p className="text-sm text-gray-500 mt-0.5">
-                      Hoeveel dagen aan slots worden getoond
+                      {t('daysAheadDesc')}
                     </p>
                   </div>
                   <div className="flex items-center gap-3">
@@ -881,13 +939,13 @@ export default function PreScreeningSettingsPage() {
                 <div className="flex items-center justify-between p-4 rounded-lg border border-gray-200 bg-white">
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <Label className="font-medium text-gray-900">Start offset</Label>
+                      <Label className="font-medium text-gray-900">{t('startOffset')}</Label>
                       {scheduleStartOffset === 1 && (
                         <span className="text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded-full">optimaal</span>
                       )}
                     </div>
                     <p className="text-sm text-gray-500 mt-0.5">
-                      Start vanaf X dagen in de toekomst
+                      {t('startOffsetDesc')}
                     </p>
                   </div>
                   <div className="flex items-center gap-3">
@@ -914,18 +972,18 @@ export default function PreScreeningSettingsPage() {
           {activeSection === 'escalatie' && (
             <section className="space-y-4">
               <div>
-                <h2 className="text-lg font-semibold text-gray-900">Escalatie naar mens</h2>
+                <h2 className="text-lg font-semibold text-gray-900">{t('escalation')}</h2>
                 <p className="text-sm text-gray-500 mt-1">
-                  Sta kandidaten toe om doorverbonden te worden met een medewerker
+                  {t('escalationDesc')}
                 </p>
               </div>
 
               <div className="space-y-3">
                 <div className="flex items-center justify-between p-4 rounded-lg border border-gray-200 bg-white">
                   <div className="flex-1">
-                    <Label className="font-medium text-gray-900">Escalatie toestaan</Label>
+                    <Label className="font-medium text-gray-900">{t('escalationAllow')}</Label>
                     <p className="text-sm text-gray-500 mt-0.5">
-                      Kandidaat kan tijdens het gesprek vragen om een mens
+                      {t('escalationAllowDesc')}
                     </p>
                   </div>
                   <Switch
@@ -941,9 +999,9 @@ export default function PreScreeningSettingsPage() {
                 >
                   <div className="p-4 rounded-lg border border-gray-200 bg-white space-y-4">
                     <div>
-                      <Label className="font-medium text-gray-900">Beschikbaarheid</Label>
+                      <Label className="font-medium text-gray-900">{t('availability')}</Label>
                       <p className="text-sm text-gray-500 mt-0.5">
-                        Op welke dagen en tijden kan er geëscaleerd worden
+                        {t('availabilityDesc')}
                       </p>
                     </div>
 
@@ -1270,6 +1328,74 @@ export default function PreScreeningSettingsPage() {
             </>
           )}
 
+          {/* ── Taal ── */}
+          {activeSection === 'taal' && (
+            <section className="space-y-6">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">{t('languageSwitching')}</h2>
+                <p className="text-sm text-gray-500 mt-1">{t('languageSwitchingDesc')}</p>
+              </div>
+
+              <div className="flex items-center justify-between p-4 rounded-lg border border-gray-200 bg-white">
+                <div className="flex-1">
+                  <Label className="font-medium text-gray-900">{t('allowLanguageSwitch')}</Label>
+                  <p className="text-sm text-gray-500 mt-0.5">{t('allowLanguageSwitchDesc')}</p>
+                </div>
+                <Switch
+                  checked={allowLanguageSwitch}
+                  onCheckedChange={setAllowLanguageSwitch}
+                />
+              </div>
+
+              <div className={`overflow-hidden transition-all duration-300 ${
+                allowLanguageSwitch ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'
+              }`}>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label className="font-medium text-gray-900">{t('allowedLanguages')}</Label>
+                      <p className="text-sm text-gray-500 mt-0.5">{t('allowedLanguagesDesc')}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (allowedLanguages.length === SUPPORTED_LANGUAGES.length) {
+                          setAllowedLanguages([]);
+                        } else {
+                          setAllowedLanguages(SUPPORTED_LANGUAGES.map(l => l.code));
+                        }
+                      }}
+                      className="text-xs font-medium text-teal-600 hover:text-teal-700 transition-colors"
+                    >
+                      {allowedLanguages.length === SUPPORTED_LANGUAGES.length ? t('deselectAll') : t('selectAll')}
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    {SUPPORTED_LANGUAGES.map(lang => (
+                      <label
+                        key={lang.code}
+                        className="flex items-center gap-2.5 p-2.5 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 cursor-pointer transition-colors"
+                      >
+                        <Checkbox
+                          checked={allowedLanguages.includes(lang.code)}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setAllowedLanguages(prev => [...prev, lang.code]);
+                            } else {
+                              setAllowedLanguages(prev => prev.filter(c => c !== lang.code));
+                            }
+                          }}
+                        />
+                        <span className="text-sm text-gray-700">{lang.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </section>
+          )}
+
           {/* ── Sollicitatie Popup ── */}
           {activeSection === 'popup' && (
             <section className="space-y-6">
@@ -1331,7 +1457,7 @@ export default function PreScreeningSettingsPage() {
                   className="gap-2 bg-blue-500 hover:bg-blue-600"
                 >
                   <Save className="w-4 h-4" />
-                  {isPopupSaving ? 'Bewaren...' : 'Popup content bewaren'}
+                  {isPopupSaving ? t('popupSaving') : t('popupSave')}
                 </Button>
               </div>
 

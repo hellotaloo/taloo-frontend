@@ -13,6 +13,7 @@ import {
   PromptInputTextarea,
 } from '@/components/prompt-kit/prompt-input';
 import { Button } from '@/components/ui/button';
+import { useTranslations } from '@/lib/i18n';
 import { GeneratedQuestion } from './question-list-message';
 import { sendFeedback, SSEEvent, Interview } from '@/lib/interview-api';
 
@@ -101,6 +102,7 @@ export function InterviewAssistant({
   highlightedQuestionText,
 }: InterviewAssistantProps) {
   const [messages, setMessages] = useState<Message[]>([]);
+  const t = useTranslations('interviewEditor');
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [feedbackStatus, setFeedbackStatus] = useState('');
@@ -287,7 +289,7 @@ export function InterviewAssistant({
       {/* Fixed collapsible vacancy context card */}
       <div className="px-6 pt-6 pb-2">
         <CollapseBox
-          title="Vacaturetekst"
+          title={t('vacancyText')}
           icon={FileText}
           open={isVacancyOpen || !!highlightedSnippet}
           onOpenChange={setIsVacancyOpen}
@@ -355,9 +357,9 @@ export function InterviewAssistant({
         <div className="px-6 py-2">
           <div className="flex flex-wrap gap-2">
             {[
-              'Analyseer interview',
-              'Dropoff detectie',
-              'Dubbel check',
+              t('analyzeInterview'),
+              t('dropoffDetection'),
+              t('doubleCheck'),
             ].map((hint) => (
               <button
                 key={hint}
@@ -381,7 +383,7 @@ export function InterviewAssistant({
           onSubmit={handleSubmit}
           className="w-full"
         >
-          <PromptInputTextarea ref={textareaRef} placeholder="Geef feedback of vraag aanpassingen..." />
+          <PromptInputTextarea ref={textareaRef} placeholder={t('feedbackPlaceholder')} />
 
           <PromptInputActions className="flex items-center justify-end gap-2 pt-2">
             <PromptInputAction tooltip="Verstuur">

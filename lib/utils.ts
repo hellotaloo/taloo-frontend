@@ -1,5 +1,6 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
+import type { Locale } from './i18n/types';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -9,53 +10,58 @@ export function cn(...inputs: ClassValue[]) {
 // Date Formatting Utilities
 // ============================================
 // All date/time formatting should use these functions for consistency.
-// Time format: Dutch style "14u31" (not "14:31")
-// Date format: "15 feb 2026" or "15 feb" (short)
+// NL time format: "14u31" — EN time format: "2:31 PM"
+// NL date format: "15 feb 2026" — EN date format: "15 Feb 2026"
+
+const INTL_LOCALE: Record<Locale, string> = { nl: 'nl-BE', en: 'en-GB' };
 
 /**
- * Format time in Dutch style: "14u31" or "14u" (if no minutes)
+ * Format time. NL: "14u31" / EN: "14:31"
  */
-export function formatTime(date: Date | string | null | undefined): string {
+export function formatTime(date: Date | string | null | undefined, locale: Locale = 'nl'): string {
   if (!date) return '-';
   const d = typeof date === 'string' ? new Date(date) : date;
   const hours = d.getHours();
   const minutes = d.getMinutes();
+  if (locale === 'en') {
+    return `${hours}:${minutes.toString().padStart(2, '0')}`;
+  }
   return minutes > 0 ? `${hours}u${minutes.toString().padStart(2, '0')}` : `${hours}u`;
 }
 
 /**
- * Format date only: "15 feb 2026"
+ * Format date only. NL: "15 feb 2026" / EN: "15 Feb 2026"
  */
-export function formatDate(date: Date | string | null | undefined, includeYear = true): string {
+export function formatDate(date: Date | string | null | undefined, includeYear = true, locale: Locale = 'nl'): string {
   if (!date) return '-';
   const d = typeof date === 'string' ? new Date(date) : date;
   const options: Intl.DateTimeFormatOptions = includeYear
     ? { day: 'numeric', month: 'short', year: 'numeric' }
     : { day: 'numeric', month: 'short' };
-  return d.toLocaleDateString('nl-BE', options);
+  return d.toLocaleDateString(INTL_LOCALE[locale], options);
 }
 
 /**
- * Format date with time: "15 feb 2026, 14u31"
+ * Format date with time. NL: "15 feb 2026, 14u31" / EN: "15 Feb 2026, 14:31"
  */
-export function formatDateTime(date: Date | string | null | undefined, includeYear = true): string {
+export function formatDateTime(date: Date | string | null | undefined, includeYear = true, locale: Locale = 'nl'): string {
   if (!date) return '-';
   const d = typeof date === 'string' ? new Date(date) : date;
-  return `${formatDate(d, includeYear)}, ${formatTime(d)}`;
+  return `${formatDate(d, includeYear, locale)}, ${formatTime(d, locale)}`;
 }
 
 /**
- * Format short timestamp (no year): "15 feb, 14u31"
+ * Format short timestamp (no year). NL: "15 feb, 14u31" / EN: "15 Feb, 14:31"
  */
-export function formatTimestamp(date: Date | string | null | undefined): string {
+export function formatTimestamp(date: Date | string | null | undefined, locale: Locale = 'nl'): string {
   if (!date) return '-';
-  return formatDateTime(date, false);
+  return formatDateTime(date, false, locale);
 }
 
 /**
- * Format relative date: "2u geleden", "3d geleden", etc.
+ * Format relative date. NL: "2u geleden" / EN: "2h ago"
  */
-export function formatRelativeDate(dateString: string | null | undefined) {
+export function formatRelativeDate(dateString: string | null | undefined, locale: Locale = 'nl') {
   if (!dateString) return '-';
   const date = new Date(dateString);
   const now = new Date();
@@ -63,6 +69,14 @@ export function formatRelativeDate(dateString: string | null | undefined) {
   const diffMins = Math.floor(diffMs / 60000);
   const diffHours = Math.floor(diffMs / 3600000);
   const diffDays = Math.floor(diffMs / 86400000);
+
+  if (locale === 'en') {
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return formatDate(date, false, 'en');
+  }
 
   if (diffMins < 1) return 'Zojuist';
   if (diffMins < 60) return `${diffMins}m geleden`;

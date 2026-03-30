@@ -57,6 +57,7 @@ import { convertToComponentApplication } from '@/lib/pre-screening-utils';
 import { usePlaygroundSession } from '@/hooks/use-playground-session';
 import { useRealtimeTable } from '@/hooks/use-realtime-table';
 import Link from 'next/link';
+import { useTranslations, useLocale } from '@/lib/i18n';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -66,6 +67,8 @@ export default function EditPreScreeningPage({ params }: PageProps) {
   const { id } = use(params);
   const router = useRouter();
   const searchParams = useSearchParams();
+  const t = useTranslations('psDetail');
+  const { locale } = useLocale();
   
   // Vacancy state
   const [vacancy, setVacancy] = useState<Vacancy | null>(null);
@@ -133,6 +136,7 @@ export default function EditPreScreeningPage({ params }: PageProps) {
   const [showTriggerInterviewDialog, setShowTriggerInterviewDialog] = useState(false);
   const [showUnsavedChangesDialog, setShowUnsavedChangesDialog] = useState(false);
   const [personaName, setPersonaName] = useState('Anna');
+  const [defaultChannels, setDefaultChannels] = useState<PublishChannels | undefined>(undefined);
   const pendingNavigationRef = useRef<(() => void) | null>(null);
   
   const prevQuestionsRef = useRef<GeneratedQuestion[]>([]);
@@ -217,9 +221,12 @@ export default function EditPreScreeningPage({ params }: PageProps) {
           getPreScreeningConfig().catch(() => null),
         ]);
 
-        // Set persona name from config
+        // Set persona name and default channels from config
         if (configData?.settings?.general?.persona_name) {
           setPersonaName(configData.settings.general.persona_name);
+        }
+        if (configData?.settings?.publishing?.default_channels) {
+          setDefaultChannels(configData.settings.publishing.default_channels);
         }
         
         setVacancy(vacancyData);
@@ -549,19 +556,19 @@ export default function EditPreScreeningPage({ params }: PageProps) {
               enable_cv: cvEnabled,
             });
             console.log('ElevenLabs agent updated with new questions');
-            toast.success('Wijzigingen opgeslagen en agent bijgewerkt');
+            toast.success(t('savedAndUpdated'));
           } catch (agentError) {
             console.error('Failed to update ElevenLabs agent:', agentError);
             // Still show success for database save, but warn about agent update
-            toast.success('Wijzigingen opgeslagen');
-            toast.error('Agent bijwerken mislukt. Publiceer opnieuw om te synchroniseren.');
+            toast.success(t('saved'));
+            toast.error(t('agentUpdateFailed'));
           }
         } else {
-          toast.success('Wijzigingen opgeslagen');
+          toast.success(t('saved'));
         }
       } catch (error) {
         console.error('Auto-save failed:', error);
-        toast.error('Opslaan mislukt. Probeer het opnieuw.');
+        toast.error(t('saveFailed'));
       } finally {
         setIsAutoSaving(false);
       }
@@ -573,7 +580,7 @@ export default function EditPreScreeningPage({ params }: PageProps) {
     if (!vacancy) return;
     
     setIsGenerating(true);
-    setCurrentStatus('Data verzamelen...');
+    setCurrentStatus(t('collectingData'));
     setThinkingContent(''); // Reset thinking content for new generation
 
     const maxRetries = 3;
@@ -611,15 +618,15 @@ export default function EditPreScreeningPage({ params }: PageProps) {
         
         if (attempt < maxRetries - 1) {
           const backoffMs = Math.pow(2, attempt) * 1000;
-          setCurrentStatus('Opnieuw proberen...');
+          setCurrentStatus(t('retrying'));
           await new Promise(resolve => setTimeout(resolve, backoffMs));
-          setCurrentStatus('Data verzamelen...');
+          setCurrentStatus(t('collectingData'));
         }
       }
     }
 
     console.error('Failed to generate interview after all retries:', lastError);
-    setInitialMessage('Er is een fout opgetreden bij het genereren van de vragen. Controleer of de backend draait en probeer het opnieuw.');
+    setInitialMessage(t('generationFailed'));
     setIsGenerated(true);
     setIsGenerating(false);
     setCurrentStatus('');
@@ -761,11 +768,11 @@ export default function EditPreScreeningPage({ params }: PageProps) {
       setIsOnline(true); // Publishing means agent is active
       updateExistingPreScreeningState(publishResult, config);
 
-      toast.success(`Wijzigingen opgeslagen en agents bijgewerkt`);
+      toast.success(t('savedAndAgentsUpdated'));
       
     } catch (error) {
       console.error('Failed to save and update:', error);
-      toast.error(error instanceof Error ? error.message : 'Opslaan mislukt. Probeer het opnieuw.');
+      toast.error(error instanceof Error ? error.message : t('saveFailed'));
     } finally {
       setIsSaving(false);
     }
@@ -807,7 +814,7 @@ export default function EditPreScreeningPage({ params }: PageProps) {
       updateExistingPreScreeningState(publishResult, config);
       
       // Show success toast
-      toast.success(`Pre-screening voor "${vacancy.title}" nu live`);
+      toast.success(t('publishSuccess', { title: vacancy.title }));
       
       // Redirect to dashboard on first publish
       if (isFirstPublish) {
@@ -816,7 +823,7 @@ export default function EditPreScreeningPage({ params }: PageProps) {
       
     } catch (error) {
       console.error('Failed to publish pre-screening:', error);
-      toast.error(error instanceof Error ? error.message : 'Publiceren mislukt. Probeer het opnieuw.');
+      toast.error(error instanceof Error ? error.message : t('publishFailed'));
       throw error; // Re-throw so the dialog knows it failed
     } finally {
       setIsSaving(false);
@@ -856,12 +863,12 @@ export default function EditPreScreeningPage({ params }: PageProps) {
       }
 
       toast.success(newOnlineStatus
-        ? `Pre-screening voor "${vacancy.title}" is nu online`
-        : `Pre-screening voor "${vacancy.title}" is nu offline`
+        ? t('nowOnline', { title: vacancy.title })
+        : t('nowOffline', { title: vacancy.title })
       );
     } catch (error) {
       console.error('Failed to update status:', error);
-      toast.error(error instanceof Error ? error.message : 'Status wijzigen mislukt. Probeer het opnieuw.');
+      toast.error(error instanceof Error ? error.message : t('statusChangeFailed'));
     } finally {
       setIsTogglingStatus(false);
     }
@@ -888,14 +895,11 @@ export default function EditPreScreeningPage({ params }: PageProps) {
       if (result.channels) {
         setIsOnline(result.channels.voice || result.channels.whatsapp || result.channels.cv);
       }
-      toast.success(enabled 
-        ? 'Voice kanaal geactiveerd' 
-        : 'Voice kanaal gedeactiveerd'
-      );
+      toast.success(enabled ? t('voiceActivated') : t('voiceDeactivated'));
     } catch (error) {
       setVoiceEnabled(previousState);
       console.error('Failed to update voice channel:', error);
-      toast.error('Kanaal wijzigen mislukt. Probeer het opnieuw.');
+      toast.error(t('channelChangeFailed'));
     }
   };
 
@@ -917,14 +921,11 @@ export default function EditPreScreeningPage({ params }: PageProps) {
       if (result.channels) {
         setIsOnline(result.channels.voice || result.channels.whatsapp || result.channels.cv);
       }
-      toast.success(enabled 
-        ? 'WhatsApp kanaal geactiveerd' 
-        : 'WhatsApp kanaal gedeactiveerd'
-      );
+      toast.success(enabled ? t('whatsappActivated') : t('whatsappDeactivated'));
     } catch (error) {
       setWhatsappEnabled(previousState);
       console.error('Failed to update whatsapp channel:', error);
-      toast.error('Kanaal wijzigen mislukt. Probeer het opnieuw.');
+      toast.error(t('channelChangeFailed'));
     }
   };
 
@@ -946,14 +947,11 @@ export default function EditPreScreeningPage({ params }: PageProps) {
       if (result.channels) {
         setIsOnline(result.channels.voice || result.channels.whatsapp || result.channels.cv);
       }
-      toast.success(enabled 
-        ? 'Smart CV kanaal geactiveerd' 
-        : 'Smart CV kanaal gedeactiveerd'
-      );
+      toast.success(enabled ? t('cvActivated') : t('cvDeactivated'));
     } catch (error) {
       setCvEnabled(previousState);
       console.error('Failed to update cv channel:', error);
-      toast.error('Kanaal wijzigen mislukt. Probeer het opnieuw.');
+      toast.error(t('channelChangeFailed'));
     }
   };
 
@@ -991,7 +989,7 @@ export default function EditPreScreeningPage({ params }: PageProps) {
   }, [endSession]);
 
   const handleQuestionClick = (question: GeneratedQuestion, index: number) => {
-    const typeLabel = question.type === 'knockout' ? 'knockout vraag' : 'kwalificatie vraag';
+    const typeLabel = question.type === 'knockout' ? t('knockoutQuestion') : t('qualificationQuestion');
     setPendingPrompt(`Ik heb een vraag over ${typeLabel} ${index}: `);
   };
 
@@ -1046,7 +1044,7 @@ export default function EditPreScreeningPage({ params }: PageProps) {
     idealAnswer?: string
   ) => {
     if (!sessionId) {
-      toast.error('Sessie niet beschikbaar. Probeer de pagina te vernieuwen.');
+      toast.error(t('sessionUnavailable'));
       return;
     }
 
@@ -1106,7 +1104,7 @@ export default function EditPreScreeningPage({ params }: PageProps) {
       setQuestions(previousQuestions);
       prevQuestionsRef.current = previousRef;
       setHighlightedIds(prev => prev.filter(id => id !== tempId));
-      toast.error(error instanceof Error ? error.message : 'Vraag toevoegen mislukt. Probeer het opnieuw.');
+      toast.error(error instanceof Error ? error.message : t('addQuestionFailed'));
     }
   };
 
@@ -1124,7 +1122,7 @@ export default function EditPreScreeningPage({ params }: PageProps) {
 
   const handleDeleteQuestion = async (questionId: string) => {
     if (!sessionId) {
-      toast.error('Sessie niet beschikbaar. Probeer de pagina te vernieuwen.');
+      toast.error(t('sessionUnavailable'));
       return;
     }
 
@@ -1163,14 +1161,14 @@ export default function EditPreScreeningPage({ params }: PageProps) {
     // Rollback on error
     setQuestions(previousQuestions);
     prevQuestionsRef.current = previousRef;
-    toast.error('Vraag verwijderen mislukt. Probeer het opnieuw.');
+    toast.error(t('deleteQuestionFailed'));
   };
 
   if (isLoadingVacancy) {
     return (
       <div className="flex items-center justify-center h-[calc(100vh-40px)]">
         <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
-        <span className="ml-2 text-gray-500">Vacature laden...</span>
+        <span className="ml-2 text-gray-500">{t('loadingVacancy')}</span>
       </div>
     );
   }
@@ -1178,9 +1176,9 @@ export default function EditPreScreeningPage({ params }: PageProps) {
   if (vacancyError || !vacancy) {
     return (
       <div className="flex flex-col items-center justify-center h-[calc(100vh-40px)]">
-        <p className="text-gray-500 mb-4">Vacature niet gevonden</p>
+        <p className="text-gray-500 mb-4">{t('vacancyNotFound')}</p>
         <Link href="/pre-screening" className="text-blue-500 hover:underline">
-          Terug naar pre-screening
+          {t('backToPreScreening')}
         </Link>
       </div>
     );
@@ -1195,7 +1193,7 @@ export default function EditPreScreeningPage({ params }: PageProps) {
       {!isTestMode && (
         <div className="h-6 bg-orange-600 text-white flex items-center justify-center gap-2 text-xs font-medium shrink-0">
           <span className="inline-block w-2 h-2 bg-white rounded-full animate-pulse" />
-          PRODUCTIE MODUS — Sollicitaties zijn echt en worden niet als test gemarkeerd
+          {t('productionWarning')}
         </div>
       )}
       <div className="flex items-center justify-between px-6 py-4">
@@ -1221,7 +1219,7 @@ export default function EditPreScreeningPage({ params }: PageProps) {
                 alt=""
                 className="w-5 h-5 rounded-sm object-contain"
               />
-              Solliciteer
+              {t('apply')}
             </button>
           )}
           {/* Three-way Toggle */}
@@ -1239,7 +1237,7 @@ export default function EditPreScreeningPage({ params }: PageProps) {
               }`}
             >
               <LayoutDashboard className="w-4 h-4" />
-              Overzicht
+              {t('tabOverview')}
             </button>
             <button
               type="button"
@@ -1251,7 +1249,7 @@ export default function EditPreScreeningPage({ params }: PageProps) {
               }`}
             >
               <Pencil className="w-4 h-4" />
-              Vragen
+              {t('tabQuestions')}
             </button>
             <button
               type="button"
@@ -1266,7 +1264,7 @@ export default function EditPreScreeningPage({ params }: PageProps) {
               }`}
             >
               <FlaskConical className="w-4 h-4" />
-              Test suite
+              {t('tabTestSuite')}
             </button>
           </div>
           
@@ -1295,7 +1293,7 @@ export default function EditPreScreeningPage({ params }: PageProps) {
               }`}
             >
               <Send className="w-4 h-4" />
-              {isSaving ? 'Bezig...' : 'Publiceren'}
+              {isSaving ? t('publishing') : t('publish')}
             </button>
           )}
         </div>
@@ -1386,7 +1384,7 @@ export default function EditPreScreeningPage({ params }: PageProps) {
                     ? "bg-green-600 text-white"
                     : "text-gray-400 hover:text-gray-600"
                 )}
-                title="WhatsApp simulatie"
+                title={t('whatsappSim')}
               >
                 <MessageCircle className="h-4 w-4" />
               </button>
@@ -1402,7 +1400,7 @@ export default function EditPreScreeningPage({ params }: PageProps) {
                     ? "bg-green-600 text-white"
                     : "text-gray-400 hover:text-gray-600"
                 )}
-                title="Voice simulatie"
+                title={t('voiceSim')}
               >
                 <Phone className="h-4 w-4" />
               </button>
@@ -1468,7 +1466,7 @@ export default function EditPreScreeningPage({ params }: PageProps) {
                     }`}
                   >
                     <Phone className="w-4 h-4" />
-                    Bel kandidaat
+                    {t('callCandidate')}
                   </button>
                 </div>
               )}
@@ -1488,7 +1486,7 @@ export default function EditPreScreeningPage({ params }: PageProps) {
                     }`}
                   >
                     <ChatBubbleLeftRightIcon className="w-4 h-4" />
-                    Handmatig
+                    {t('manual')}
                   </button>
                   <button
                     onClick={() => {
@@ -1502,14 +1500,14 @@ export default function EditPreScreeningPage({ params }: PageProps) {
                     }`}
                   >
                     <CheckCircle className="w-4 h-4" />
-                    Auto-antwoord
+                    {t('autoAnswer')}
                   </button>
                   <button
                     onClick={() => setChatResetKey(prev => prev + 1)}
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"
                   >
                     <RotateCcw className="w-4 h-4" />
-                    Herstarten
+                    {t('restart')}
                   </button>
                 </div>
               )}
@@ -1530,7 +1528,7 @@ export default function EditPreScreeningPage({ params }: PageProps) {
             {isLoadingApplications ? (
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
-                <span className="ml-2 text-gray-500">Sollicitaties laden...</span>
+                <span className="ml-2 text-gray-500">{t('loadingApplications')}</span>
               </div>
             ) : (
               <>
@@ -1546,7 +1544,7 @@ export default function EditPreScreeningPage({ params }: PageProps) {
                 </div>
                 {publishedAt && (
                   <p className="mt-4 text-xs text-gray-400">
-                    Gepubliceerd: {formatDateTime(publishedAt)}
+                    {t('publishedAt')} {formatDateTime(publishedAt, true, locale)}
                   </p>
                 )}
               </>
@@ -1571,20 +1569,20 @@ export default function EditPreScreeningPage({ params }: PageProps) {
         onOpenChange={setShowPublishDialog}
         onPublish={handlePublish}
         isRepublish={!!publishedAt}
+        defaultChannels={defaultChannels}
       />
 
       {/* Offline Confirmation Dialog */}
       <AlertDialog open={showOfflineDialog} onOpenChange={setShowOfflineDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Agent offline zetten?</AlertDialogTitle>
+            <AlertDialogTitle>{t('offlineTitle')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Als je de agent offline zet, worden nieuwe sollicitaties niet meer automatisch verwerkt. 
-              Kandidaten kunnen dan geen interview meer starten voor deze vacature.
+              {t('offlineDesc')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isTogglingStatus}>Annuleren</AlertDialogCancel>
+            <AlertDialogCancel disabled={isTogglingStatus}>{t('cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={async (e) => {
                 e.preventDefault();
@@ -1594,7 +1592,7 @@ export default function EditPreScreeningPage({ params }: PageProps) {
               disabled={isTogglingStatus}
               className="bg-red-600 hover:bg-red-700"
             >
-              {isTogglingStatus ? 'Bezig...' : 'Offline zetten'}
+              {isTogglingStatus ? t('goingOffline') : t('goOffline')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -1617,19 +1615,18 @@ export default function EditPreScreeningPage({ params }: PageProps) {
       <AlertDialog open={showUnsavedChangesDialog} onOpenChange={setShowUnsavedChangesDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Wijzigingen niet opgeslagen</AlertDialogTitle>
+            <AlertDialogTitle>{t('unsavedTitle')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Je hebt wijzigingen die nog niet zijn opgeslagen. Weet je zeker dat je wilt vertrekken? 
-              Je wijzigingen gaan verloren.
+              {t('unsavedDesc')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Blijven</AlertDialogCancel>
+            <AlertDialogCancel>{t('stay')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmLeave}
               className="bg-red-600 hover:bg-red-700"
             >
-              Vertrekken
+              {t('leave')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

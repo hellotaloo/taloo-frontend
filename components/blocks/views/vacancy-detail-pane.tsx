@@ -43,6 +43,7 @@ import { getCandidates, getWorkstationSheet, setWorkstationSheetParam, deleteWor
 import { getCandidacies, createCandidacy } from '@/lib/candidacy-api';
 import { APIVacancyDetail, APIActivityResponse, APIApplicantSummary, VacancyAgents, AgentStatusInfo, Candidacy, CandidacyStage, APICandidateListItem } from '@/lib/types';
 import { toast } from 'sonner';
+import { useTranslations, useLocale } from '@/lib/i18n';
 
 export interface VacancyDetailPaneProps {
   vacancy: APIVacancyDetail | null;
@@ -85,18 +86,18 @@ const channelIcons: Record<string, typeof MessageSquare> = {
   web: Globe,
 };
 
-function formatDate(dateString: string) {
+function formatDate(dateString: string, locale: string = 'nl-BE') {
   const date = new Date(dateString);
-  return date.toLocaleDateString('nl-BE', {
+  return date.toLocaleDateString(locale === 'en' ? 'en-GB' : 'nl-BE', {
     day: 'numeric',
     month: 'short',
     year: 'numeric',
   });
 }
 
-function formatDateTime(dateString: string) {
+function formatDateTime(dateString: string, locale: string = 'nl-BE') {
   const date = new Date(dateString);
-  return date.toLocaleDateString('nl-BE', {
+  return date.toLocaleDateString(locale === 'en' ? 'en-GB' : 'nl-BE', {
     day: 'numeric',
     month: 'short',
     year: 'numeric',
@@ -106,6 +107,7 @@ function formatDateTime(dateString: string) {
 }
 
 function TimelineEvent({ activity, isLast }: { activity: APIActivityResponse; isLast: boolean }) {
+  const { locale } = useLocale();
   const config = eventTypeConfig[activity.event_type] || eventTypeConfig.default;
   const Icon = config.icon;
   const ChannelIconComponent = activity.channel ? channelIcons[activity.channel] : null;
@@ -148,7 +150,7 @@ function TimelineEvent({ activity, isLast }: { activity: APIActivityResponse; is
             </div>
           </div>
           <span className="text-[10px] text-gray-400 whitespace-nowrap">
-            {formatDateTime(activity.created_at)}
+            {formatDateTime(activity.created_at, locale)}
           </span>
         </div>
       </div>
@@ -178,6 +180,8 @@ const agentTypeConfig: Record<string, { label: string; icon: typeof PhoneCall; d
 };
 
 function AgentCard({ type, agent }: { type: string; agent: AgentStatusInfo }) {
+  const t = useTranslations('vacancyDetail');
+  const { locale } = useLocale();
   const config = agentTypeConfig[type];
   if (!config || !agent.exists) return null;
 
@@ -198,7 +202,7 @@ function AgentCard({ type, agent }: { type: string; agent: AgentStatusInfo }) {
         </div>
         {agent.status !== null && (
           <StatusBadge
-            label={agent.status === 'online' ? 'Online' : 'Offline'}
+            label={agent.status === 'online' ? t('online') : t('offline')}
             variant={agent.status === 'online' ? 'green' : 'gray'}
           />
         )}
@@ -212,7 +216,7 @@ function AgentCard({ type, agent }: { type: string; agent: AgentStatusInfo }) {
             <p className="text-lg font-semibold text-gray-900">{agent.total_screenings}</p>
           </div>
           <div>
-            <p className="text-[10px] font-medium text-gray-500 uppercase tracking-wide">Gekwalificeerd</p>
+            <p className="text-[10px] font-medium text-gray-500 uppercase tracking-wide">{t('qualified')}</p>
             <p className="text-lg font-semibold text-gray-900">
               {agent.qualified_count ?? 0}
               {agent.qualification_rate !== undefined && (
@@ -225,7 +229,7 @@ function AgentCard({ type, agent }: { type: string; agent: AgentStatusInfo }) {
           <div>
             <p className="text-[10px] font-medium text-gray-500 uppercase tracking-wide">Laatste</p>
             <p className="text-sm font-medium text-gray-900">
-              {agent.last_activity_at ? formatDate(agent.last_activity_at) : '-'}
+              {agent.last_activity_at ? formatDate(agent.last_activity_at, locale) : '-'}
             </p>
           </div>
         </div>
@@ -295,6 +299,7 @@ interface AddCandidateModalProps {
 }
 
 function AddCandidateModal({ vacancyId, onSuccess, onClose }: AddCandidateModalProps) {
+  const t = useTranslations('vacancyDetail');
   const [query, setQuery] = useState('');
   const [allCandidates, setAllCandidates] = useState<APICandidateListItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -306,13 +311,13 @@ function AddCandidateModal({ vacancyId, onSuccess, onClose }: AddCandidateModalP
         const resp = await getCandidates({ limit: 100 });
         setAllCandidates(resp.items);
       } catch {
-        toast.error('Kon kandidaten niet laden');
+        toast.error(t('candidatesLoadFailed'));
       } finally {
         setLoading(false);
       }
     }
     fetchCandidates();
-  }, []);
+  }, [t]);
 
   const filtered = query.trim()
     ? allCandidates.filter(
@@ -350,7 +355,7 @@ function AddCandidateModal({ vacancyId, onSuccess, onClose }: AddCandidateModalP
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Kandidaat toevoegen</DialogTitle>
+          <DialogTitle>{t('addCandidate')}</DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
           <div className="relative">
@@ -389,7 +394,7 @@ function AddCandidateModal({ vacancyId, onSuccess, onClose }: AddCandidateModalP
               ))}
             </div>
           ) : (
-            <p className="text-sm text-gray-400 text-center py-4">Geen kandidaten gevonden</p>
+            <p className="text-sm text-gray-400 text-center py-4">{t('noCandidatesFound')}</p>
           )}
         </div>
       </DialogContent>
@@ -557,6 +562,7 @@ function TabsSection({
   description?: string;
   onCandidateClick?: (candidateId: string) => void;
 }) {
+  const t = useTranslations('vacancyDetail');
   const [activeTab, setActiveTab] = useState<TabType>('timeline');
   const [candidacies, setCandidacies] = useState<Candidacy[]>([]);
   const [candidaciesLoading, setCandidaciesLoading] = useState(false);
@@ -570,7 +576,7 @@ function TabsSection({
       const result = await getCandidacies({ vacancy_id: vacancyId });
       setCandidacies(result.items);
     } catch {
-      toast.error('Kon kandidaten niet laden');
+      toast.error(t('candidatesLoadFailed'));
     } finally {
       setCandidaciesLoading(false);
     }
@@ -603,10 +609,10 @@ function TabsSection({
       <div className="shrink-0 border-b border-gray-200 px-6">
         <div className="flex gap-6">
           {([
-            { key: 'timeline' as const, label: 'Tijdlijn', count: timeline.length },
-            { key: 'candidates' as const, label: 'Kandidaten', count: candidaciesLoading ? -1 : candidacies.length },
-            { key: 'werkpostfiche' as const, label: 'Werkpostfiche', count: werkpostfiche.length },
-            { key: 'description' as const, label: 'Vacaturetekst', count: 0 },
+            { key: 'timeline' as const, label: t('timeline'), count: timeline.length },
+            { key: 'candidates' as const, label: t('candidates'), count: candidaciesLoading ? -1 : candidacies.length },
+            { key: 'werkpostfiche' as const, label: t('werkpostfiche'), count: werkpostfiche.length },
+            { key: 'description' as const, label: t('vacancyText'), count: 0 },
             { key: 'agents' as const, label: 'Agents', count: activeAgentsCount },
           ]).map(tab => {
             const isActive = activeTab === tab.key;
@@ -653,7 +659,7 @@ function TabsSection({
                 onClick={() => setShowAddModal(true)}
               >
                 <Plus className="w-3 h-3" />
-                Kandidaat toevoegen
+                {t('addCandidate')}
               </Button>
             </div>
             {candidaciesLoading ? (
@@ -668,7 +674,7 @@ function TabsSection({
               </div>
             ) : (
               <p className="text-sm text-gray-400 text-center py-8">
-                Geen kandidaten
+                {t('noCandidates')}
               </p>
             )}
           </div>
@@ -713,7 +719,7 @@ function TabsSection({
               </div>
             ) : (
               <p className="text-sm text-gray-400 text-center py-8">
-                Geen activiteit
+                {t('noActivity')}
               </p>
             )}
           </div>
@@ -808,6 +814,8 @@ const singleChannelIcons: Record<string, { icon: typeof MessageSquare; label: st
 };
 
 function ApplicantRow({ applicant }: { applicant: APIApplicantSummary }) {
+  const t = useTranslations('vacancyDetail');
+  const { locale } = useLocale();
   const channelConfig = singleChannelIcons[applicant.channel];
   const ChannelIconComponent = channelConfig?.icon;
 
@@ -830,7 +838,7 @@ function ApplicantRow({ applicant }: { applicant: APIApplicantSummary }) {
           {ChannelIconComponent && (
             <ChannelIconComponent className="w-3 h-3" />
           )}
-          <span>{formatDate(applicant.started_at)}</span>
+          <span>{formatDate(applicant.started_at, locale)}</span>
           {applicant.score !== undefined && (
             <span>• Score: {applicant.score}%</span>
           )}
@@ -839,7 +847,7 @@ function ApplicantRow({ applicant }: { applicant: APIApplicantSummary }) {
 
       {/* Status indicator */}
       <StatusBadge
-        label={applicant.qualified ? 'Gekwalificeerd' : applicant.status === 'completed' ? 'Niet gekwalificeerd' : 'Bezig'}
+        label={applicant.qualified ? t('qualified') : applicant.status === 'completed' ? t('notQualified') : t('processing')}
         variant={applicant.qualified ? 'green' : applicant.status === 'completed' ? 'red' : 'orange'}
       />
     </div>
@@ -849,6 +857,8 @@ function ApplicantRow({ applicant }: { applicant: APIApplicantSummary }) {
 // ─── Inline start date editor ────────────────────────────────────────────────
 
 function StartDateField({ vacancyId, value }: { vacancyId: string; value?: string | null }) {
+  const t = useTranslations('vacancyDetail');
+  const { locale } = useLocale();
   const [editing, setEditing] = useState(false);
   const [savedValue, setSavedValue] = useState(value ?? '');
   const [dateValue, setDateValue] = useState(value ?? '');
@@ -865,7 +875,7 @@ function StartDateField({ vacancyId, value }: { vacancyId: string; value?: strin
       await patchVacancy(vacancyId, { start_date: newValue || null });
       setSavedValue(newValue);
       setEditing(false);
-      toast.success('Startdatum opgeslagen');
+      toast.success(t('startDateSaved'));
     } catch {
       toast.error('Opslaan mislukt');
     } finally {
@@ -874,7 +884,7 @@ function StartDateField({ vacancyId, value }: { vacancyId: string; value?: strin
   };
 
   const formattedDate = savedValue
-    ? new Date(savedValue + 'T00:00:00').toLocaleDateString('nl-BE', { day: 'numeric', month: 'long', year: 'numeric' })
+    ? new Date(savedValue + 'T00:00:00').toLocaleDateString(locale === 'en' ? 'en-GB' : 'nl-BE', { day: 'numeric', month: 'long', year: 'numeric' })
     : null;
 
   if (editing) {
@@ -913,6 +923,9 @@ function StartDateField({ vacancyId, value }: { vacancyId: string; value?: strin
 }
 
 export function VacancyDetailPane({ vacancy, isLoading, onClose, onCandidateClick }: VacancyDetailPaneProps) {
+  const t = useTranslations('vacancyDetail');
+  const { locale } = useLocale();
+
   if (isLoading) {
     return (
       <div className="flex flex-col h-full bg-white">
@@ -943,7 +956,7 @@ export function VacancyDetailPane({ vacancy, isLoading, onClose, onCandidateClic
             <div className="flex items-center gap-3">
               <h2 className="text-lg font-semibold text-gray-900">{vacancy.title}</h2>
               <StatusBadge
-                      label={vacancy.is_online === true ? 'Online' : vacancy.is_online === false ? 'Offline' : 'Concept'}
+                      label={vacancy.is_online === true ? t('online') : vacancy.is_online === false ? t('offline') : 'Concept'}
                       variant={vacancy.is_online === true ? 'green' : vacancy.is_online === false ? 'gray' : 'orange'}
                     />
             </div>
@@ -970,7 +983,7 @@ export function VacancyDetailPane({ vacancy, isLoading, onClose, onCandidateClic
           {/* Candidates */}
           <div className="bg-gray-50 rounded-lg p-3">
             <p className="text-[10px] font-medium text-gray-500 uppercase tracking-wide mb-1">
-              Kandidaten
+              {t('candidates')}
             </p>
             <p className="text-sm font-semibold text-gray-900">
               {vacancy.candidates_count}
@@ -980,7 +993,7 @@ export function VacancyDetailPane({ vacancy, isLoading, onClose, onCandidateClic
           {/* Start date */}
           <div className="bg-gray-50 rounded-lg p-3">
             <p className="text-[10px] font-medium text-gray-500 uppercase tracking-wide mb-1">
-              Startdatum
+              {t('startDate')}
             </p>
             <StartDateField vacancyId={vacancy.id} value={vacancy.start_date} />
           </div>
@@ -988,7 +1001,7 @@ export function VacancyDetailPane({ vacancy, isLoading, onClose, onCandidateClic
           {/* Qualified */}
           <div className="bg-gray-50 rounded-lg p-3">
             <p className="text-[10px] font-medium text-gray-500 uppercase tracking-wide mb-1">
-              Gekwalificeerd
+              {t('qualified')}
             </p>
             {vacancy.completed_count > 0 ? (
               <p className="text-sm font-semibold text-gray-900">
@@ -1025,7 +1038,7 @@ export function VacancyDetailPane({ vacancy, isLoading, onClose, onCandidateClic
                     )}
                   </div>
                   <span className="text-[10px] font-medium text-gray-400 uppercase tracking-wide shrink-0">
-                    Recruiter
+                    {t('recruiter')}
                   </span>
                 </div>
                 {(vacancy.recruiter.email || vacancy.recruiter.phone) && (
@@ -1061,7 +1074,7 @@ export function VacancyDetailPane({ vacancy, isLoading, onClose, onCandidateClic
                     )}
                   </div>
                   <span className="text-[10px] font-medium text-gray-400 uppercase tracking-wide shrink-0">
-                    Kantoor
+                    {t('office')}
                   </span>
                 </div>
                 {(vacancy.office.email || vacancy.office.phone) && (
@@ -1089,12 +1102,12 @@ export function VacancyDetailPane({ vacancy, isLoading, onClose, onCandidateClic
         <div className="flex items-center gap-4 mt-4 text-xs text-gray-400">
           <span className="flex items-center gap-1">
             <Calendar className="w-3 h-3" />
-            Synced: {formatDate(vacancy.created_at)}
+            {t('synced')} {formatDate(vacancy.created_at, locale)}
           </span>
           {vacancy.last_activity_at && (
             <span className="flex items-center gap-1">
               <Briefcase className="w-3 h-3" />
-              Laatste activiteit: {formatDate(vacancy.last_activity_at)}
+              Laatste activiteit: {formatDate(vacancy.last_activity_at, locale)}
             </span>
           )}
           {vacancy.source === 'salesforce' && vacancy.source_url && (

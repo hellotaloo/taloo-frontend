@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Application } from './dashboard-metrics';
 import { formatDateTime } from '@/lib/utils';
+import { useTranslations, useLocale } from '@/lib/i18n';
 
 interface ApplicationDetailPaneProps {
   application: Application | null;
@@ -12,6 +13,8 @@ interface ApplicationDetailPaneProps {
 }
 
 export function ApplicationDetailPane({ application, onClose }: ApplicationDetailPaneProps) {
+  const t = useTranslations('appDashboard');
+  const { locale } = useLocale();
   if (!application) return null;
 
   const knockoutAnswers = application.answers.filter(a => a.questionType === 'knockout');
@@ -78,10 +81,10 @@ export function ApplicationDetailPane({ application, onClose }: ApplicationDetai
             <CompactStatusCard
               label="Status"
               value={
-                application.status === 'completed' ? 'Afgerond' :
-                application.status === 'processing' ? 'Verwerken...' :
-                application.status === 'abandoned' ? 'Afgebroken' :
-                'Bezig'
+                application.status === 'completed' ? t('statusCompleted') :
+                application.status === 'processing' ? t('processing') :
+                application.status === 'abandoned' ? t('abandoned') :
+                t('processing')
               }
               icon={application.status === 'completed' ? CheckCircle : Clock}
               variant={
@@ -91,8 +94,8 @@ export function ApplicationDetailPane({ application, onClose }: ApplicationDetai
               }
             />
             <CompactStatusCard
-              label="Kwalificatie"
-              value={application.status === 'completed' ? (application.qualified ? 'Gekwalificeerd' : 'Niet gekwalificeerd') : '-'}
+              label={t('qualified')}
+              value={application.status === 'completed' ? (application.qualified ? t('statusQualified') : t('statusNotQualified')) : '-'}
               icon={application.status === 'completed' ? (application.qualified ? Award : UserX) : Award}
               variant={application.status === 'completed' ? (application.qualified ? 'success' : 'error') : 'neutral'}
             />
